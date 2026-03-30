@@ -1,0 +1,30 @@
+@config "../tailwind.config.js";
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-slate-50);
+  color: var(--color-slate-950);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: var(--color-slate-950);
+  color: var(--color-slate-100);
+}
