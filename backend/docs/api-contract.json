@@ -1,0 +1,406 @@
+{
+  "metadata": {
+    "name": "Smart Event Management Backend API",
+    "version": "1.0.0",
+    "lastUpdated": "2026-04-08",
+    "baseUrl": "http://localhost:5000"
+  },
+  "authentication": {
+    "type": "bearer-jwt",
+    "header": "Authorization",
+    "format": "Bearer <token>"
+  },
+  "roles": ["attendee", "organizer", "admin"],
+  "notes": {
+    "dateFormat": "ISO-8601 string",
+    "uuidFormat": "string",
+    "decimalSerialization": "Prisma Decimal values are serialized as strings in JSON",
+    "responseException": "GET /api/auth/me returns success and data without message on success"
+  },
+  "schemas": {
+    "authUser": {
+      "id": "string(uuid)",
+      "first_name": "string",
+      "last_name": "string",
+      "email": "string",
+      "role": "string(attendee|organizer|admin)"
+    },
+    "userProfile": {
+      "id": "string(uuid)",
+      "first_name": "string",
+      "last_name": "string",
+      "email": "string",
+      "role": "string(attendee|organizer|admin)",
+      "created_at": "string(datetime)"
+    },
+    "eventPublic": {
+      "id": "string(uuid)",
+      "title": "string",
+      "description": "string|null",
+      "category": "string|null",
+      "location": "string|null",
+      "event_date": "string(datetime)",
+      "capacity": "number",
+      "price": "string(decimal)",
+      "organizer_id": "string(uuid)",
+      "created_at": "string(datetime)",
+      "first_name": "string",
+      "last_name": "string",
+      "organizer_email": "string"
+    },
+    "eventWriteResult": {
+      "id": "string(uuid)",
+      "title": "string",
+      "description": "string|null",
+      "category": "string|null",
+      "location": "string|null",
+      "event_date": "string(datetime)",
+      "capacity": "number",
+      "price": "string(decimal)",
+      "organizer_id": "string(uuid)",
+      "created_at": "string(datetime)"
+    },
+    "booking": {
+      "id": "string(uuid)",
+      "user_id": "string(uuid)",
+      "event_id": "string(uuid)",
+      "booking_date": "string(datetime)",
+      "status": "string(confirmed|cancelled)"
+    },
+    "bookingWithEvent": {
+      "id": "string(uuid)",
+      "user_id": "string(uuid)",
+      "event_id": "string(uuid)",
+      "booking_date": "string(datetime)",
+      "status": "string(confirmed|cancelled)",
+      "title": "string",
+      "description": "string|null",
+      "category": "string|null",
+      "location": "string|null",
+      "event_date": "string(datetime)",
+      "capacity": "number",
+      "price": "string(decimal)",
+      "organizer_id": "string(uuid)"
+    }
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/",
+      "authRequired": false,
+      "allowedRoles": ["public"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Smart Event Management API is running"
+        }
+      },
+      "commonErrors": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/test/db",
+      "authRequired": false,
+      "allowedRoles": ["public"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Database connection successful",
+          "data": {
+            "connected": true,
+            "user_count": "number"
+          }
+        }
+      },
+      "commonErrors": [
+        {
+          "status": 500,
+          "message": "Database connection failed"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "authRequired": false,
+      "allowedRoles": ["public"],
+      "requestBody": {
+        "first_name": { "type": "string", "required": true },
+        "last_name": { "type": "string", "required": true },
+        "email": { "type": "string", "required": true },
+        "password": { "type": "string", "required": true },
+        "role": {
+          "type": "string",
+          "required": false,
+          "allowedValues": ["attendee", "organizer"],
+          "fallback": "attendee"
+        }
+      },
+      "successResponse": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "User registered successfully",
+          "data": {
+            "token": "string",
+            "user": "authUser"
+          }
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "All fields are required" },
+        { "status": 400, "message": "Email already in use" },
+        { "status": 500, "message": "Server error during registration" }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "authRequired": false,
+      "allowedRoles": ["public"],
+      "requestBody": {
+        "email": { "type": "string", "required": true },
+        "password": { "type": "string", "required": true }
+      },
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Login successful",
+          "data": {
+            "token": "string",
+            "user": "authUser"
+          }
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "Invalid credentials" },
+        { "status": 500, "message": "Server error during login" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "authRequired": true,
+      "allowedRoles": ["attendee", "organizer", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "data": "userProfile"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 401, "message": "Token invalid" },
+        { "status": 500, "message": "Server error" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/events",
+      "authRequired": false,
+      "allowedRoles": ["public"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Events retrieved successfully",
+          "data": ["eventPublic"]
+        }
+      },
+      "commonErrors": [
+        { "status": 500, "message": "Server error while fetching events" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id",
+      "authRequired": false,
+      "allowedRoles": ["public"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Event retrieved successfully",
+          "data": "eventPublic"
+        }
+      },
+      "commonErrors": [
+        { "status": 404, "message": "Event not found" },
+        { "status": 500, "message": "Server error while fetching event" }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/events",
+      "authRequired": true,
+      "allowedRoles": ["organizer", "admin"],
+      "requestBody": {
+        "title": { "type": "string", "required": true },
+        "description": { "type": "string", "required": true },
+        "category": { "type": "string", "required": true },
+        "location": { "type": "string", "required": true },
+        "event_date": { "type": "string(datetime)", "required": true },
+        "capacity": { "type": "number", "required": true, "minimum": 1 },
+        "price": { "type": "number", "required": true, "minimum": 0 }
+      },
+      "successResponse": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "Event created successfully",
+          "data": "eventWriteResult"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
+        { "status": 400, "message": "All event fields are required" },
+        { "status": 400, "message": "Capacity must be a positive number" },
+        { "status": 400, "message": "Price must be a valid number greater than or equal to 0" },
+        { "status": 500, "message": "Server error while creating event" }
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/events/:id",
+      "authRequired": true,
+      "allowedRoles": ["organizer", "admin"],
+      "requestBody": {
+        "title": { "type": "string", "required": true },
+        "description": { "type": "string", "required": true },
+        "category": { "type": "string", "required": true },
+        "location": { "type": "string", "required": true },
+        "event_date": { "type": "string(datetime)", "required": true },
+        "capacity": { "type": "number", "required": true, "minimum": 1 },
+        "price": { "type": "number", "required": true, "minimum": 0 }
+      },
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Event updated successfully",
+          "data": "eventWriteResult"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
+        { "status": 404, "message": "Event not found" },
+        { "status": 403, "message": "Access denied. You can only update your own events" },
+        { "status": 400, "message": "All event fields are required" },
+        { "status": 400, "message": "Capacity must be a positive number" },
+        { "status": 400, "message": "Price must be a valid number greater than or equal to 0" },
+        { "status": 500, "message": "Server error while updating event" }
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/events/:id",
+      "authRequired": true,
+      "allowedRoles": ["organizer", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Event deleted successfully",
+          "data": "eventWriteResult"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
+        { "status": 404, "message": "Event not found" },
+        { "status": 403, "message": "Access denied. You can only delete your own events" },
+        { "status": 500, "message": "Server error while deleting event" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bookings/my-bookings",
+      "authRequired": true,
+      "allowedRoles": ["attendee", "organizer", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Bookings retrieved successfully",
+          "data": ["bookingWithEvent"]
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 401, "message": "Token invalid" },
+        { "status": 500, "message": "Server error while fetching bookings" }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/bookings",
+      "authRequired": true,
+      "allowedRoles": ["attendee", "organizer", "admin"],
+      "requestBody": {
+        "event_id": { "type": "string(uuid)", "required": true }
+      },
+      "successResponse": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "Booking created successfully",
+          "data": "booking"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 401, "message": "Token invalid" },
+        { "status": 400, "message": "Event ID is required" },
+        { "status": 404, "message": "Event not found" },
+        { "status": 409, "message": "You have already booked this event" },
+        { "status": 400, "message": "This event is fully booked" },
+        { "status": 500, "message": "Server error while creating booking" }
+      ],
+      "behaviorNotes": [
+        "If a cancelled booking already exists for the same user and event, the backend reactivates it and still returns 201."
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/bookings/:id/cancel",
+      "authRequired": true,
+      "allowedRoles": ["attendee", "organizer", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Booking cancelled successfully",
+          "data": "booking"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 401, "message": "Token invalid" },
+        { "status": 404, "message": "Booking not found" },
+        { "status": 403, "message": "Access denied. You can only cancel your own bookings" },
+        { "status": 400, "message": "Booking is already cancelled" },
+        { "status": 500, "message": "Server error while cancelling booking" }
+      ]
+    }
+  ],
+  "pendingFeatures": [
+    "Feedback endpoints",
+    "Admin-specific supervision endpoints",
+    "Event filtering and pagination",
+    "Booking management endpoints beyond my-bookings"
+  ]
+}

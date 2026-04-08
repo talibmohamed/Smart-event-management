@@ -1,0 +1,389 @@
+# Smart Event Management API Spec
+
+Last updated: 2026-04-08
+
+## Global Rules
+
+- Base URL in local development: `http://localhost:5000`
+- Content type: `application/json`
+- Protected routes require `Authorization: Bearer <jwt>`
+- Roles: `attendee`, `organizer`, `admin`
+- Dates are returned as ISO strings
+- `price` is returned as a string because Prisma serializes `Decimal` values as strings
+- `GET /api/auth/me` is the only current success response that does not include `message`
+
+## Endpoints
+
+### `GET /`
+
+- Auth: no
+- Allowed roles: all
+- Request body: none
+- Success: `200 { "success": true, "message": "Smart Event Management API is running" }`
+- Common errors: none
+
+### `GET /api/test/db`
+
+- Auth: no
+- Allowed roles: all
+- Request body: none
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Database connection successful",
+  "data": {
+    "connected": true,
+    "user_count": 3
+  }
+}
+```
+
+- Common errors:
+  - `500 { "success": false, "message": "Database connection failed", "error": "..." }`
+
+### `POST /api/auth/register`
+
+- Auth: no
+- Allowed roles: all
+- Request body:
+
+```json
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "password": "secret123",
+  "role": "attendee"
+}
+```
+
+- Notes:
+  - `first_name`, `last_name`, `email`, and `password` are required
+  - `role` is optional
+  - Allowed self-registration roles are `attendee` and `organizer`
+  - Any other role is stored as `attendee`
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "token": "<jwt>",
+    "user": {
+      "id": "uuid",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com",
+      "role": "attendee"
+    }
+  }
+}
+```
+
+- Common errors:
+  - `400 { "success": false, "message": "All fields are required" }`
+  - `400 { "success": false, "message": "Email already in use" }`
+  - `500 { "success": false, "message": "Server error during registration", "error": "..." }`
+
+### `POST /api/auth/login`
+
+- Auth: no
+- Allowed roles: all
+- Request body:
+
+```json
+{
+  "email": "john@example.com",
+  "password": "secret123"
+}
+```
+
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "<jwt>",
+    "user": {
+      "id": "uuid",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com",
+      "role": "attendee"
+    }
+  }
+}
+```
+
+- Common errors:
+  - `400 { "success": false, "message": "Invalid credentials" }`
+  - `500 { "success": false, "message": "Server error during login", "error": "..." }`
+
+### `GET /api/auth/me`
+
+- Auth: yes
+- Allowed roles: `attendee`, `organizer`, `admin`
+- Request body: none
+- Success:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "role": "attendee",
+    "created_at": "2026-04-08T10:00:00.000Z"
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `401 { "success": false, "message": "Token invalid" }`
+  - `500 { "success": false, "message": "Server error", "error": "..." }`
+
+### `GET /api/events`
+
+- Auth: no
+- Allowed roles: all
+- Request body: none
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Events retrieved successfully",
+  "data": [
+    {
+      "id": "uuid",
+      "title": "AI Workshop",
+      "description": "Hands-on session",
+      "category": "Technology",
+      "location": "Campus Hall",
+      "event_date": "2026-05-01T09:00:00.000Z",
+      "capacity": 100,
+      "price": "10.00",
+      "organizer_id": "uuid",
+      "created_at": "2026-04-08T10:00:00.000Z",
+      "first_name": "Jane",
+      "last_name": "Smith",
+      "organizer_email": "jane@example.com"
+    }
+  ]
+}
+```
+
+- Common errors:
+  - `500 { "success": false, "message": "Server error while fetching events", "error": "..." }`
+
+### `GET /api/events/:id`
+
+- Auth: no
+- Allowed roles: all
+- Request body: none
+- Success: same event object shape as `GET /api/events`
+- Common errors:
+  - `404 { "success": false, "message": "Event not found" }`
+  - `500 { "success": false, "message": "Server error while fetching event", "error": "..." }`
+
+### `POST /api/events`
+
+- Auth: yes
+- Allowed roles: `organizer`, `admin`
+- Request body:
+
+```json
+{
+  "title": "AI Workshop",
+  "description": "Hands-on session",
+  "category": "Technology",
+  "location": "Campus Hall",
+  "event_date": "2026-05-01T09:00:00.000Z",
+  "capacity": 100,
+  "price": 10
+}
+```
+
+- Notes:
+  - All fields above are required
+  - `organizer_id` is taken from the token
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Event created successfully",
+  "data": {
+    "id": "uuid",
+    "title": "AI Workshop",
+    "description": "Hands-on session",
+    "category": "Technology",
+    "location": "Campus Hall",
+    "event_date": "2026-05-01T09:00:00.000Z",
+    "capacity": 100,
+    "price": "10.00",
+    "organizer_id": "uuid",
+    "created_at": "2026-04-08T10:00:00.000Z"
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Insufficient permissions" }`
+  - `400 { "success": false, "message": "All event fields are required" }`
+  - `400 { "success": false, "message": "Capacity must be a positive number" }`
+  - `400 { "success": false, "message": "Price must be a valid number greater than or equal to 0" }`
+  - `500 { "success": false, "message": "Server error while creating event", "error": "..." }`
+
+### `PUT /api/events/:id`
+
+- Auth: yes
+- Allowed roles: `organizer`, `admin`
+- Request body: same as `POST /api/events`
+- Notes:
+  - Current implementation expects the full event payload
+  - Organizers can update only their own events
+  - Admins can update any event
+- Success: same event object shape as `POST /api/events`
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Insufficient permissions" }`
+  - `404 { "success": false, "message": "Event not found" }`
+  - `403 { "success": false, "message": "Access denied. You can only update your own events" }`
+  - `400 { "success": false, "message": "All event fields are required" }`
+  - `400 { "success": false, "message": "Capacity must be a positive number" }`
+  - `400 { "success": false, "message": "Price must be a valid number greater than or equal to 0" }`
+  - `500 { "success": false, "message": "Server error while updating event", "error": "..." }`
+
+### `DELETE /api/events/:id`
+
+- Auth: yes
+- Allowed roles: `organizer`, `admin`
+- Request body: none
+- Notes:
+  - Organizers can delete only their own events
+  - Admins can delete any event
+- Success: same event object shape as `POST /api/events`
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Insufficient permissions" }`
+  - `404 { "success": false, "message": "Event not found" }`
+  - `403 { "success": false, "message": "Access denied. You can only delete your own events" }`
+  - `500 { "success": false, "message": "Server error while deleting event", "error": "..." }`
+
+### `GET /api/bookings/my-bookings`
+
+- Auth: yes
+- Allowed roles: `attendee`, `organizer`, `admin`
+- Request body: none
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Bookings retrieved successfully",
+  "data": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "event_id": "uuid",
+      "booking_date": "2026-04-08T10:00:00.000Z",
+      "status": "confirmed",
+      "title": "AI Workshop",
+      "description": "Hands-on session",
+      "category": "Technology",
+      "location": "Campus Hall",
+      "event_date": "2026-05-01T09:00:00.000Z",
+      "capacity": 100,
+      "price": "10.00",
+      "organizer_id": "uuid"
+    }
+  ]
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `401 { "success": false, "message": "Token invalid" }`
+  - `500 { "success": false, "message": "Server error while fetching bookings", "error": "..." }`
+
+### `POST /api/bookings`
+
+- Auth: yes
+- Allowed roles: `attendee`, `organizer`, `admin`
+- Request body:
+
+```json
+{
+  "event_id": "uuid"
+}
+```
+
+- Notes:
+  - One confirmed booking per user per event
+  - If a cancelled booking exists for the same user and event, backend reactivates it and still returns `201`
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Booking created successfully",
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "event_id": "uuid",
+    "booking_date": "2026-04-08T10:00:00.000Z",
+    "status": "confirmed"
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `401 { "success": false, "message": "Token invalid" }`
+  - `400 { "success": false, "message": "Event ID is required" }`
+  - `404 { "success": false, "message": "Event not found" }`
+  - `409 { "success": false, "message": "You have already booked this event" }`
+  - `400 { "success": false, "message": "This event is fully booked" }`
+  - `500 { "success": false, "message": "Server error while creating booking", "error": "..." }`
+
+### `PUT /api/bookings/:id/cancel`
+
+- Auth: yes
+- Allowed roles: `attendee`, `organizer`, `admin`
+- Request body: none
+- Notes:
+  - Users can cancel their own bookings
+  - Admins can cancel any booking
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Booking cancelled successfully",
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "event_id": "uuid",
+    "booking_date": "2026-04-08T10:00:00.000Z",
+    "status": "cancelled"
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `401 { "success": false, "message": "Token invalid" }`
+  - `404 { "success": false, "message": "Booking not found" }`
+  - `403 { "success": false, "message": "Access denied. You can only cancel your own bookings" }`
+  - `400 { "success": false, "message": "Booking is already cancelled" }`
+  - `500 { "success": false, "message": "Server error while cancelling booking", "error": "..." }`
