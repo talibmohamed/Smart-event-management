@@ -1,4 +1,29 @@
-import pool from "../config/db.js";
+import prisma from "../config/prisma.js";
+
+const eventWithOrganizer = {
+  organizer: {
+    select: {
+      first_name: true,
+      last_name: true,
+      email: true,
+    },
+  },
+};
+
+const flattenEvent = (event) => {
+  if (!event) {
+    return null;
+  }
+
+  const { organizer, ...eventData } = event;
+
+  return {
+    ...eventData,
+    first_name: organizer.first_name,
+    last_name: organizer.last_name,
+    organizer_email: organizer.email,
+  };
+};
 
 const createEvent = async ({
   title,
@@ -8,59 +33,40 @@ const createEvent = async ({
   event_date,
   capacity,
   price,
-  organizer_id
+  organizer_id,
 }) => {
-  const query = `
-    INSERT INTO events (title, description, category, location, event_date, capacity, price, organizer_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING *
-  `;
-
-  const values = [
-    title,
-    description,
-    category,
-    location,
-    event_date,
-    capacity,
-    price,
-    organizer_id
-  ];
-
-  const result = await pool.query(query, values);
-  return result.rows[0];
+  return prisma.event.create({
+    data: {
+      title,
+      description,
+      category,
+      location,
+      event_date: new Date(event_date),
+      capacity,
+      price,
+      organizer_id,
+    },
+  });
 };
 
 const getAllEvents = async () => {
-  const query = `
-    SELECT 
-      e.*,
-      u.first_name,
-      u.last_name,
-      u.email AS organizer_email
-    FROM events e
-    JOIN users u ON e.organizer_id = u.id
-    ORDER BY e.event_date ASC
-  `;
+  const events = await prisma.event.findMany({
+    include: eventWithOrganizer,
+    orderBy: {
+      event_date: "asc",
+    },
+  });
 
-  const result = await pool.query(query);
-  return result.rows;
+  return events.map(flattenEvent);
 };
 
 const getEventById = async (id) => {
-  const query = `
-    SELECT 
-      e.*,
-      u.first_name,
-      u.last_name,
-      u.email AS organizer_email
-    FROM events e
-    JOIN users u ON e.organizer_id = u.id
-    WHERE e.id = $1
-  `;
+  const event = await prisma.event.findUnique({
+    where: { id },
+    include: eventWithOrganizer,
+  });
 
-  const result = await pool.query(query, [id]);
-  return result.rows[0];
+  return flattenEvent(event);
 };
 
 const updateEvent = async (
@@ -72,47 +78,27 @@ const updateEvent = async (
     location,
     event_date,
     capacity,
-    price
+    price,
   }
 ) => {
-  const query = `
-    UPDATE events
-    SET
-      title = $1,
-      description = $2,
-      category = $3,
-      location = $4,
-      event_date = $5,
-      capacity = $6,
-      price = $7
-    WHERE id = $8
-    RETURNING *
-  `;
-
-  const values = [
-    title,
-    description,
-    category,
-    location,
-    event_date,
-    capacity,
-    price,
-    id
-  ];
-
-  const result = await pool.query(query, values);
-  return result.rows[0];
+  return prisma.event.update({
+    where: { id },
+    data: {
+      title,
+      description,
+      category,
+      location,
+      event_date: new Date(event_date),
+      capacity,
+      price,
+    },
+  });
 };
 
 const deleteEvent = async (id) => {
-  const query = `
-    DELETE FROM events
-    WHERE id = $1
-    RETURNING *
-  `;
-
-  const result = await pool.query(query, [id]);
-  return result.rows[0];
+  return prisma.event.delete({
+    where: { id },
+  });
 };
 
 export default {
@@ -120,5 +106,5 @@ export default {
   getAllEvents,
   getEventById,
   updateEvent,
-  deleteEvent
+  deleteEvent,
 };

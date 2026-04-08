@@ -1,41 +1,56 @@
-import pool from "../config/db.js";
+import prisma from "../config/prisma.js";
 
 const createUser = async ({ first_name, last_name, email, password_hash, role }) => {
-  const query = `
-    INSERT INTO users (first_name, last_name, email, password_hash, role)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING id, first_name, last_name, email, role, created_at
-  `;
-
-  const values = [first_name, last_name, email, password_hash, role];
-  const result = await pool.query(query, values);
-  return result.rows[0];
+  return prisma.user.create({
+    data: {
+      first_name,
+      last_name,
+      email,
+      password_hash,
+      role,
+    },
+    select: {
+      id: true,
+      first_name: true,
+      last_name: true,
+      email: true,
+      role: true,
+      created_at: true,
+    },
+  });
 };
 
 const findUserByEmail = async (email) => {
-  const query = `
-    SELECT id, first_name, last_name, email, password_hash, role, created_at
-    FROM users
-    WHERE email = $1
-  `;
-
-  const result = await pool.query(query, [email]);
-  return result.rows[0];
+  return prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      first_name: true,
+      last_name: true,
+      email: true,
+      password_hash: true,
+      role: true,
+      created_at: true,
+    },
+  });
 };
 
 const findUserById = async (id) => {
-  const query = `
-    SELECT id, first_name, last_name, email, role, created_at
-    FROM users
-    WHERE id = $1
-  `;
-
-  const result = await pool.query(query, [id]);
-  return result.rows[0];
+  return prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      first_name: true,
+      last_name: true,
+      email: true,
+      role: true,
+      created_at: true,
+    },
+  });
 };
 
 export default {
   createUser,
   findUserByEmail,
-  findUserById
+  findUserById,
 };
