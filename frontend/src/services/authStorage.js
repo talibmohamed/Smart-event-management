@@ -1,14 +1,14 @@
 const SESSION_STORAGE_KEY = "smart-event-session"
 
-export function readStoredSession() {
-  if (typeof window === "undefined") {
-    return { user: null, token: "" }
-  }
+function emptySession() {
+  return { user: null, token: "" }
+}
 
+function parseStoredSession() {
   const rawSession = window.localStorage.getItem(SESSION_STORAGE_KEY)
 
   if (!rawSession) {
-    return { user: null, token: "" }
+    return null
   }
 
   try {
@@ -20,9 +20,16 @@ export function readStoredSession() {
     }
   } catch {
     window.localStorage.removeItem(SESSION_STORAGE_KEY)
-
-    return { user: null, token: "" }
+    return null
   }
+}
+
+export function readStoredSession() {
+  if (typeof window === "undefined") {
+    return emptySession()
+  }
+
+  return parseStoredSession() || emptySession()
 }
 
 export function persistSession(session) {

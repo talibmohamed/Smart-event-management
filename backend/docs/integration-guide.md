@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-08
+Last updated: 2026-04-09
 
 ## Base Setup
 
@@ -11,6 +11,16 @@ Last updated: 2026-04-08
 ```http
 Authorization: Bearer <jwt>
 ```
+
+- Local seed command: `npm run db:seed`
+- Seeded sample password for all seed users: `Password123!`
+- Seeded sample emails:
+  - `admin@smartevent.test`
+  - `organizer1@smartevent.test`
+  - `organizer2@smartevent.test`
+  - `attendee1@smartevent.test`
+  - `attendee2@smartevent.test`
+  - `attendee3@smartevent.test`
 
 ## JWT Handling
 
@@ -54,7 +64,8 @@ Authorization: Bearer <jwt>
   - `title`
   - `description`
   - `category`
-  - `location`
+  - `address`
+  - `city`
   - `event_date`
   - `capacity`
   - `price`
@@ -89,6 +100,7 @@ Authorization: Bearer <jwt>
   - `first_name`
   - `last_name`
   - `organizer_email`
+- Event responses now expose `address` and `city` instead of a single `location` field
 - `POST`, `PUT`, and `DELETE` on events return the event record without organizer display fields
 - `price` is returned as a string, for example `"10.00"`
 
@@ -99,7 +111,8 @@ Authorization: Bearer <jwt>
   - `title`
   - `description`
   - `category`
-  - `location`
+  - `address`
+  - `city`
   - `event_date`
   - `capacity`
   - `price`

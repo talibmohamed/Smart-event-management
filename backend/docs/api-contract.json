@@ -2,8 +2,20 @@
   "metadata": {
     "name": "Smart Event Management Backend API",
     "version": "1.0.0",
-    "lastUpdated": "2026-04-08",
+    "lastUpdated": "2026-04-09",
     "baseUrl": "http://localhost:5000"
+  },
+  "development": {
+    "seedCommand": "npm run db:seed",
+    "seedPassword": "Password123!",
+    "seedUsers": [
+      "admin@smartevent.test",
+      "organizer1@smartevent.test",
+      "organizer2@smartevent.test",
+      "attendee1@smartevent.test",
+      "attendee2@smartevent.test",
+      "attendee3@smartevent.test"
+    ]
   },
   "authentication": {
     "type": "bearer-jwt",
@@ -38,7 +50,8 @@
       "title": "string",
       "description": "string|null",
       "category": "string|null",
-      "location": "string|null",
+      "address": "string|null",
+      "city": "string|null",
       "event_date": "string(datetime)",
       "capacity": "number",
       "price": "string(decimal)",
@@ -53,7 +66,8 @@
       "title": "string",
       "description": "string|null",
       "category": "string|null",
-      "location": "string|null",
+      "address": "string|null",
+      "city": "string|null",
       "event_date": "string(datetime)",
       "capacity": "number",
       "price": "string(decimal)",
@@ -76,7 +90,8 @@
       "title": "string",
       "description": "string|null",
       "category": "string|null",
-      "location": "string|null",
+      "address": "string|null",
+      "city": "string|null",
       "event_date": "string(datetime)",
       "capacity": "number",
       "price": "string(decimal)",
@@ -247,7 +262,8 @@
         "title": { "type": "string", "required": true },
         "description": { "type": "string", "required": true },
         "category": { "type": "string", "required": true },
-        "location": { "type": "string", "required": true },
+        "address": { "type": "string", "required": true },
+        "city": { "type": "string", "required": true },
         "event_date": { "type": "string(datetime)", "required": true },
         "capacity": { "type": "number", "required": true, "minimum": 1 },
         "price": { "type": "number", "required": true, "minimum": 0 }
@@ -278,7 +294,8 @@
         "title": { "type": "string", "required": true },
         "description": { "type": "string", "required": true },
         "category": { "type": "string", "required": true },
-        "location": { "type": "string", "required": true },
+        "address": { "type": "string", "required": true },
+        "city": { "type": "string", "required": true },
         "event_date": { "type": "string(datetime)", "required": true },
         "capacity": { "type": "number", "required": true, "minimum": 1 },
         "price": { "type": "number", "required": true, "minimum": 0 }

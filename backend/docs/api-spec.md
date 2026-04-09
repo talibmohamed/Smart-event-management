@@ -1,6 +1,6 @@
 # Smart Event Management API Spec
 
-Last updated: 2026-04-08
+Last updated: 2026-04-09
 
 ## Global Rules
 
@@ -11,6 +11,8 @@ Last updated: 2026-04-08
 - Dates are returned as ISO strings
 - `price` is returned as a string because Prisma serializes `Decimal` values as strings
 - `GET /api/auth/me` is the only current success response that does not include `message`
+- Local development seed command: `npm run db:seed`
+- Seeded sample password for all seed users: `Password123!`
 
 ## Endpoints
 
@@ -167,7 +169,8 @@ Last updated: 2026-04-08
       "title": "AI Workshop",
       "description": "Hands-on session",
       "category": "Technology",
-      "location": "Campus Hall",
+      "address": "28 Rue Notre Dame des Champs",
+      "city": "Paris",
       "event_date": "2026-05-01T09:00:00.000Z",
       "capacity": 100,
       "price": "10.00",
@@ -205,7 +208,8 @@ Last updated: 2026-04-08
   "title": "AI Workshop",
   "description": "Hands-on session",
   "category": "Technology",
-  "location": "Campus Hall",
+  "address": "28 Rue Notre Dame des Champs",
+  "city": "Paris",
   "event_date": "2026-05-01T09:00:00.000Z",
   "capacity": 100,
   "price": 10
@@ -226,7 +230,8 @@ Last updated: 2026-04-08
     "title": "AI Workshop",
     "description": "Hands-on session",
     "category": "Technology",
-    "location": "Campus Hall",
+    "address": "28 Rue Notre Dame des Champs",
+    "city": "Paris",
     "event_date": "2026-05-01T09:00:00.000Z",
     "capacity": 100,
     "price": "10.00",
@@ -301,7 +306,8 @@ Last updated: 2026-04-08
       "title": "AI Workshop",
       "description": "Hands-on session",
       "category": "Technology",
-      "location": "Campus Hall",
+      "address": "28 Rue Notre Dame des Champs",
+      "city": "Paris",
       "event_date": "2026-05-01T09:00:00.000Z",
       "capacity": 100,
       "price": "10.00",

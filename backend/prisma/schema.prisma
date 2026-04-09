@@ -28,7 +28,8 @@ model Event {
   title        String    @db.VarChar(200)
   description  String?
   category     String?   @db.VarChar(100)
-  location     String?   @db.VarChar(200)
+  address      String?   @db.VarChar(200)
+  city         String?   @db.VarChar(100)
   event_date   DateTime
   capacity     Int
   price        Decimal   @default(0.00) @db.Decimal(10, 2)

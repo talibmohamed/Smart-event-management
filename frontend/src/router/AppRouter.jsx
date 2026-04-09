@@ -7,6 +7,7 @@ import LoginPage from "../pages/LoginPage"
 import RegisterPage from "../pages/RegisterPage"
 import DashboardPage from "../pages/DashboardPage"
 import CreateEventPage from "../pages/CreateEventPage"
+import EditEventPage from "../pages/EditEventPage"
 import ProtectedRoute from "./ProtectedRoute"
 
 export default function AppRouter() {
@@ -25,6 +26,7 @@ export default function AppRouter() {
 
         <Route element={<ProtectedRoute allowedRoles={["organizer", "admin"]} />}>
           <Route path="/create-event" element={<CreateEventPage />} />
+          <Route path="/events/:id/edit" element={<EditEventPage />} />
         </Route>
       </Route>
     </Routes>

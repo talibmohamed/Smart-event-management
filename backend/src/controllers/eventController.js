@@ -6,7 +6,8 @@ const createEvent = async (req, res) => {
       title,
       description,
       category,
-      location,
+      address,
+      city,
       event_date,
       capacity,
       price
@@ -16,7 +17,8 @@ const createEvent = async (req, res) => {
       !title ||
       !description ||
       !category ||
-      !location ||
+      !address ||
+      !city ||
       !event_date ||
       capacity === undefined ||
       price === undefined
@@ -48,7 +50,8 @@ const createEvent = async (req, res) => {
       title: title.trim(),
       description: description.trim(),
       category: category.trim(),
-      location: location.trim(),
+      address: address.trim(),
+      city: city.trim(),
       event_date,
       capacity: numericCapacity,
       price: numericPrice,
@@ -143,7 +146,8 @@ const updateEvent = async (req, res) => {
       title,
       description,
       category,
-      location,
+      address,
+      city,
       event_date,
       capacity,
       price
@@ -153,7 +157,8 @@ const updateEvent = async (req, res) => {
       !title ||
       !description ||
       !category ||
-      !location ||
+      !address ||
+      !city ||
       !event_date ||
       capacity === undefined ||
       price === undefined
@@ -185,7 +190,8 @@ const updateEvent = async (req, res) => {
       title: title.trim(),
       description: description.trim(),
       category: category.trim(),
-      location: location.trim(),
+      address: address.trim(),
+      city: city.trim(),
       event_date,
       capacity: numericCapacity,
       price: numericPrice

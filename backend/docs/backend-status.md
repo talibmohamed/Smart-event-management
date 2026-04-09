@@ -1,6 +1,6 @@
 # Backend Status
 
-Last updated: 2026-04-08
+Last updated: 2026-04-09
 
 ## Current State
 
@@ -8,6 +8,7 @@ Last updated: 2026-04-08
 - Authentication is implemented with JWT
 - Core auth, event, and booking flows are available
 - `backend/docs` is the current frontend source of truth
+- Local development seeding is available through Prisma
 
 ## Implemented Features
 
@@ -16,6 +17,11 @@ Last updated: 2026-04-08
 - `GET /` API health check
 - `GET /api/test/db` database connectivity check
 - Express JSON parsing and CORS enabled
+
+### Development Tooling
+
+- `npm run db:seed` seeds sample users, events, bookings, and feedback
+- Seeded sample login password: `Password123!`
 
 ### Authentication
 
@@ -60,6 +66,7 @@ Last updated: 2026-04-08
 
 - `GET /api/auth/me` returns `{ success, data }` without a `message` field on success
 - Event create and update currently require all event fields in the request body
+- Event location is split into `address` and `city`
 - Event `price` is serialized as a string in JSON responses
 - `POST /api/auth/register` only honors `attendee` and `organizer`; any other role becomes `attendee`
 - `POST /api/bookings` returns `201` even when reactivating a cancelled booking

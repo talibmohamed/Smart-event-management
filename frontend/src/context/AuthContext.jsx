@@ -49,12 +49,14 @@ export function AuthProvider({ children }) {
           setToken,
         )
       })
-      .catch(() => {
+      .catch((error) => {
         if (ignore) {
           return
         }
 
-        resetSessionState(setUser, setToken)
+        if (error?.response?.status === 401) {
+          resetSessionState(setUser, setToken)
+        }
       })
       .finally(() => {
         if (!ignore) {
@@ -64,6 +66,24 @@ export function AuthProvider({ children }) {
 
     return () => {
       ignore = true
+    }
+  }, [])
+
+  useEffect(() => {
+    function handleStorageChange(event) {
+      if (event.key !== "smart-event-session") {
+        return
+      }
+
+      const storedSession = readStoredSession()
+      setUser(storedSession.user)
+      setToken(storedSession.token)
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
     }
   }, [])
 
