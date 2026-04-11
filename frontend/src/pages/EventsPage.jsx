@@ -1,9 +1,10 @@
-import { Card, CardBody, Chip, Spinner } from "@heroui/react";
+import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
 import { CalendarDays, MapPin, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import EventCard from "../components/event/EventCard";
 import EventFilters from "../components/event/EventFilters";
+import EventMap from "../components/event/EventMap";
 import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
 import {
@@ -19,6 +20,7 @@ import {
   TIME_FILTER_OPTIONS,
 } from "../utils/eventFilters";
 import { isUpcomingEvent } from "../utils/eventUtils";
+import { getMappableEvents } from "../utils/mapHelpers";
 
 function areFiltersEqual(left, right) {
   return (
@@ -37,6 +39,10 @@ export default function EventsPage() {
   const [filters, setFilters] = useState(() => parseEventFilterParams(searchParams));
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [selectedEventId, setSelectedEventId] = useState("");
+  const [mobileView, setMobileView] = useState("list");
+  const [mapVisibleEventIds, setMapVisibleEventIds] = useState(null);
+  const eventCardRefs = useRef({});
 
   useEffect(() => {
     let ignore = false;
@@ -74,12 +80,16 @@ export default function EventsPage() {
   const filterOptions = useMemo(() => getEventFilterOptions(allEvents), [allEvents]);
 
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     const nextFilters = sanitizeEventFilters(parseEventFilterParams(searchParams), filterOptions);
 
     setFilters((currentFilters) =>
       areFiltersEqual(currentFilters, nextFilters) ? currentFilters : nextFilters,
     );
-  }, [filterOptions, searchParams]);
+  }, [filterOptions, isLoading, searchParams]);
 
   useEffect(() => {
     const nextParams = buildEventFilterSearchParams(filters);
@@ -96,21 +106,66 @@ export default function EventsPage() {
     [allEvents, filters],
   );
 
+  const mappableEvents = useMemo(() => getMappableEvents(filteredEvents), [filteredEvents]);
+  const visibleEventIds = useMemo(
+    () => (mapVisibleEventIds ? new Set(mapVisibleEventIds) : null),
+    [mapVisibleEventIds],
+  );
+  const displayedEvents = useMemo(() => {
+    if (!visibleEventIds) {
+      return filteredEvents;
+    }
+
+    const eventsInMapArea = [];
+    const eventsOutsideMapArea = [];
+
+    filteredEvents.forEach((event) => {
+      if (visibleEventIds.has(String(event.id))) {
+        eventsInMapArea.push(event);
+      } else {
+        eventsOutsideMapArea.push(event);
+      }
+    });
+
+    return [...eventsInMapArea, ...eventsOutsideMapArea];
+  }, [filteredEvents, visibleEventIds]);
+  const mapAreaEventCount = useMemo(() => {
+    if (!visibleEventIds) {
+      return null;
+    }
+
+    return filteredEvents.filter((event) => visibleEventIds.has(String(event.id))).length;
+  }, [filteredEvents, visibleEventIds]);
+  const isMapAreaPrioritized = Boolean(visibleEventIds);
+
   const featuredCities = useMemo(() => {
     return Array.from(
-      new Set(filteredEvents.map((event) => event.city).filter(Boolean)),
+      new Set(displayedEvents.map((event) => event.city).filter(Boolean)),
     ).slice(0, 3);
-  }, [filteredEvents]);
+  }, [displayedEvents]);
 
   const upcomingCount = useMemo(
-    () => filteredEvents.filter((event) => isUpcomingEvent(event.event_date)).length,
-    [filteredEvents],
+    () => displayedEvents.filter((event) => isUpcomingEvent(event.event_date)).length,
+    [displayedEvents],
   );
 
   const activeFilterCount = useMemo(
     () => countActiveEventFilters(filters),
     [filters],
   );
+
+  useEffect(() => {
+    if (
+      selectedEventId &&
+      !filteredEvents.some((event) => event.id === selectedEventId)
+    ) {
+      setSelectedEventId("");
+    }
+  }, [filteredEvents, selectedEventId]);
+
+  useEffect(() => {
+    setMapVisibleEventIds(null);
+  }, [filters]);
 
   function handleFilterChange(field, value) {
     setFilters((currentFilters) => ({
@@ -121,11 +176,42 @@ export default function EventsPage() {
 
   function handleClearFilters() {
     setFilters(DEFAULT_EVENT_FILTERS);
+    setMapVisibleEventIds(null);
+  }
+
+  function handleSelectEvent(eventId, { scrollToCard = false } = {}) {
+    setSelectedEventId(eventId);
+
+    if (!scrollToCard) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      eventCardRefs.current[eventId]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+  }
+
+  function handleMarkerSelect(eventId) {
+    const canScrollToCard =
+      typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+
+    handleSelectEvent(eventId, { scrollToCard: canScrollToCard });
+  }
+
+  function handleMapViewportEventIdsChange(eventIds) {
+    setMapVisibleEventIds(eventIds);
+  }
+
+  function handleClearMapPriority() {
+    setMapVisibleEventIds(null);
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-6 pb-20 pt-12 md:pt-16">
-      <section className="relative overflow-hidden rounded-[2rem] border border-zinc-200/70 bg-white/72 px-6 py-10 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] md:px-8 md:py-12">
+    <div className="w-full px-3 pb-20 pt-6 sm:px-4 md:px-5 md:pt-8">
+      <section className="relative overflow-hidden rounded-[1.75rem] border border-zinc-200/70 bg-white/72 px-4 py-10 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] md:px-6 md:py-12">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-0 top-0 h-52 w-52 rounded-full bg-sky-200/40 blur-3xl dark:bg-sky-500/10" />
           <div className="absolute right-0 top-8 h-56 w-56 rounded-full bg-emerald-200/30 blur-3xl dark:bg-emerald-500/10" />
@@ -164,7 +250,7 @@ export default function EventsPage() {
                   Showing
                 </span>
                 <span className="text-3xl font-semibold tracking-[-0.04em] text-zinc-950 dark:text-white">
-                  {filteredEvents.length}
+                  {displayedEvents.length}
                 </span>
               </CardBody>
             </Card>
@@ -212,17 +298,40 @@ export default function EventsPage() {
 
       <section className="mt-6">
         {!isLoading && !errorMessage && allEvents.length > 0 ? (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1 md:px-2">
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              {filteredEvents.length === 1
+              {displayedEvents.length === 1
                 ? "1 event matches your current view."
-                : `${filteredEvents.length} events match your current view.`}
+                : `${displayedEvents.length} events match your current view.`}
             </p>
-            {activeFilterCount > 0 ? (
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                {activeFilterCount} active filter{activeFilterCount > 1 ? "s" : ""}
-              </p>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-3">
+              {isMapAreaPrioritized ? (
+                <Button
+                  size="sm"
+                  radius="full"
+                  variant="bordered"
+                  onPress={handleClearMapPriority}
+                  className="h-8 border-zinc-200 bg-white/80 text-xs font-semibold text-zinc-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-zinc-200"
+                >
+                  Reset map priority
+                </Button>
+              ) : null}
+              {mapAreaEventCount !== null ? (
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                  {mapAreaEventCount} prioritized
+                </p>
+              ) : null}
+              {filteredEvents.length > 0 ? (
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                  {mappableEvents.length} on map
+                </p>
+              ) : null}
+              {activeFilterCount > 0 ? (
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                  {activeFilterCount} active filter{activeFilterCount > 1 ? "s" : ""}
+                </p>
+              ) : null}
+            </div>
           </div>
         ) : null}
 
@@ -270,10 +379,65 @@ export default function EventsPage() {
             </CardBody>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {filteredEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/80 bg-white/80 p-1 dark:border-white/10 dark:bg-white/[0.04] lg:hidden">
+              {["list", "map"].map((view) => (
+                <Button
+                  key={view}
+                  radius="lg"
+                  variant={mobileView === view ? "solid" : "light"}
+                  onPress={() => setMobileView(view)}
+                  className={
+                    mobileView === view
+                      ? "bg-zinc-950 font-medium capitalize text-white dark:bg-white dark:text-zinc-950"
+                      : "font-medium capitalize text-zinc-600 dark:text-zinc-300"
+                  }
+                >
+                  {view}
+                </Button>
+              ))}
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
+              <div className={mobileView === "map" ? "hidden lg:block" : "block"}>
+                <div className="columns-1 gap-6 md:columns-2 lg:columns-1 xl:columns-2">
+                  {displayedEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      className="mb-6 break-inside-avoid"
+                      ref={(node) => {
+                        if (node) {
+                          eventCardRefs.current[event.id] = node;
+                        } else {
+                          delete eventCardRefs.current[event.id];
+                        }
+                      }}
+                    >
+                      <EventCard
+                        event={event}
+                        isSelected={event.id === selectedEventId}
+                        onSelect={(eventId) => handleSelectEvent(eventId)}
+                        onHover={(eventId) => handleSelectEvent(eventId)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <aside
+                className={`${
+                  mobileView === "list" ? "hidden lg:block" : "block"
+                } lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]`}
+              >
+                <EventMap
+                  events={filteredEvents}
+                  selectedEventId={selectedEventId}
+                  onSelectEvent={handleMarkerSelect}
+                  onViewportEventIdsChange={handleMapViewportEventIdsChange}
+                  className="h-[72vh] lg:h-full"
+                />
+              </aside>
+            </div>
           </div>
         )}
       </section>

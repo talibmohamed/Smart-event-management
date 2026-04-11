@@ -14,9 +14,11 @@
     "@heroui/use-theme": "^2.1.10",
     "axios": "^1.13.6",
     "framer-motion": "^12.38.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {

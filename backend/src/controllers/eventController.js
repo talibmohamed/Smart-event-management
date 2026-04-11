@@ -1,5 +1,6 @@
 import Event from "../models/Event.js";
-import { isSupportedFrenchCity } from "../utils/frenchCities.js";
+import { geocodeFrenchAddress } from "../utils/geocoder.js";
+import { findSupportedFrenchCity } from "../utils/frenchCities.js";
 
 const createEvent = async (req, res) => {
   try {
@@ -47,10 +48,25 @@ const createEvent = async (req, res) => {
       });
     }
 
-    if (!isSupportedFrenchCity(city)) {
+    const supportedCity = findSupportedFrenchCity(city);
+
+    if (!supportedCity) {
       return res.status(400).json({
         success: false,
         message: "City must be a supported French city"
+      });
+    }
+
+    const trimmedAddress = address.trim();
+    const coordinates = await geocodeFrenchAddress({
+      address: trimmedAddress,
+      city: supportedCity.name
+    });
+
+    if (!coordinates) {
+      return res.status(400).json({
+        success: false,
+        message: "Address could not be located"
       });
     }
 
@@ -58,8 +74,10 @@ const createEvent = async (req, res) => {
       title: title.trim(),
       description: description.trim(),
       category: category.trim(),
-      address: address.trim(),
-      city: city.trim(),
+      address: trimmedAddress,
+      city: supportedCity.name,
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
       event_date,
       capacity: numericCapacity,
       price: numericPrice,
@@ -194,10 +212,37 @@ const updateEvent = async (req, res) => {
       });
     }
 
-    if (!isSupportedFrenchCity(city)) {
+    const supportedCity = findSupportedFrenchCity(city);
+
+    if (!supportedCity) {
       return res.status(400).json({
         success: false,
         message: "City must be a supported French city"
+      });
+    }
+
+    const trimmedAddress = address.trim();
+    const trimmedCity = supportedCity.name;
+    const hasExistingCoordinates =
+      existingEvent.latitude !== null &&
+      existingEvent.latitude !== undefined &&
+      existingEvent.longitude !== null &&
+      existingEvent.longitude !== undefined;
+    const locationChanged =
+      existingEvent.address !== trimmedAddress ||
+      existingEvent.city !== trimmedCity;
+
+    const coordinates = locationChanged || !hasExistingCoordinates
+      ? await geocodeFrenchAddress({ address: trimmedAddress, city: trimmedCity })
+      : {
+          latitude: existingEvent.latitude,
+          longitude: existingEvent.longitude
+        };
+
+    if (!coordinates?.latitude || !coordinates?.longitude) {
+      return res.status(400).json({
+        success: false,
+        message: "Address could not be located"
       });
     }
 
@@ -205,8 +250,10 @@ const updateEvent = async (req, res) => {
       title: title.trim(),
       description: description.trim(),
       category: category.trim(),
-      address: address.trim(),
-      city: city.trim(),
+      address: trimmedAddress,
+      city: trimmedCity,
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
       event_date,
       capacity: numericCapacity,
       price: numericPrice

@@ -64,6 +64,8 @@ async function upsertEvent({
   category,
   address,
   city,
+  latitude,
+  longitude,
   event_date,
   capacity,
   price,
@@ -84,6 +86,8 @@ async function upsertEvent({
         category,
         address,
         city,
+        latitude,
+        longitude,
         event_date,
         capacity,
         price,
@@ -98,6 +102,8 @@ async function upsertEvent({
       category,
       address,
       city,
+      latitude,
+      longitude,
       event_date,
       capacity,
       price,
@@ -197,6 +203,8 @@ async function main() {
     category: "Technology",
     address: "28 Rue Notre Dame des Champs",
     city: "Paris",
+    latitude: 48.841966,
+    longitude: 2.329536,
     event_date: new Date("2026-05-14T09:30:00.000Z"),
     capacity: 80,
     price: 15,
@@ -210,6 +218,8 @@ async function main() {
     category: "Business",
     address: "15 Boulevard Voltaire",
     city: "Paris",
+    latitude: 48.864662,
+    longitude: 2.367464,
     event_date: new Date("2026-05-22T18:00:00.000Z"),
     capacity: 120,
     price: 0,
@@ -223,6 +233,8 @@ async function main() {
     category: "Design",
     address: "5 Avenue du General Leclerc",
     city: "Issy-les-Moulineaux",
+    latitude: 48.824129,
+    longitude: 2.273625,
     event_date: new Date("2026-06-02T13:00:00.000Z"),
     capacity: 45,
     price: 10,
@@ -236,9 +248,101 @@ async function main() {
     category: "Music",
     address: "1 Place de la Pelouse",
     city: "Paris",
+    latitude: 48.837256,
+    longitude: 2.435517,
     event_date: new Date("2026-06-15T15:00:00.000Z"),
     capacity: 300,
     price: 25,
+    organizer_id: organizerTwo.id,
+  });
+
+  await upsertEvent({
+    title: "Cybersecurity Capture The Flag",
+    description:
+      "A team-based cybersecurity challenge covering web exploits, cryptography, forensics, and secure coding basics.",
+    category: "Technology",
+    address: "20 Avenue Albert Einstein",
+    city: "Lyon",
+    latitude: 45.783105,
+    longitude: 4.872049,
+    event_date: new Date("2026-06-21T10:00:00.000Z"),
+    capacity: 90,
+    price: 12,
+    organizer_id: organizerOne.id,
+  });
+
+  await upsertEvent({
+    title: "Sustainable Engineering Forum",
+    description:
+      "A student forum about low-carbon design, renewable systems, and practical engineering choices for climate impact.",
+    category: "Engineering",
+    address: "58 Boulevard Charles Livon",
+    city: "Marseille",
+    latitude: 43.292667,
+    longitude: 5.361067,
+    event_date: new Date("2026-06-28T08:30:00.000Z"),
+    capacity: 140,
+    price: 8,
+    organizer_id: organizerTwo.id,
+  });
+
+  await upsertEvent({
+    title: "Data Visualization Bootcamp",
+    description:
+      "A practical bootcamp on turning raw datasets into clear dashboards, charts, and presentation-ready insights.",
+    category: "Data",
+    address: "35 Place Pey Berland",
+    city: "Bordeaux",
+    latitude: 44.837789,
+    longitude: -0.57918,
+    event_date: new Date("2026-07-04T09:00:00.000Z"),
+    capacity: 60,
+    price: 18,
+    organizer_id: organizerOne.id,
+  });
+
+  await upsertEvent({
+    title: "Robotics Demo Day",
+    description:
+      "A showcase of student robotics projects, autonomous prototypes, and short technical demos from engineering teams.",
+    category: "Robotics",
+    address: "1 Place du Theatre",
+    city: "Lille",
+    latitude: 50.637183,
+    longitude: 3.063017,
+    event_date: new Date("2026-07-11T14:00:00.000Z"),
+    capacity: 110,
+    price: 5,
+    organizer_id: organizerTwo.id,
+  });
+
+  await upsertEvent({
+    title: "Product Design Critique Night",
+    description:
+      "A peer review evening where students present app concepts, get structured feedback, and improve product decisions.",
+    category: "Design",
+    address: "4 Rue de Valmy",
+    city: "Nantes",
+    latitude: 47.213064,
+    longitude: -1.542808,
+    event_date: new Date("2026-07-18T17:30:00.000Z"),
+    capacity: 70,
+    price: 0,
+    organizer_id: organizerOne.id,
+  });
+
+  await upsertEvent({
+    title: "Aerospace Innovation Meetup",
+    description:
+      "A meetup for students interested in aerospace systems, embedded software, propulsion, and industry careers.",
+    category: "Aerospace",
+    address: "1 Avenue Camille Flammarion",
+    city: "Toulouse",
+    latitude: 43.612228,
+    longitude: 1.462378,
+    event_date: new Date("2026-07-25T16:00:00.000Z"),
+    capacity: 100,
+    price: 7,
     organizer_id: organizerTwo.id,
   });
 

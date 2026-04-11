@@ -68,13 +68,24 @@ export function parseEventFilterParams(searchParams) {
 }
 
 export function sanitizeEventFilters(filters, options = {}) {
-  const categories = options.categories || [];
-  const cities = options.cities || [];
+  const hasCategoryOptions = Array.isArray(options.categories);
+  const hasCityOptions = Array.isArray(options.cities);
+  const categories = hasCategoryOptions ? options.categories : [];
+  const cities = hasCityOptions ? options.cities : [];
+  const category =
+    typeof filters.category === "string" ? filters.category : DEFAULT_EVENT_FILTERS.category;
+  const city = typeof filters.city === "string" ? filters.city : DEFAULT_EVENT_FILTERS.city;
 
   return {
     q: typeof filters.q === "string" ? filters.q : DEFAULT_EVENT_FILTERS.q,
-    category: categories.includes(filters.category) ? filters.category : DEFAULT_EVENT_FILTERS.category,
-    city: cities.includes(filters.city) ? filters.city : DEFAULT_EVENT_FILTERS.city,
+    category:
+      !category || !hasCategoryOptions || categories.includes(category)
+        ? category
+        : DEFAULT_EVENT_FILTERS.category,
+    city:
+      !city || !hasCityOptions || cities.includes(city)
+        ? city
+        : DEFAULT_EVENT_FILTERS.city,
     price: VALID_PRICE_FILTERS.has(filters.price) ? filters.price : DEFAULT_EVENT_FILTERS.price,
     time: VALID_TIME_FILTERS.has(filters.time) ? filters.time : DEFAULT_EVENT_FILTERS.time,
     sort: VALID_SORT_OPTIONS.has(filters.sort) ? filters.sort : DEFAULT_EVENT_FILTERS.sort,

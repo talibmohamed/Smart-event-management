@@ -30,6 +30,8 @@ model Event {
   category     String?   @db.VarChar(100)
   address      String?   @db.VarChar(200)
   city         String?   @db.VarChar(100)
+  latitude     Decimal?  @db.Decimal(10, 7)
+  longitude    Decimal?  @db.Decimal(10, 7)
   event_date   DateTime
   capacity     Int
   price        Decimal   @default(0.00) @db.Decimal(10, 2)

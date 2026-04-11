@@ -13,6 +13,7 @@ Authorization: Bearer <jwt>
 ```
 
 - Local seed command: `npm run db:seed`
+- Backend runtime normalizes Supabase pooler connections for Prisma
 - Seeded sample password for all seed users: `Password123!`
 - Seeded sample emails:
   - `admin@smartevent.test`
@@ -21,6 +22,15 @@ Authorization: Bearer <jwt>
   - `attendee1@smartevent.test`
   - `attendee2@smartevent.test`
   - `attendee3@smartevent.test`
+- Seeded event cities include:
+  - `Paris`
+  - `Issy-les-Moulineaux`
+  - `Lyon`
+  - `Marseille`
+  - `Bordeaux`
+  - `Lille`
+  - `Nantes`
+  - `Toulouse`
 
 ## JWT Handling
 
@@ -72,6 +82,7 @@ Authorization: Bearer <jwt>
   - `price`
 - `organizer_id` is taken from the JWT and must not be sent by the frontend
 - `city` must be selected from `GET /api/cities`; invalid cities return `400`
+- Do not send `latitude` or `longitude`; backend geocodes the address and city
 - `capacity` must be greater than `0`
 - `price` must be greater than or equal to `0`
 
@@ -131,6 +142,9 @@ GET /api/cities?search=paris
   - `organizer_email`
 - Event responses now expose `address` and `city` instead of a single `location` field
 - Event create/update validates `city` against the same backend city list used by `GET /api/cities`
+- Event responses include `latitude` and `longitude` for map rendering
+- Event create/update geocodes `address + city + France` on the backend with Nominatim
+- Frontend must never call Nominatim or ask users to enter coordinates manually
 - `POST`, `PUT`, and `DELETE` on events return the event record without organizer display fields
 - `price` is returned as a string, for example `"10.00"`
 
@@ -143,6 +157,8 @@ GET /api/cities?search=paris
   - `category`
   - `address`
   - `city`
+  - `latitude`
+  - `longitude`
   - `event_date`
   - `capacity`
   - `price`
@@ -160,6 +176,8 @@ GET /api/cities?search=paris
   - `500` unexpected server error
 - Invalid event city:
   - `400 { "success": false, "message": "City must be a supported French city" }`
+- Unlocatable event address:
+  - `400 { "success": false, "message": "Address could not be located" }`
 
 ## Not Available Yet
 

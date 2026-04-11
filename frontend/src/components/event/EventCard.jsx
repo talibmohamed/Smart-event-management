@@ -3,9 +3,18 @@ import { ArrowRight, CalendarClock, MapPin, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatEventDate, formatEventPrice, formatEventVenue } from "../../utils/eventUtils";
 
-export default function EventCard({ event }) {
+export default function EventCard({ event, isSelected = false, onSelect, onHover }) {
   return (
-    <Card className="group w-full overflow-hidden border border-zinc-200/80 bg-white/82 shadow-sm shadow-slate-200/60 transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-xl hover:shadow-slate-200/70 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/10 dark:hover:border-white/15 dark:hover:shadow-black/25">
+    <Card
+      className={`group w-full overflow-hidden border bg-white/82 shadow-sm shadow-slate-200/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/70 dark:bg-white/[0.04] dark:shadow-black/10 dark:hover:shadow-black/25 ${
+        isSelected
+          ? "border-sky-400 ring-4 ring-sky-400/20 dark:border-sky-300 dark:ring-sky-300/15"
+          : "border-zinc-200/80 hover:border-zinc-300 dark:border-white/10 dark:hover:border-white/15"
+      }`}
+      onClick={() => onSelect?.(event.id)}
+      onMouseEnter={() => onHover?.(event.id)}
+      onFocus={() => onHover?.(event.id)}
+    >
       <div className="h-1.5 w-full bg-[linear-gradient(90deg,rgba(14,165,233,0.92),rgba(99,102,241,0.88),rgba(16,185,129,0.78))] opacity-80 transition-opacity duration-300 group-hover:opacity-100" />
 
       <CardHeader className="flex flex-col items-start gap-4 px-6 pb-4 pt-5">

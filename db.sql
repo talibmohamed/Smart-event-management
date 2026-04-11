@@ -24,6 +24,8 @@ CREATE TABLE events (
     category VARCHAR(100),
     address VARCHAR(200),
     city VARCHAR(100),
+    latitude NUMERIC(10,7),
+    longitude NUMERIC(10,7),
     event_date TIMESTAMP NOT NULL,
     capacity INT NOT NULL CHECK (capacity > 0),
     price NUMERIC(10,2) NOT NULL DEFAULT 0.00 CHECK (price >= 0),

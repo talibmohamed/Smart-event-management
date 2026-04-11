@@ -84,3 +84,10 @@ export function isSupportedFrenchCity(cityName) {
   );
 }
 
+export function findSupportedFrenchCity(cityName) {
+  const normalizedCityName = normalize(cityName);
+
+  return frenchCities.find(
+    (city) => normalize(city.name) === normalizedCityName
+  );
+}
