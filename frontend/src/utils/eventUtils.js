@@ -84,15 +84,44 @@ export function toEventFormValues(event = {}) {
   };
 }
 
-export function buildEventPayload(values) {
-  return {
-    title: values.title.trim(),
-    description: values.description.trim(),
-    category: values.category.trim(),
-    address: values.address.trim(),
-    city: values.city.trim(),
-    event_date: new Date(values.event_date).toISOString(),
-    capacity: Number(values.capacity),
-    price: Number(values.price),
-  };
+export const EVENT_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
+export const EVENT_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+export const EVENT_IMAGE_ERROR_MESSAGE =
+  "Event image must be a JPEG, PNG, or WebP file under 5MB";
+
+export function validateEventImageFile(file) {
+  if (!file) {
+    return "";
+  }
+
+  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+  if (!allowedTypes.has(file.type) || file.size > EVENT_IMAGE_MAX_SIZE) {
+    return EVENT_IMAGE_ERROR_MESSAGE;
+  }
+
+  return "";
+}
+
+export function buildEventPayload(values, imageOptions = {}) {
+  const payload = new FormData();
+
+  payload.append("title", values.title.trim());
+  payload.append("description", values.description.trim());
+  payload.append("category", values.category.trim());
+  payload.append("address", values.address.trim());
+  payload.append("city", values.city.trim());
+  payload.append("event_date", new Date(values.event_date).toISOString());
+  payload.append("capacity", String(Number(values.capacity)));
+  payload.append("price", String(Number(values.price)));
+
+  if (imageOptions.coverImageFile) {
+    payload.append("cover_image", imageOptions.coverImageFile);
+  }
+
+  if (imageOptions.removeImage) {
+    payload.append("remove_image", "true");
+  }
+
+  return payload;
 }

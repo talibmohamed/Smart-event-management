@@ -26,6 +26,8 @@ CREATE TABLE events (
     city VARCHAR(100),
     latitude NUMERIC(10,7),
     longitude NUMERIC(10,7),
+    image_url TEXT,
+    image_path VARCHAR(500),
     event_date TIMESTAMP NOT NULL,
     capacity INT NOT NULL CHECK (capacity > 0),
     price NUMERIC(10,2) NOT NULL DEFAULT 0.00 CHECK (price >= 0),

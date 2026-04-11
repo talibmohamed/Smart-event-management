@@ -1,5 +1,20 @@
 import api from "./api";
 
+function getEventMutationConfig(payload) {
+  if (payload instanceof FormData) {
+    return {
+      transformRequest: [
+        (data, headers) => {
+          headers.delete?.("Content-Type");
+          return data;
+        },
+      ],
+    };
+  }
+
+  return undefined;
+}
+
 const eventService = {
   getEvents() {
     return api.get("/events");
@@ -10,11 +25,11 @@ const eventService = {
   },
 
   createEvent(payload) {
-    return api.post("/events", payload);
+    return api.post("/events", payload, getEventMutationConfig(payload));
   },
 
   updateEvent(id, payload) {
-    return api.put(`/events/${id}`, payload);
+    return api.put(`/events/${id}`, payload, getEventMutationConfig(payload));
   },
 
   deleteEvent(id) {

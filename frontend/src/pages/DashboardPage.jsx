@@ -2,6 +2,7 @@ import { Button, Card, CardBody, CardHeader, Chip, Spinner } from "@heroui/react
 import { CalendarDays, PencilLine, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import EventCoverImage from "../components/event/EventCoverImage";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
@@ -294,13 +295,23 @@ export default function DashboardPage() {
                   >
                     <CardHeader className="flex flex-col items-start gap-3 px-6 pt-6">
                       <div className="flex w-full flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <h2 className="text-xl font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
-                            {event.title}
-                          </h2>
-                          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            {event.category} in {event.city || "TBD"}
-                          </p>
+                        <div className="flex min-w-0 flex-1 items-start gap-3">
+                          {event.image_url ? (
+                            <EventCoverImage
+                              src={event.image_url}
+                              alt={`${event.title} cover`}
+                              className="h-20 w-24 shrink-0 rounded-2xl border border-zinc-200/80 dark:border-white/10"
+                            />
+                          ) : null}
+
+                          <div className="min-w-0 space-y-1">
+                            <h2 className="text-xl font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
+                              {event.title}
+                            </h2>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                              {event.category} in {event.city || "TBD"}
+                            </p>
+                          </div>
                         </div>
 
                         <Chip

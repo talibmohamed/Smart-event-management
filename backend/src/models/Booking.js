@@ -16,6 +16,7 @@ const flattenBookingWithEvent = (booking) => {
     city: event.city,
     latitude: event.latitude,
     longitude: event.longitude,
+    image_url: event.image_url,
     event_date: event.event_date,
     capacity: event.capacity,
     price: event.price,

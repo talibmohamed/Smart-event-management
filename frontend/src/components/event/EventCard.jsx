@@ -2,6 +2,7 @@ import { Button, Card, CardBody, CardFooter, CardHeader, Chip } from "@heroui/re
 import { ArrowRight, CalendarClock, MapPin, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatEventDate, formatEventPrice, formatEventVenue } from "../../utils/eventUtils";
+import EventCoverImage from "./EventCoverImage";
 
 export default function EventCard({ event, isSelected = false, onSelect, onHover }) {
   return (
@@ -15,7 +16,15 @@ export default function EventCard({ event, isSelected = false, onSelect, onHover
       onMouseEnter={() => onHover?.(event.id)}
       onFocus={() => onHover?.(event.id)}
     >
-      <div className="h-1.5 w-full bg-[linear-gradient(90deg,rgba(14,165,233,0.92),rgba(99,102,241,0.88),rgba(16,185,129,0.78))] opacity-80 transition-opacity duration-300 group-hover:opacity-100" />
+      {event.image_url ? (
+        <EventCoverImage
+          src={event.image_url}
+          alt={`${event.title} cover`}
+          className="h-44 w-full"
+        />
+      ) : (
+        <div className="h-1.5 w-full bg-[linear-gradient(90deg,rgba(14,165,233,0.92),rgba(99,102,241,0.88),rgba(16,185,129,0.78))] opacity-80 transition-opacity duration-300 group-hover:opacity-100" />
+      )}
 
       <CardHeader className="flex flex-col items-start gap-4 px-6 pb-4 pt-5">
         <div className="flex w-full items-start justify-between gap-4">

@@ -6,6 +6,7 @@ Last updated: 2026-04-11
 
 - Local backend URL: `http://localhost:5000`
 - Send `Content-Type: application/json`
+- For event image upload or replacement, send `multipart/form-data`
 - Protected routes require:
 
 ```http
@@ -13,7 +14,13 @@ Authorization: Bearer <jwt>
 ```
 
 - Local seed command: `npm run db:seed`
+- Local storage setup command: `npm run storage:setup`
 - Backend runtime normalizes Supabase pooler connections for Prisma
+- Backend uploads event cover images to the public Supabase Storage bucket `event-images`
+- Required backend env variables for images:
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `SUPABASE_EVENT_IMAGES_BUCKET=event-images`
 - Seeded sample password for all seed users: `Password123!`
 - Seeded sample emails:
   - `admin@smartevent.test`
@@ -83,8 +90,23 @@ Authorization: Bearer <jwt>
 - `organizer_id` is taken from the JWT and must not be sent by the frontend
 - `city` must be selected from `GET /api/cities`; invalid cities return `400`
 - Do not send `latitude` or `longitude`; backend geocodes the address and city
+- Optional image upload uses multipart file field `cover_image`
+- Optional image removal on update uses `remove_image=true`
 - `capacity` must be greater than `0`
 - `price` must be greater than or equal to `0`
+
+### Event Cover Images
+
+- Use JSON for create/update when there is no image change
+- Use `FormData` when creating with an image, replacing an image, or removing an image
+- Append all normal event fields to `FormData`
+- Append `cover_image` only when a new file is selected
+- Append `remove_image=true` only when removing the existing image
+- Allowed image types: JPEG, PNG, WebP
+- Max file size: 5MB
+- Frontend must not upload directly to Supabase
+- Frontend reads and displays only `image_url`
+- `image_path` is internal and is not returned by the API
 
 ### Search Cities
 
@@ -143,6 +165,7 @@ GET /api/cities?search=paris
 - Event responses now expose `address` and `city` instead of a single `location` field
 - Event create/update validates `city` against the same backend city list used by `GET /api/cities`
 - Event responses include `latitude` and `longitude` for map rendering
+- Event responses include optional `image_url` for cover images
 - Event create/update geocodes `address + city + France` on the backend with Nominatim
 - Frontend must never call Nominatim or ask users to enter coordinates manually
 - `POST`, `PUT`, and `DELETE` on events return the event record without organizer display fields
@@ -159,6 +182,7 @@ GET /api/cities?search=paris
   - `city`
   - `latitude`
   - `longitude`
+  - `image_url`
   - `event_date`
   - `capacity`
   - `price`
@@ -178,6 +202,8 @@ GET /api/cities?search=paris
   - `400 { "success": false, "message": "City must be a supported French city" }`
 - Unlocatable event address:
   - `400 { "success": false, "message": "Address could not be located" }`
+- Invalid event image:
+  - `400 { "success": false, "message": "Event image must be a JPEG, PNG, or WebP file under 5MB" }`
 
 ## Not Available Yet
 

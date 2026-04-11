@@ -1,6 +1,18 @@
 import Event from "../models/Event.js";
 import { geocodeFrenchAddress } from "../utils/geocoder.js";
+import {
+  deleteEventImage,
+  uploadEventImage
+} from "../utils/eventImageStorage.js";
 import { findSupportedFrenchCity } from "../utils/frenchCities.js";
+
+const shouldRemoveImage = (value) => value === true || value === "true";
+
+const hasCoordinates = (coordinates) =>
+  coordinates?.latitude !== null &&
+  coordinates?.latitude !== undefined &&
+  coordinates?.longitude !== null &&
+  coordinates?.longitude !== undefined;
 
 const createEvent = async (req, res) => {
   try {
@@ -70,19 +82,37 @@ const createEvent = async (req, res) => {
       });
     }
 
-    const newEvent = await Event.createEvent({
-      title: title.trim(),
-      description: description.trim(),
-      category: category.trim(),
-      address: trimmedAddress,
-      city: supportedCity.name,
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
-      event_date,
-      capacity: numericCapacity,
-      price: numericPrice,
-      organizer_id: req.user.id
-    });
+    let uploadedImage = {
+      image_url: null,
+      image_path: null
+    };
+
+    if (req.file) {
+      uploadedImage = await uploadEventImage(req.file, req.user.id);
+    }
+
+    let newEvent;
+
+    try {
+      newEvent = await Event.createEvent({
+        title: title.trim(),
+        description: description.trim(),
+        category: category.trim(),
+        address: trimmedAddress,
+        city: supportedCity.name,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        image_url: uploadedImage.image_url,
+        image_path: uploadedImage.image_path,
+        event_date,
+        capacity: numericCapacity,
+        price: numericPrice,
+        organizer_id: req.user.id
+      });
+    } catch (error) {
+      await deleteEventImage(uploadedImage.image_path);
+      throw error;
+    }
 
     return res.status(201).json({
       success: true,
@@ -149,7 +179,7 @@ const getEventById = async (req, res) => {
 
 const updateEvent = async (req, res) => {
   try {
-    const existingEvent = await Event.getEventById(req.params.id);
+    const existingEvent = await Event.getEventRecordById(req.params.id);
 
     if (!existingEvent) {
       return res.status(404).json({
@@ -223,11 +253,7 @@ const updateEvent = async (req, res) => {
 
     const trimmedAddress = address.trim();
     const trimmedCity = supportedCity.name;
-    const hasExistingCoordinates =
-      existingEvent.latitude !== null &&
-      existingEvent.latitude !== undefined &&
-      existingEvent.longitude !== null &&
-      existingEvent.longitude !== undefined;
+    const hasExistingCoordinates = hasCoordinates(existingEvent);
     const locationChanged =
       existingEvent.address !== trimmedAddress ||
       existingEvent.city !== trimmedCity;
@@ -239,25 +265,58 @@ const updateEvent = async (req, res) => {
           longitude: existingEvent.longitude
         };
 
-    if (!coordinates?.latitude || !coordinates?.longitude) {
+    if (!hasCoordinates(coordinates)) {
       return res.status(400).json({
         success: false,
         message: "Address could not be located"
       });
     }
 
-    const updatedEvent = await Event.updateEvent(req.params.id, {
-      title: title.trim(),
-      description: description.trim(),
-      category: category.trim(),
-      address: trimmedAddress,
-      city: trimmedCity,
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
-      event_date,
-      capacity: numericCapacity,
-      price: numericPrice
-    });
+    let imageData = {
+      image_url: existingEvent.image_url,
+      image_path: existingEvent.image_path
+    };
+    let uploadedImagePath = null;
+
+    if (req.file) {
+      imageData = await uploadEventImage(req.file, req.user.id);
+      uploadedImagePath = imageData.image_path;
+    } else if (shouldRemoveImage(req.body.remove_image)) {
+      imageData = {
+        image_url: null,
+        image_path: null
+      };
+    }
+
+    let updatedEvent;
+
+    try {
+      updatedEvent = await Event.updateEvent(req.params.id, {
+        title: title.trim(),
+        description: description.trim(),
+        category: category.trim(),
+        address: trimmedAddress,
+        city: trimmedCity,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        image_url: imageData.image_url,
+        image_path: imageData.image_path,
+        event_date,
+        capacity: numericCapacity,
+        price: numericPrice
+      });
+    } catch (error) {
+      await deleteEventImage(uploadedImagePath);
+      throw error;
+    }
+
+    if (
+      existingEvent.image_path &&
+      existingEvent.image_path !== imageData.image_path &&
+      (req.file || shouldRemoveImage(req.body.remove_image))
+    ) {
+      await deleteEventImage(existingEvent.image_path);
+    }
 
     return res.status(200).json({
       success: true,
@@ -277,7 +336,7 @@ const updateEvent = async (req, res) => {
 
 const deleteEvent = async (req, res) => {
   try {
-    const existingEvent = await Event.getEventById(req.params.id);
+    const existingEvent = await Event.getEventRecordById(req.params.id);
 
     if (!existingEvent) {
       return res.status(404).json({
@@ -297,6 +356,7 @@ const deleteEvent = async (req, res) => {
     }
 
     const deletedEvent = await Event.deleteEvent(req.params.id);
+    await deleteEventImage(existingEvent.image_path);
 
     return res.status(200).json({
       success: true,

@@ -2,6 +2,7 @@ import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
 import { CalendarDays, MapPin, PencilLine, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
+import EventCoverImage from "../components/event/EventCoverImage";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
@@ -86,6 +87,14 @@ export default function EventDetailsPage() {
             </div>
           ) : (
             <>
+              {eventRecord.image_url ? (
+                <EventCoverImage
+                  src={eventRecord.image_url}
+                  alt={`${eventRecord.title} cover`}
+                  className="h-72 rounded-[1.75rem] border border-zinc-200/70 dark:border-white/10 md:h-96"
+                />
+              ) : null}
+
               <div className="relative overflow-hidden rounded-[1.75rem] border border-zinc-200/70 bg-zinc-50/85 px-5 py-6 dark:border-white/10 dark:bg-white/[0.03] md:px-6 md:py-7">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute -left-6 top-0 h-40 w-40 rounded-full bg-sky-200/45 blur-3xl dark:bg-sky-500/10" />

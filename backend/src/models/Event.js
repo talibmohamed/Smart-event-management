@@ -10,12 +10,21 @@ const eventWithOrganizer = {
   },
 };
 
+const hideInternalEventFields = (event) => {
+  if (!event) {
+    return null;
+  }
+
+  const { image_path, ...publicEvent } = event;
+  return publicEvent;
+};
+
 const flattenEvent = (event) => {
   if (!event) {
     return null;
   }
 
-  const { organizer, ...eventData } = event;
+  const { organizer, ...eventData } = hideInternalEventFields(event);
 
   return {
     ...eventData,
@@ -33,12 +42,14 @@ const createEvent = async ({
   city,
   latitude,
   longitude,
+  image_url,
+  image_path,
   event_date,
   capacity,
   price,
   organizer_id,
 }) => {
-  return prisma.event.create({
+  const event = await prisma.event.create({
     data: {
       title,
       description,
@@ -47,12 +58,16 @@ const createEvent = async ({
       city,
       latitude,
       longitude,
+      image_url,
+      image_path,
       event_date: new Date(event_date),
       capacity,
       price,
       organizer_id,
     },
   });
+
+  return hideInternalEventFields(event);
 };
 
 const getAllEvents = async () => {
@@ -75,6 +90,12 @@ const getEventById = async (id) => {
   return flattenEvent(event);
 };
 
+const getEventRecordById = async (id) => {
+  return prisma.event.findUnique({
+    where: { id },
+  });
+};
+
 const updateEvent = async (
   id,
   {
@@ -85,12 +106,14 @@ const updateEvent = async (
     city,
     latitude,
     longitude,
+    image_url,
+    image_path,
     event_date,
     capacity,
     price,
   }
 ) => {
-  return prisma.event.update({
+  const event = await prisma.event.update({
     where: { id },
     data: {
       title,
@@ -100,23 +123,30 @@ const updateEvent = async (
       city,
       latitude,
       longitude,
+      image_url,
+      image_path,
       event_date: new Date(event_date),
       capacity,
       price,
     },
   });
+
+  return hideInternalEventFields(event);
 };
 
 const deleteEvent = async (id) => {
-  return prisma.event.delete({
+  const event = await prisma.event.delete({
     where: { id },
   });
+
+  return hideInternalEventFields(event);
 };
 
 export default {
   createEvent,
   getAllEvents,
   getEventById,
+  getEventRecordById,
   updateEvent,
   deleteEvent,
 };

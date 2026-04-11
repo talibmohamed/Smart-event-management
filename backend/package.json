@@ -7,17 +7,20 @@
   "scripts": {
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "db:seed": "node prisma/seed.js",
+    "storage:setup": "node scripts/setupEventImagesBucket.js",
     "postinstall": "npm run prisma:generate",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },
   "dependencies": {
     "@prisma/client": "6.19.2",
+    "@supabase/supabase-js": "^2.103.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
     "prisma": "6.19.2"
   },
   "devDependencies": {
