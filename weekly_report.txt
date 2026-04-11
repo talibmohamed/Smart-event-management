@@ -1,0 +1,56 @@
+Weekly Report — Smart-event-management
+Report period: 2026-03-30 to 2026-04-11
+
+Week 1 (2026-03-30 to 2026-04-05)
+What I did this week:
+- 2026-03-30
+  - Implemented core layout and navigation components.
+  - Added AppLayout, AppNavbar (with auth handling), ThemeSwitcher (dark/light).
+  - Set up AuthContext for authentication state.
+  - Implemented routing (AppRouter) and pages: Home, Events, Login, Register, Dashboard, CreateEvent.
+  - Added ProtectedRoute to enforce access by role.
+  - Created pages for event management (CreateEventPage, DashboardPage, EventDetailsPage, EventsPage, HomePage).
+  - Established API service for authentication/session handling.
+  - Configured Tailwind CSS and Vite for development.
+
+Planned / Next steps:
+- Integrate frontend with backend endpoints (auth, events).
+- Add event CRUD in the UI and end-to-end flows for create/view/book.
+- Add unit/integration tests for key components and routes.
+- Polish responsive styles and UX for mobile.
+- Add CI (linting/tests) and prepare initial deployment pipeline.
+
+Week 2 (2026-04-06 to 2026-04-12)
+What I did this week:
+- 2026-04-08
+  - Integrated Prisma ORM for database management and refactored models.
+  - Created Prisma schema for User, Event, Booking, Feedback.
+  - Reworked backend to use Prisma client for CRUD and booking operations.
+  - Updated auth middleware and added booking routes.
+  - Updated package.json with Prisma deps and generation scripts.
+- 2026-04-08
+  - Added API contract, integration guide, and backend status documentation to the repo.
+  - Documented endpoints and integration steps for frontend/backend.
+- 2026-04-11
+  - Added city search functionality and validation for event creation.
+  - Implemented geocoding to derive coordinates from addresses and updated event creation/update flows.
+- 2026-04-11
+  - Added latitude and longitude fields to the Event model and updated related functionality.
+  - Updated event seeding to include coordinates; added EventMap component (Leaflet) and map view support on frontend.
+- 2026-04-11
+  - Added event image upload functionality using Supabase storage.
+  - Backend: image upload/delete logic, updated Event model and DB schema, multer middleware, storage setup script.
+  - Frontend: image upload & preview in event forms and cards; event service supports FormData; image validation for type/size.
+
+Planned / Next steps:
+- Run Prisma migrations and verify schema and seed data in staging.
+- Fully integrate Supabase image storage with frontend upload flow and test upload/delete end-to-end.
+- Test booking workflow (create, cancel, retrieve) against the Prisma-backed API.
+- Verify geocoding reliability and add fallback/error handling for address lookups.
+- Add end-to-end tests for map views and event location filtering.
+- Improve validation and UX for image uploads (progress, errors) and for address inputs.
+- Add CI jobs: Prisma schema checks, automated migrations in CI, and tests.
+- Prepare deployment steps and environment config (DB, Supabase keys, geocoding API keys) for staging.
+
+
+End of report.
