@@ -38,7 +38,7 @@ export function formatEventVenue(event = {}) {
     return `${address}, ${city}`;
   }
 
-  return address || city || "Location not available";
+  return address || city || "Venue not available";
 }
 
 export function isUpcomingEvent(dateValue) {

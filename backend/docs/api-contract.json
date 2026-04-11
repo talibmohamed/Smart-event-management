@@ -2,7 +2,7 @@
   "metadata": {
     "name": "Smart Event Management Backend API",
     "version": "1.0.0",
-    "lastUpdated": "2026-04-09",
+    "lastUpdated": "2026-04-11",
     "baseUrl": "http://localhost:5000"
   },
   "development": {
@@ -44,6 +44,11 @@
       "email": "string",
       "role": "string(attendee|organizer|admin)",
       "created_at": "string(datetime)"
+    },
+    "city": {
+      "name": "string",
+      "postal_code": "string",
+      "department": "string"
     },
     "eventPublic": {
       "id": "string(uuid)",
@@ -218,6 +223,34 @@
     },
     {
       "method": "GET",
+      "path": "/api/cities",
+      "authRequired": false,
+      "allowedRoles": ["public"],
+      "queryParams": {
+        "search": {
+          "type": "string",
+          "required": false,
+          "description": "Matches approved French city name or postal code"
+        }
+      },
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Cities retrieved successfully",
+          "data": ["city"]
+        }
+      },
+      "commonErrors": [],
+      "behaviorNotes": [
+        "Public endpoint.",
+        "Returns a maximum of 20 results.",
+        "The same backend city list is used to validate event create and update payloads."
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/api/events",
       "authRequired": false,
       "allowedRoles": ["public"],
@@ -263,7 +296,12 @@
         "description": { "type": "string", "required": true },
         "category": { "type": "string", "required": true },
         "address": { "type": "string", "required": true },
-        "city": { "type": "string", "required": true },
+        "city": {
+          "type": "string",
+          "required": true,
+          "source": "GET /api/cities",
+          "validation": "Must be a backend-approved French city name"
+        },
         "event_date": { "type": "string(datetime)", "required": true },
         "capacity": { "type": "number", "required": true, "minimum": 1 },
         "price": { "type": "number", "required": true, "minimum": 0 }
@@ -282,6 +320,7 @@
         { "status": 400, "message": "All event fields are required" },
         { "status": 400, "message": "Capacity must be a positive number" },
         { "status": 400, "message": "Price must be a valid number greater than or equal to 0" },
+        { "status": 400, "message": "City must be a supported French city" },
         { "status": 500, "message": "Server error while creating event" }
       ]
     },
@@ -295,7 +334,12 @@
         "description": { "type": "string", "required": true },
         "category": { "type": "string", "required": true },
         "address": { "type": "string", "required": true },
-        "city": { "type": "string", "required": true },
+        "city": {
+          "type": "string",
+          "required": true,
+          "source": "GET /api/cities",
+          "validation": "Must be a backend-approved French city name"
+        },
         "event_date": { "type": "string(datetime)", "required": true },
         "capacity": { "type": "number", "required": true, "minimum": 1 },
         "price": { "type": "number", "required": true, "minimum": 0 }
@@ -316,6 +360,7 @@
         { "status": 400, "message": "All event fields are required" },
         { "status": 400, "message": "Capacity must be a positive number" },
         { "status": 400, "message": "Price must be a valid number greater than or equal to 0" },
+        { "status": 400, "message": "City must be a supported French city" },
         { "status": 500, "message": "Server error while updating event" }
       ]
     },

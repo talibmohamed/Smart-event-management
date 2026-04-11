@@ -1,6 +1,6 @@
 # Smart Event Management API Spec
 
-Last updated: 2026-04-09
+Last updated: 2026-04-11
 
 ## Global Rules
 
@@ -152,6 +152,33 @@ Last updated: 2026-04-09
   - `401 { "success": false, "message": "Token invalid" }`
   - `500 { "success": false, "message": "Server error", "error": "..." }`
 
+### `GET /api/cities`
+
+- Auth: no
+- Allowed roles: all
+- Request body: none
+- Query params:
+  - `search` optional string; matches city name or postal code
+  - Returns a maximum of 20 results
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Cities retrieved successfully",
+  "data": [
+    {
+      "name": "Paris",
+      "postal_code": "75000",
+      "department": "Paris"
+    }
+  ]
+}
+```
+
+- Common errors:
+  - none
+
 ### `GET /api/events`
 
 - Auth: no
@@ -219,6 +246,7 @@ Last updated: 2026-04-09
 - Notes:
   - All fields above are required
   - `organizer_id` is taken from the token
+  - `city` must be one of the backend-approved French city names from `GET /api/cities`
 - Success:
 
 ```json
@@ -247,6 +275,7 @@ Last updated: 2026-04-09
   - `400 { "success": false, "message": "All event fields are required" }`
   - `400 { "success": false, "message": "Capacity must be a positive number" }`
   - `400 { "success": false, "message": "Price must be a valid number greater than or equal to 0" }`
+  - `400 { "success": false, "message": "City must be a supported French city" }`
   - `500 { "success": false, "message": "Server error while creating event", "error": "..." }`
 
 ### `PUT /api/events/:id`
@@ -258,6 +287,7 @@ Last updated: 2026-04-09
   - Current implementation expects the full event payload
   - Organizers can update only their own events
   - Admins can update any event
+  - `city` must be one of the backend-approved French city names from `GET /api/cities`
 - Success: same event object shape as `POST /api/events`
 - Common errors:
   - `401 { "success": false, "message": "Not authorized" }`
@@ -267,6 +297,7 @@ Last updated: 2026-04-09
   - `400 { "success": false, "message": "All event fields are required" }`
   - `400 { "success": false, "message": "Capacity must be a positive number" }`
   - `400 { "success": false, "message": "Price must be a valid number greater than or equal to 0" }`
+  - `400 { "success": false, "message": "City must be a supported French city" }`
   - `500 { "success": false, "message": "Server error while updating event", "error": "..." }`
 
 ### `DELETE /api/events/:id`

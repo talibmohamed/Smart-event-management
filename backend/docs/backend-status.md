@@ -1,6 +1,6 @@
 # Backend Status
 
-Last updated: 2026-04-09
+Last updated: 2026-04-11
 
 ## Current State
 
@@ -17,6 +17,7 @@ Last updated: 2026-04-09
 - `GET /` API health check
 - `GET /api/test/db` database connectivity check
 - Express JSON parsing and CORS enabled
+- `GET /api/cities` public French city search endpoint
 
 ### Development Tooling
 
@@ -44,6 +45,7 @@ Last updated: 2026-04-09
 - Organizer/admin event creation
 - Organizer/admin event update
 - Organizer/admin event deletion
+- Backend-approved French city validation on event create and update
 
 ### Bookings
 
@@ -67,6 +69,7 @@ Last updated: 2026-04-09
 - `GET /api/auth/me` returns `{ success, data }` without a `message` field on success
 - Event create and update currently require all event fields in the request body
 - Event location is split into `address` and `city`
+- Event `city` must match a backend-approved French city from `GET /api/cities`
 - Event `price` is serialized as a string in JSON responses
 - `POST /api/auth/register` only honors `attendee` and `organizer`; any other role becomes `attendee`
 - `POST /api/bookings` returns `201` even when reactivating a cancelled booking
@@ -74,6 +77,7 @@ Last updated: 2026-04-09
 ## Frontend Ready Areas
 
 - Login, register, and session restore
+- French city autocomplete/select through `GET /api/cities`
 - Public events list and event detail
 - Organizer event create, update, and delete
 - User booking create, cancel, and my-bookings view

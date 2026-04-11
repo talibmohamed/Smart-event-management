@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-09
+Last updated: 2026-04-11
 
 ## Base Setup
 
@@ -40,6 +40,7 @@ Authorization: Bearer <jwt>
 | Register page | `POST /api/auth/register` | `role` can be `attendee` or `organizer` |
 | Login page | `POST /api/auth/login` | Returns JWT and user |
 | Session restore | `GET /api/auth/me` | Requires JWT |
+| City autocomplete/select | `GET /api/cities?search=paris` | Public, returns max 20 backend-approved French cities |
 | Events list page | `GET /api/events` | Public |
 | Event detail page | `GET /api/events/:id` | Public |
 | Organizer create event page | `POST /api/events` | Requires `organizer` or `admin` |
@@ -70,8 +71,36 @@ Authorization: Bearer <jwt>
   - `capacity`
   - `price`
 - `organizer_id` is taken from the JWT and must not be sent by the frontend
+- `city` must be selected from `GET /api/cities`; invalid cities return `400`
 - `capacity` must be greater than `0`
 - `price` must be greater than or equal to `0`
+
+### Search Cities
+
+- Public endpoint:
+
+```http
+GET /api/cities?search=paris
+```
+
+- `search` is optional and matches city name or postal code
+- The backend returns a maximum of 20 results
+- The frontend should display `name`, optionally with `postal_code` and `department`
+- Event create/update payloads should send only the selected city `name` as `city`
+
+```json
+{
+  "success": true,
+  "message": "Cities retrieved successfully",
+  "data": [
+    {
+      "name": "Paris",
+      "postal_code": "75000",
+      "department": "Paris"
+    }
+  ]
+}
+```
 
 ### Create Booking
 
@@ -101,6 +130,7 @@ Authorization: Bearer <jwt>
   - `last_name`
   - `organizer_email`
 - Event responses now expose `address` and `city` instead of a single `location` field
+- Event create/update validates `city` against the same backend city list used by `GET /api/cities`
 - `POST`, `PUT`, and `DELETE` on events return the event record without organizer display fields
 - `price` is returned as a string, for example `"10.00"`
 
@@ -128,6 +158,8 @@ Authorization: Bearer <jwt>
   - `404` not found
   - `409` duplicate booking
   - `500` unexpected server error
+- Invalid event city:
+  - `400 { "success": false, "message": "City must be a supported French city" }`
 
 ## Not Available Yet
 

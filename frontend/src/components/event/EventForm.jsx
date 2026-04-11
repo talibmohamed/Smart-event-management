@@ -2,10 +2,11 @@ import { Button, Input, Textarea } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { buildEventPayload, toEventFormValues } from "../../utils/eventUtils";
+import CityAutocomplete from "./CityAutocomplete";
 
 const EMPTY_EVENT_VALUES = toEventFormValues();
 
-function validateEventForm(values) {
+function validateEventForm(values, isCitySelected) {
   if (
     !values.title.trim() ||
     !values.description.trim() ||
@@ -17,6 +18,10 @@ function validateEventForm(values) {
     values.price === ""
   ) {
     return "All event fields are required";
+  }
+
+  if (!isCitySelected) {
+    return "Please select a supported French city";
   }
 
   const capacity = Number(values.capacity);
@@ -54,9 +59,11 @@ export default function EventForm({
 }) {
   const [values, setValues] = useState(EMPTY_EVENT_VALUES);
   const [validationMessage, setValidationMessage] = useState("");
+  const [isCitySelected, setIsCitySelected] = useState(false);
 
   useEffect(() => {
     setValues(initialValues ? toEventFormValues(initialValues) : EMPTY_EVENT_VALUES);
+    setIsCitySelected(Boolean(initialValues?.city));
     setValidationMessage("");
   }, [initialValues]);
 
@@ -74,7 +81,7 @@ export default function EventForm({
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const nextValidationMessage = validateEventForm(values);
+    const nextValidationMessage = validateEventForm(values, isCitySelected);
 
     if (nextValidationMessage) {
       setValidationMessage(nextValidationMessage);
@@ -142,17 +149,16 @@ export default function EventForm({
           }}
         />
 
-        <Input
-          label="City"
-          labelPlacement="outside"
-          placeholder="Paris"
+        <CityAutocomplete
           value={values.city}
-          onChange={handleChange("city")}
-          radius="lg"
-          classNames={{
-            inputWrapper:
-              "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+          onChange={(nextCity) => {
+            setValues((currentValues) => ({
+              ...currentValues,
+              city: nextCity,
+            }));
           }}
+          onSelectionChange={setIsCitySelected}
+          isSelected={isCitySelected}
         />
 
         <Input

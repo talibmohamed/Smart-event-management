@@ -1,4 +1,5 @@
 import Event from "../models/Event.js";
+import { isSupportedFrenchCity } from "../utils/frenchCities.js";
 
 const createEvent = async (req, res) => {
   try {
@@ -43,6 +44,13 @@ const createEvent = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Price must be a valid number greater than or equal to 0"
+      });
+    }
+
+    if (!isSupportedFrenchCity(city)) {
+      return res.status(400).json({
+        success: false,
+        message: "City must be a supported French city"
       });
     }
 
@@ -183,6 +191,13 @@ const updateEvent = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Price must be a valid number greater than or equal to 0"
+      });
+    }
+
+    if (!isSupportedFrenchCity(city)) {
+      return res.status(400).json({
+        success: false,
+        message: "City must be a supported French city"
       });
     }
 
