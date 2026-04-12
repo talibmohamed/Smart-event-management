@@ -8,6 +8,7 @@ Last updated: 2026-04-11
 - Runtime Prisma connection is normalized for the Supabase pooler
 - Authentication is implemented with JWT
 - Core auth, event, and booking flows are available
+- Paid bookings use Stripe Checkout and webhook confirmation
 - `backend/docs` is the current frontend source of truth
 - Local development seeding is available through Prisma
 - Event locations use structured address, city, latitude, and longitude fields
@@ -26,10 +27,12 @@ Last updated: 2026-04-11
 ### Development Tooling
 
 - `npm run db:seed` seeds sample users, events, bookings, and feedback
+- `npm run db:payment-schema` applies the booking payment columns/check constraints to Supabase
 - `npm run storage:setup` creates or updates the public Supabase `event-images` bucket
 - Seeded events cover multiple French cities for list/map UI development
 - Seeded sample login password: `Password123!`
 - Event image upload requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_EVENT_IMAGES_BUCKET`
+- Stripe Checkout requires `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CURRENCY`, and `FRONTEND_URL`
 
 ### Authentication
 
@@ -61,18 +64,24 @@ Last updated: 2026-04-11
 ### Bookings
 
 - Authenticated booking creation
-- One confirmed booking per user per event
+- Free event bookings confirm immediately
+- Paid event bookings start as `pending_payment` and confirm only from Stripe webhook
+- One active booking per user per event
 - Cancelled booking reactivation
 - Capacity check before booking
 - Authenticated booking list
+- Authenticated booking detail for payment status polling
 - Booking cancellation
+- Stripe webhook handles completed and expired Checkout Sessions
+- Webhook processing validates metadata, amount, currency, capacity, and duplicate Stripe events
 
 ## Pending Features
 
 - Feedback endpoints and business logic
 - Admin-specific supervision endpoints beyond current role checks
 - Event filtering, search, and pagination
-- Booking management endpoints beyond `my-bookings`
+- Organizer booking attendee list and reports
+- Refund handling and advanced payment operations
 - Fully consistent success response shape across all endpoints
 
 ## Known Behavior Notes
@@ -89,6 +98,10 @@ Last updated: 2026-04-11
 - Invalid event images return `400` with `Event image must be a JPEG, PNG, or WebP file under 5MB`
 - Event `price` is serialized as a string in JSON responses
 - `POST /api/auth/register` only honors `attendee` and `organizer`; any other role becomes `attendee`
+- Only attendees can create bookings and view their own booking list
+- Pending paid bookings do not reserve seats; only confirmed bookings count against capacity
+- Stripe success redirect is not payment confirmation; only the webhook confirms paid bookings
+- Duplicate pending paid bookings return `409`
 - `POST /api/bookings` returns `201` even when reactivating a cancelled booking
 - Supabase pooler connections automatically add `pgbouncer=true` and `connection_limit=1` at runtime to avoid prepared statement collisions
 
@@ -99,4 +112,4 @@ Last updated: 2026-04-11
 - Public events list and event detail
 - Organizer event create, update, and delete
 - Organizer/admin event cover image upload and removal
-- User booking create, cancel, and my-bookings view
+- Attendee booking create, cancel, payment redirect, status polling, and my-bookings view

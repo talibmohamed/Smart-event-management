@@ -14,13 +14,20 @@ Authorization: Bearer <jwt>
 ```
 
 - Local seed command: `npm run db:seed`
+- Local booking payment schema command: `npm run db:payment-schema`
 - Local storage setup command: `npm run storage:setup`
 - Backend runtime normalizes Supabase pooler connections for Prisma
 - Backend uploads event cover images to the public Supabase Storage bucket `event-images`
+- Paid event bookings use Stripe Checkout; frontend redirects to `data.payment.checkout_url`
 - Required backend env variables for images:
   - `SUPABASE_URL`
   - `SUPABASE_SERVICE_ROLE_KEY`
   - `SUPABASE_EVENT_IMAGES_BUCKET=event-images`
+- Required backend env variables for Stripe:
+  - `STRIPE_SECRET_KEY`
+  - `STRIPE_WEBHOOK_SECRET`
+  - `STRIPE_CURRENCY=eur`
+  - `FRONTEND_URL`
 - Seeded sample password for all seed users: `Password123!`
 - Seeded sample emails:
   - `admin@smartevent.test`
@@ -63,9 +70,11 @@ Authorization: Bearer <jwt>
 | Organizer create event page | `POST /api/events` | Requires `organizer` or `admin` |
 | Organizer edit event page | `PUT /api/events/:id` | Requires `organizer` or `admin` and ownership unless admin |
 | Organizer delete event action | `DELETE /api/events/:id` | Requires `organizer` or `admin` and ownership unless admin |
-| My bookings page | `GET /api/bookings/my-bookings` | Requires JWT |
-| Book event action | `POST /api/bookings` | Requires JWT, body only needs `event_id` |
+| My bookings page | `GET /api/bookings/my-bookings` | Requires attendee JWT |
+| Booking detail/status polling | `GET /api/bookings/:id` | Requires JWT, owner attendee or admin |
+| Book event action | `POST /api/bookings` | Requires attendee JWT, body only needs `event_id` |
 | Cancel booking action | `PUT /api/bookings/:id/cancel` | Requires JWT, owner or admin |
+| Stripe webhook | `POST /api/payments/stripe/webhook` | Stripe only, raw body required |
 | Dev DB check | `GET /api/test/db` | Dev tooling, not a user page |
 
 ## Request Notes
@@ -146,8 +155,28 @@ GET /api/cities?search=paris
 ```
 
 - If the user already has a confirmed booking, backend returns `409`
+- If the user already has a pending paid booking, backend returns `409`
 - If the user has a cancelled booking for the same event, backend reactivates it and still returns `201`
 - If the event is full, backend returns `400`
+- Free events return a `confirmed` booking and `payment_required: false`
+- Paid events return a `pending_payment` booking, `payment_required: true`, and Stripe `checkout_url`
+- Frontend must redirect to `checkout_url` for paid bookings
+- Stripe success pages are UX only; use `GET /api/bookings/:id` to poll final booking status
+- Pending paid bookings do not reserve seats
+
+### Stripe Webhook
+
+- Local development command example:
+
+```bash
+stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
+```
+
+- Configure the returned webhook secret as `STRIPE_WEBHOOK_SECRET`
+- Backend verifies the raw request body and `Stripe-Signature`
+- `checkout.session.completed` confirms valid paid bookings
+- `checkout.session.expired` marks pending paid bookings as cancelled/expired
+- Amount, currency, metadata, and capacity are validated before confirmation
 
 ## Response Notes
 
@@ -166,6 +195,7 @@ GET /api/cities?search=paris
 - Event create/update validates `city` against the same backend city list used by `GET /api/cities`
 - Event responses include `latitude` and `longitude` for map rendering
 - Event responses include optional `image_url` for cover images
+- Event responses include `confirmed_bookings`, `remaining_seats`, and `is_full`
 - Event create/update geocodes `address + city + France` on the backend with Nominatim
 - Frontend must never call Nominatim or ask users to enter coordinates manually
 - `POST`, `PUT`, and `DELETE` on events return the event record without organizer display fields
@@ -187,6 +217,8 @@ GET /api/cities?search=paris
   - `capacity`
   - `price`
   - `organizer_id`
+- Booking statuses: `pending_payment`, `confirmed`, `cancelled`
+- Payment statuses: `unpaid`, `paid`, `failed`, `cancelled`, `expired`
 
 ## Error Handling
 
@@ -198,6 +230,8 @@ GET /api/cities?search=paris
   - `404` not found
   - `409` duplicate booking
   - `500` unexpected server error
+- Duplicate pending payment:
+  - `409 { "success": false, "message": "You already have a pending payment for this event" }`
 - Invalid event city:
   - `400 { "success": false, "message": "City must be a supported French city" }`
 - Unlocatable event address:

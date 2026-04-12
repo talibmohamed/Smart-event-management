@@ -7,6 +7,7 @@
   },
   "development": {
     "seedCommand": "npm run db:seed",
+    "paymentSchemaCommand": "npm run db:payment-schema",
     "storageSetupCommand": "npm run storage:setup",
     "seedPassword": "Password123!",
     "seedUsers": [
@@ -33,6 +34,12 @@
       "SUPABASE_URL": "Required Supabase project URL",
       "SUPABASE_SERVICE_ROLE_KEY": "Required backend-only service role key",
       "SUPABASE_EVENT_IMAGES_BUCKET": "Public storage bucket name, default event-images"
+    },
+    "stripeCheckout": {
+      "STRIPE_SECRET_KEY": "Required backend-only Stripe secret key",
+      "STRIPE_WEBHOOK_SECRET": "Required for webhook signature verification",
+      "STRIPE_CURRENCY": "Payment currency, default eur",
+      "FRONTEND_URL": "Frontend base URL for Stripe success and cancel redirects"
     }
   },
   "authentication": {
@@ -87,6 +94,9 @@
       "price": "string(decimal)",
       "organizer_id": "string(uuid)",
       "created_at": "string(datetime)",
+      "confirmed_bookings": "number",
+      "remaining_seats": "number",
+      "is_full": "boolean",
       "first_name": "string",
       "last_name": "string",
       "organizer_email": "string"
@@ -112,14 +122,20 @@
       "user_id": "string(uuid)",
       "event_id": "string(uuid)",
       "booking_date": "string(datetime)",
-      "status": "string(confirmed|cancelled)"
+      "status": "string(pending_payment|confirmed|cancelled)",
+      "payment_status": "string(unpaid|paid|failed|cancelled|expired)|null",
+      "amount_paid": "string(decimal)|null",
+      "currency": "string"
     },
     "bookingWithEvent": {
       "id": "string(uuid)",
       "user_id": "string(uuid)",
       "event_id": "string(uuid)",
       "booking_date": "string(datetime)",
-      "status": "string(confirmed|cancelled)",
+      "status": "string(pending_payment|confirmed|cancelled)",
+      "payment_status": "string(unpaid|paid|failed|cancelled|expired)|null",
+      "amount_paid": "string(decimal)|null",
+      "currency": "string",
       "title": "string",
       "description": "string|null",
       "category": "string|null",
@@ -132,6 +148,19 @@
       "capacity": "number",
       "price": "string(decimal)",
       "organizer_id": "string(uuid)"
+    }
+    ,
+    "bookingCreateFreeResult": {
+      "booking": "booking",
+      "payment_required": false
+    },
+    "bookingCreatePaidResult": {
+      "booking": "booking",
+      "payment_required": true,
+      "payment": {
+        "provider": "stripe",
+        "checkout_url": "string(url)"
+      }
     }
   },
   "endpoints": [
@@ -463,7 +492,7 @@
       "method": "GET",
       "path": "/api/bookings/my-bookings",
       "authRequired": true,
-      "allowedRoles": ["attendee", "organizer", "admin"],
+      "allowedRoles": ["attendee"],
       "requestBody": null,
       "successResponse": {
         "status": 200,
@@ -476,6 +505,7 @@
       "commonErrors": [
         { "status": 401, "message": "Not authorized" },
         { "status": 401, "message": "Token invalid" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
         { "status": 500, "message": "Server error while fetching bookings" }
       ]
     },
@@ -483,7 +513,7 @@
       "method": "POST",
       "path": "/api/bookings",
       "authRequired": true,
-      "allowedRoles": ["attendee", "organizer", "admin"],
+      "allowedRoles": ["attendee"],
       "requestBody": {
         "event_id": { "type": "string(uuid)", "required": true }
       },
@@ -491,21 +521,51 @@
         "status": 201,
         "body": {
           "success": true,
-          "message": "Booking created successfully",
-          "data": "booking"
+          "message": "Booking created successfully | Payment required to confirm booking",
+          "data": "bookingCreateFreeResult | bookingCreatePaidResult"
         }
       },
       "commonErrors": [
         { "status": 401, "message": "Not authorized" },
         { "status": 401, "message": "Token invalid" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
         { "status": 400, "message": "Event ID is required" },
         { "status": 404, "message": "Event not found" },
         { "status": 409, "message": "You have already booked this event" },
+        { "status": 409, "message": "You already have a pending payment for this event" },
         { "status": 400, "message": "This event is fully booked" },
         { "status": 500, "message": "Server error while creating booking" }
       ],
       "behaviorNotes": [
-        "If a cancelled booking already exists for the same user and event, the backend reactivates it and still returns 201."
+        "Free events create confirmed bookings immediately.",
+        "Paid events create pending_payment bookings and return a Stripe Checkout URL.",
+        "Pending paid bookings do not reserve seats.",
+        "Stripe success redirect does not confirm payment; webhook confirmation is required."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bookings/:id",
+      "authRequired": true,
+      "allowedRoles": ["attendee_owner", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Booking retrieved successfully",
+          "data": "bookingWithEvent"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 401, "message": "Token invalid" },
+        { "status": 403, "message": "Access denied. You can only view your own bookings" },
+        { "status": 404, "message": "Booking not found" },
+        { "status": 500, "message": "Server error while fetching booking" }
+      ],
+      "behaviorNotes": [
+        "Used by frontend to poll booking status after Stripe redirect."
       ]
     },
     {
@@ -529,6 +589,32 @@
         { "status": 403, "message": "Access denied. You can only cancel your own bookings" },
         { "status": 400, "message": "Booking is already cancelled" },
         { "status": 500, "message": "Server error while cancelling booking" }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/payments/stripe/webhook",
+      "authRequired": false,
+      "allowedRoles": ["stripe"],
+      "requestBody": "raw Stripe webhook body",
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Stripe webhook processed"
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "Invalid Stripe webhook signature" },
+        { "status": 500, "message": "Server error while processing Stripe webhook" }
+      ],
+      "behaviorNotes": [
+        "Route must receive raw request body before JSON parsing.",
+        "Verifies Stripe-Signature with STRIPE_WEBHOOK_SECRET.",
+        "Uses Checkout metadata booking_id, user_id, and event_id.",
+        "checkout.session.completed validates metadata, amount, currency, and capacity before confirming.",
+        "checkout.session.expired marks pending bookings cancelled with payment_status expired.",
+        "Duplicate or already-confirmed webhook events are logged and ignored safely."
       ]
     }
   ],

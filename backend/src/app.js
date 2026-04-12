@@ -5,10 +5,12 @@ import authRoutes from "./routes/authRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import cityRoutes from "./routes/cityRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 
 app.use(cors());
+app.use("/api/payments", paymentRoutes);
 app.use(express.json());
 
 app.get("/", (req, res) => {

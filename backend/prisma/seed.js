@@ -113,6 +113,9 @@ async function upsertEvent({
 }
 
 async function upsertBooking({ user_id, event_id, status = "confirmed" }) {
+  const payment_status = status === "confirmed" ? "paid" : "cancelled";
+  const amount_paid = status === "confirmed" ? 0 : null;
+
   return prisma.booking.upsert({
     where: {
       user_id_event_id: {
@@ -122,12 +125,16 @@ async function upsertBooking({ user_id, event_id, status = "confirmed" }) {
     },
     update: {
       status,
+      payment_status,
+      amount_paid,
       booking_date: new Date(),
     },
     create: {
       user_id,
       event_id,
       status,
+      payment_status,
+      amount_paid,
     },
   });
 }

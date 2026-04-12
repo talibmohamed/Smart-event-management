@@ -34,6 +34,27 @@ const flattenEvent = (event) => {
   };
 };
 
+const addBookingStats = async (event) => {
+  if (!event) {
+    return null;
+  }
+
+  const confirmed_bookings = await prisma.booking.count({
+    where: {
+      event_id: event.id,
+      status: "confirmed",
+    },
+  });
+  const remaining_seats = Math.max(event.capacity - confirmed_bookings, 0);
+
+  return {
+    ...event,
+    confirmed_bookings,
+    remaining_seats,
+    is_full: remaining_seats === 0,
+  };
+};
+
 const createEvent = async ({
   title,
   description,
@@ -78,7 +99,7 @@ const getAllEvents = async () => {
     },
   });
 
-  return events.map(flattenEvent);
+  return Promise.all(events.map((event) => addBookingStats(flattenEvent(event))));
 };
 
 const getEventById = async (id) => {
@@ -87,7 +108,7 @@ const getEventById = async (id) => {
     include: eventWithOrganizer,
   });
 
-  return flattenEvent(event);
+  return addBookingStats(flattenEvent(event));
 };
 
 const getEventRecordById = async (id) => {
