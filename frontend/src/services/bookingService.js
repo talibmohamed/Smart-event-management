@@ -11,6 +11,14 @@ const bookingService = {
     return api.get("/bookings/my-bookings");
   },
 
+  getBookingById(id) {
+    return api.get(`/bookings/${id}`);
+  },
+
+  retryPayment(id) {
+    return api.post(`/bookings/${id}/retry-payment`);
+  },
+
   cancelBooking(id) {
     return api.put(`/bookings/${id}/cancel`);
   },

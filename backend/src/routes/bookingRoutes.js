@@ -13,6 +13,12 @@ router.get(
 );
 router.get("/:id", authMiddleware, bookingController.getBookingById);
 router.post(
+  "/:id/retry-payment",
+  authMiddleware,
+  roleMiddleware("attendee"),
+  bookingController.retryPayment
+);
+router.post(
   "/",
   authMiddleware,
   roleMiddleware("attendee"),

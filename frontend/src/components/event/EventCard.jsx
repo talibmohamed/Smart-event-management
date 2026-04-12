@@ -1,7 +1,12 @@
 import { Button, Card, CardBody, CardFooter, CardHeader, Chip } from "@heroui/react";
 import { ArrowRight, CalendarClock, MapPin, Users } from "lucide-react";
 import { Link } from "react-router-dom";
-import { formatEventDate, formatEventPrice, formatEventVenue } from "../../utils/eventUtils";
+import {
+  formatEventAvailability,
+  formatEventDate,
+  formatEventPrice,
+  formatEventVenue,
+} from "../../utils/eventUtils";
 import EventCoverImage from "./EventCoverImage";
 
 export default function EventCard({ event, isSelected = false, onSelect, onHover }) {
@@ -75,7 +80,7 @@ export default function EventCard({ event, isSelected = false, onSelect, onHover
 
         <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
           <Users size={16} />
-          <span>{event.capacity} seats available</span>
+          <span>{formatEventAvailability(event)}</span>
         </div>
       </CardBody>
 

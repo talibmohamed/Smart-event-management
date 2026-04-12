@@ -73,6 +73,7 @@ Authorization: Bearer <jwt>
 | My bookings page | `GET /api/bookings/my-bookings` | Requires attendee JWT |
 | Booking detail/status polling | `GET /api/bookings/:id` | Requires JWT, owner attendee or admin |
 | Book event action | `POST /api/bookings` | Requires attendee JWT, body only needs `event_id` |
+| Retry paid checkout | `POST /api/bookings/:id/retry-payment` | Requires attendee JWT and pending payment booking |
 | Cancel booking action | `PUT /api/bookings/:id/cancel` | Requires JWT, owner or admin |
 | Stripe webhook | `POST /api/payments/stripe/webhook` | Stripe only, raw body required |
 | Dev DB check | `GET /api/test/db` | Dev tooling, not a user page |
@@ -163,6 +164,7 @@ GET /api/cities?search=paris
 - Frontend must redirect to `checkout_url` for paid bookings
 - Stripe success pages are UX only; use `GET /api/bookings/:id` to poll final booking status
 - Pending paid bookings do not reserve seats
+- To continue payment for an existing `pending_payment` booking, call `POST /api/bookings/:id/retry-payment` and redirect to the returned `checkout_url`
 
 ### Stripe Webhook
 

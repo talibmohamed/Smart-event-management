@@ -250,9 +250,85 @@ const getBookingById = async (req, res) => {
   }
 };
 
+const retryPayment = async (req, res) => {
+  try {
+    const booking = await Booking.getBookingWithEventById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found"
+      });
+    }
+
+    if (req.user.role !== "attendee") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Insufficient permissions"
+      });
+    }
+
+    if (booking.user_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only retry payment for your own bookings"
+      });
+    }
+
+    if (booking.status !== "pending_payment") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending payment bookings can be retried"
+      });
+    }
+
+    const confirmedBookings = await Booking.countConfirmedBookingsForEvent(
+      booking.event_id
+    );
+
+    if (confirmedBookings >= booking.event.capacity) {
+      return res.status(400).json({
+        success: false,
+        message: "This event is fully booked"
+      });
+    }
+
+    const user = await User.findUserById(req.user.id);
+    const checkoutSession = await createBookingCheckoutSession({
+      booking,
+      event: booking.event,
+      user,
+    });
+
+    const updatedBooking = await Booking.updateCheckoutSession(
+      booking.id,
+      checkoutSession.id
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment retry created successfully",
+      data: buildBookingResponse({
+        booking: updatedBooking,
+        paymentRequired: true,
+        checkoutUrl: checkoutSession.url,
+      }),
+    });
+  } catch (error) {
+    console.error("Retry payment error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while retrying payment",
+      error: error.message
+    });
+  }
+};
+
 export default {
   createBooking,
   cancelBooking,
   getMyBookings,
-  getBookingById
+  getBookingById,
+  retryPayment
 };

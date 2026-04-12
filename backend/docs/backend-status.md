@@ -71,6 +71,7 @@ Last updated: 2026-04-11
 - Capacity check before booking
 - Authenticated booking list
 - Authenticated booking detail for payment status polling
+- Payment retry endpoint creates a fresh Stripe Checkout Session for pending bookings
 - Booking cancellation
 - Stripe webhook handles completed and expired Checkout Sessions
 - Webhook processing validates metadata, amount, currency, capacity, and duplicate Stripe events
@@ -102,6 +103,7 @@ Last updated: 2026-04-11
 - Pending paid bookings do not reserve seats; only confirmed bookings count against capacity
 - Stripe success redirect is not payment confirmation; only the webhook confirms paid bookings
 - Duplicate pending paid bookings return `409`
+- Pending paid bookings can be retried through `POST /api/bookings/:id/retry-payment`
 - `POST /api/bookings` returns `201` even when reactivating a cancelled booking
 - Supabase pooler connections automatically add `pgbouncer=true` and `connection_limit=1` at runtime to avoid prepared statement collisions
 
@@ -112,4 +114,4 @@ Last updated: 2026-04-11
 - Public events list and event detail
 - Organizer event create, update, and delete
 - Organizer/admin event cover image upload and removal
-- Attendee booking create, cancel, payment redirect, status polling, and my-bookings view
+- Attendee booking create, cancel, payment retry, payment redirect, status polling, and my-bookings view

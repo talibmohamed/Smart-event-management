@@ -51,6 +51,41 @@ export function isUpcomingEvent(dateValue) {
   return parsedDate.getTime() >= Date.now();
 }
 
+export function getEventAvailability(event = {}) {
+  const capacity = Number(event.capacity);
+  const confirmedBookings = Number(event.confirmed_bookings);
+  const remainingSeats = Number(event.remaining_seats);
+  const hasRemainingSeats = Number.isFinite(remainingSeats);
+  const hasConfirmedBookings = Number.isFinite(confirmedBookings);
+  const hasCapacity = Number.isFinite(capacity);
+  const isFull = Boolean(event.is_full) || (hasRemainingSeats && remainingSeats <= 0);
+
+  return {
+    capacity: hasCapacity ? capacity : null,
+    confirmedBookings: hasConfirmedBookings ? confirmedBookings : null,
+    remainingSeats: hasRemainingSeats ? Math.max(remainingSeats, 0) : null,
+    isFull,
+  };
+}
+
+export function formatEventAvailability(event = {}) {
+  const availability = getEventAvailability(event);
+
+  if (availability.isFull) {
+    return "Event full";
+  }
+
+  if (availability.remainingSeats !== null) {
+    return `${availability.remainingSeats} seat${availability.remainingSeats === 1 ? "" : "s"} remaining`;
+  }
+
+  if (availability.capacity !== null) {
+    return `${availability.capacity} seat${availability.capacity === 1 ? "" : "s"} available`;
+  }
+
+  return "Availability not available";
+}
+
 export function toDateTimeLocalValue(dateValue) {
   if (!dateValue) {
     return "";

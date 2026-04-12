@@ -29,13 +29,14 @@ export default function AppNavbar() {
   const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "";
   const userLabel = displayName || user?.email || "Account";
   const canCreateEvents = isOrganizerRole(user?.role);
+  const canViewBookings = user?.role === "attendee";
 
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/events", label: "Events" },
     ...(isAuthenticated
       ? [
-          { href: "/my-bookings", label: "My Bookings" },
+          ...(canViewBookings ? [{ href: "/my-bookings", label: "My Bookings" }] : []),
           { href: "/dashboard", label: "Dashboard" },
         ]
       : []),

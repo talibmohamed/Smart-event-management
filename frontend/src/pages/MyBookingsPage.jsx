@@ -1,11 +1,16 @@
 import { Button, Card, CardBody, CardFooter, CardHeader, Chip, Spinner } from "@heroui/react";
-import { CalendarDays, MapPin, Ticket, XCircle } from "lucide-react";
+import { CalendarDays, CreditCard, MapPin, Ticket, WalletCards, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
+import {
+  formatBookingAmount,
+  getBookingDisplayState,
+  getBookingToneClassName,
+} from "../utils/bookingUtils";
 import { formatEventDate, formatEventPrice, formatEventVenue } from "../utils/eventUtils";
 
 function BookingFlash({ message, tone = "info" }) {
@@ -18,9 +23,15 @@ function BookingFlash({ message, tone = "info" }) {
 }
 
 function getBookingStatusTone(status) {
-  return status === "confirmed"
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
-    : "border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-white/10 dark:bg-white/10 dark:text-zinc-300";
+  if (status === "confirmed") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300";
+  }
+
+  if (status === "pending_payment") {
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300";
+  }
+
+  return "border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-white/10 dark:bg-white/10 dark:text-zinc-300";
 }
 
 export default function MyBookingsPage() {
@@ -29,6 +40,7 @@ export default function MyBookingsPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [flashState, setFlashState] = useState(null);
   const [cancellingBookingId, setCancellingBookingId] = useState("");
+  const [retryingBookingId, setRetryingBookingId] = useState("");
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -79,7 +91,14 @@ export default function MyBookingsPage() {
     () => bookings.filter((booking) => booking.status === "confirmed").length,
     [bookings],
   );
-  const cancelledCount = bookings.length - confirmedCount;
+  const pendingCount = useMemo(
+    () => bookings.filter((booking) => booking.status === "pending_payment").length,
+    [bookings],
+  );
+  const cancelledCount = useMemo(
+    () => bookings.filter((booking) => booking.status === "cancelled").length,
+    [bookings],
+  );
 
   async function handleCancelBooking(booking) {
     const hasConfirmed = window.confirm(
@@ -104,6 +123,9 @@ export default function MyBookingsPage() {
             ? {
                 ...currentBooking,
                 status: updatedBooking.status,
+                payment_status: updatedBooking.payment_status,
+                amount_paid: updatedBooking.amount_paid,
+                currency: updatedBooking.currency,
               }
             : currentBooking,
         ),
@@ -131,6 +153,43 @@ export default function MyBookingsPage() {
     }
   }
 
+  async function handleRetryPayment(booking) {
+    try {
+      setRetryingBookingId(booking.id);
+      setFlashState(null);
+      setErrorMessage("");
+
+      const response = await bookingService.retryPayment(booking.id);
+      const checkoutUrl = response.data.data?.payment?.checkout_url;
+
+      if (!checkoutUrl) {
+        setFlashState({
+          message: "Payment checkout is unavailable. Please try again.",
+          tone: "error",
+        });
+        return;
+      }
+
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        logout();
+        navigate("/login", {
+          replace: true,
+          state: { from: `${location.pathname}${location.search}` },
+        });
+        return;
+      }
+
+      setFlashState({
+        message: extractApiErrorMessage(error, "Unable to continue this payment."),
+        tone: "error",
+      });
+    } finally {
+      setRetryingBookingId("");
+    }
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-12 md:py-16">
       <div className="space-y-8">
@@ -151,12 +210,12 @@ export default function MyBookingsPage() {
                   My bookings
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400">
-                  Track your confirmed and cancelled event bookings in one place.
+                  Track confirmed, pending payment, and cancelled event bookings in one place.
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/[0.05]">
                 <CardBody className="gap-2 px-4 py-4">
                   <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -164,6 +223,17 @@ export default function MyBookingsPage() {
                   </span>
                   <span className="text-3xl font-semibold tracking-[-0.04em] text-zinc-950 dark:text-white">
                     {confirmedCount}
+                  </span>
+                </CardBody>
+              </Card>
+
+              <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/[0.05]">
+                <CardBody className="gap-2 px-4 py-4">
+                  <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                    Pending
+                  </span>
+                  <span className="text-3xl font-semibold tracking-[-0.04em] text-zinc-950 dark:text-white">
+                    {pendingCount}
                   </span>
                 </CardBody>
               </Card>
@@ -220,12 +290,15 @@ export default function MyBookingsPage() {
           <div className="grid gap-5 lg:grid-cols-2">
             {bookings.map((booking) => {
               const isConfirmed = booking.status === "confirmed";
+              const isPendingPayment = booking.status === "pending_payment";
+              const canCancelBooking = isConfirmed || isPendingPayment;
+              const displayState = getBookingDisplayState(booking);
 
               return (
                 <Card
                   key={booking.id}
                   className={`overflow-hidden border bg-white/84 shadow-sm transition-all duration-300 dark:bg-white/[0.04] ${
-                    isConfirmed
+                    isConfirmed || isPendingPayment
                       ? "border-zinc-200/80 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/70 dark:border-white/10 dark:hover:shadow-black/20"
                       : "border-zinc-200/70 opacity-75 dark:border-white/10"
                   }`}
@@ -255,7 +328,7 @@ export default function MyBookingsPage() {
                         variant="flat"
                         className={`border capitalize ${getBookingStatusTone(booking.status)}`}
                       >
-                        {booking.status}
+                        {booking.status.replace("_", " ")}
                       </Chip>
                     </div>
                   </CardHeader>
@@ -278,7 +351,7 @@ export default function MyBookingsPage() {
 
                       <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
                         <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          Price
+                          Event price
                         </p>
                         <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
                           {formatEventPrice(booking.price)}
@@ -292,6 +365,27 @@ export default function MyBookingsPage() {
                         </div>
                         <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
                           {formatEventVenue(booking)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03] sm:col-span-2">
+                        <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                          <CreditCard size={14} />
+                          Payment
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Chip
+                            variant="flat"
+                            className={`border capitalize ${getBookingToneClassName(displayState.tone)}`}
+                          >
+                            {displayState.label}
+                          </Chip>
+                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            {formatBookingAmount(booking.amount_paid, booking.currency)}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                          Payment status: {booking.payment_status || "not paid"}
                         </p>
                       </div>
 
@@ -310,6 +404,15 @@ export default function MyBookingsPage() {
                     <Button
                       as={RouterLink}
                       to={`/events/${booking.event_id}`}
+                      state={
+                        isPendingPayment
+                          ? {
+                              pendingBookingId: booking.id,
+                              pendingBookingMessage:
+                                "You already have a pending payment for this event.",
+                            }
+                          : undefined
+                      }
                       variant="bordered"
                       radius="full"
                       className="w-full border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white sm:w-auto"
@@ -317,7 +420,19 @@ export default function MyBookingsPage() {
                       View event
                     </Button>
 
-                    {isConfirmed ? (
+                    {isPendingPayment ? (
+                      <Button
+                        radius="full"
+                        startContent={<WalletCards size={15} />}
+                        isLoading={retryingBookingId === booking.id}
+                        onPress={() => handleRetryPayment(booking)}
+                        className="w-full bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950 sm:w-auto"
+                      >
+                        Continue payment
+                      </Button>
+                    ) : null}
+
+                    {canCancelBooking ? (
                       <Button
                         radius="full"
                         color="danger"

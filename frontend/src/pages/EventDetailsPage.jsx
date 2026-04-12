@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
-import { CalendarDays, MapPin, PencilLine, Ticket, Users } from "lucide-react";
+import { CalendarDays, MapPin, PencilLine, Ticket, Users, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
@@ -7,7 +7,13 @@ import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
 import eventService from "../services/eventService";
-import { formatEventDate, formatEventPrice, formatEventVenue } from "../utils/eventUtils";
+import {
+  formatEventAvailability,
+  formatEventDate,
+  formatEventPrice,
+  formatEventVenue,
+  getEventAvailability,
+} from "../utils/eventUtils";
 
 export default function EventDetailsPage() {
   const [eventRecord, setEventRecord] = useState(null);
@@ -15,6 +21,7 @@ export default function EventDetailsPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [bookingMessage, setBookingMessage] = useState(null);
   const [isBooking, setIsBooking] = useState(false);
+  const [isRetryingPayment, setIsRetryingPayment] = useState(false);
   const [hasCreatedBooking, setHasCreatedBooking] = useState(false);
   const { id } = useParams();
   const { user, isAuthenticated, logout } = useAuth();
@@ -75,6 +82,34 @@ export default function EventDetailsPage() {
 
     return user.role === "admin" || eventRecord.organizer_id === user.id;
   }, [eventRecord, user]);
+  const isAttendee = user?.role === "attendee";
+  const pendingBookingId =
+    typeof location.state?.pendingBookingId === "string"
+      ? location.state.pendingBookingId
+      : "";
+  const availability = useMemo(() => getEventAvailability(eventRecord || {}), [eventRecord]);
+  const isBookingDisabled =
+    hasCreatedBooking ||
+    availability.isFull ||
+    (isAuthenticated && !isAttendee);
+  const bookingButtonLabel = hasCreatedBooking
+    ? "Booked"
+    : availability.isFull
+      ? "Event full"
+      : !isAuthenticated
+        ? "Login to book"
+        : !isAttendee
+          ? "Attendees only"
+          : "Book event";
+
+  useEffect(() => {
+    if (location.state?.pendingBookingMessage) {
+      setBookingMessage({
+        tone: "error",
+        message: location.state.pendingBookingMessage,
+      });
+    }
+  }, [location.state]);
 
   async function handleBookEvent() {
     if (!isAuthenticated) {
@@ -84,11 +119,35 @@ export default function EventDetailsPage() {
       return;
     }
 
+    if (!isAttendee || availability.isFull) {
+      return;
+    }
+
     try {
       setIsBooking(true);
       setBookingMessage(null);
 
       const response = await bookingService.createBooking(id);
+      const bookingResult = response.data.data;
+
+      if (bookingResult?.payment_required) {
+        const checkoutUrl = bookingResult.payment?.checkout_url;
+
+        if (!checkoutUrl) {
+          setBookingMessage({
+            tone: "error",
+            message: "Payment checkout is unavailable. Please try again.",
+          });
+          return;
+        }
+
+        setBookingMessage({
+          tone: "success",
+          message: response.data.message || "Redirecting to secure checkout...",
+        });
+        window.location.href = checkoutUrl;
+        return;
+      }
 
       setBookingMessage({
         tone: "success",
@@ -111,6 +170,46 @@ export default function EventDetailsPage() {
       });
     } finally {
       setIsBooking(false);
+    }
+  }
+
+  async function handleRetryPayment() {
+    if (!pendingBookingId) {
+      return;
+    }
+
+    try {
+      setIsRetryingPayment(true);
+      setBookingMessage(null);
+
+      const response = await bookingService.retryPayment(pendingBookingId);
+      const checkoutUrl = response.data.data?.payment?.checkout_url;
+
+      if (!checkoutUrl) {
+        setBookingMessage({
+          tone: "error",
+          message: "Payment checkout is unavailable. Please try again.",
+        });
+        return;
+      }
+
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        logout();
+        navigate("/login", {
+          replace: true,
+          state: { from: `${location.pathname}${location.search}` },
+        });
+        return;
+      }
+
+      setBookingMessage({
+        tone: "error",
+        message: extractApiErrorMessage(error, "Unable to continue this payment."),
+      });
+    } finally {
+      setIsRetryingPayment(false);
     }
   }
 
@@ -184,28 +283,51 @@ export default function EventDetailsPage() {
                       >
                         Edit Event
                       </Button>
-                      <Button
-                        radius="full"
-                        variant="bordered"
-                        startContent={<Ticket size={15} />}
-                        isLoading={isBooking}
-                        isDisabled={hasCreatedBooking}
-                        onPress={handleBookEvent}
-                        className="border-zinc-200 bg-white/80 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                      >
-                        {hasCreatedBooking ? "Booked" : isAuthenticated ? "Book event" : "Login to book"}
-                      </Button>
+                      {pendingBookingId ? (
+                        <Button
+                          radius="full"
+                          variant="bordered"
+                          startContent={<WalletCards size={15} />}
+                          isLoading={isRetryingPayment}
+                          onPress={handleRetryPayment}
+                          className="border-zinc-200 bg-white/80 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                        >
+                          Continue payment
+                        </Button>
+                      ) : (
+                        <Button
+                          radius="full"
+                          variant="bordered"
+                          startContent={<Ticket size={15} />}
+                          isLoading={isBooking}
+                          isDisabled={isBookingDisabled}
+                          onPress={handleBookEvent}
+                          className="border-zinc-200 bg-white/80 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                        >
+                          {bookingButtonLabel}
+                        </Button>
+                      )}
                     </div>
+                  ) : pendingBookingId ? (
+                    <Button
+                      radius="full"
+                      startContent={<WalletCards size={15} />}
+                      isLoading={isRetryingPayment}
+                      onPress={handleRetryPayment}
+                      className="bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+                    >
+                      Continue payment
+                    </Button>
                   ) : (
                     <Button
                       radius="full"
                       startContent={<Ticket size={15} />}
                       isLoading={isBooking}
-                      isDisabled={hasCreatedBooking}
+                      isDisabled={isBookingDisabled}
                       onPress={handleBookEvent}
                       className="bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
                     >
-                      {hasCreatedBooking ? "Booked" : isAuthenticated ? "Book event" : "Login to book"}
+                      {bookingButtonLabel}
                     </Button>
                   )}
                 </div>
@@ -254,7 +376,11 @@ export default function EventDetailsPage() {
                     Capacity
                   </div>
                   <p className="mt-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {eventRecord.capacity} seats
+                    {formatEventAvailability(eventRecord)}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    {availability.confirmedBookings ?? 0} confirmed of{" "}
+                    {availability.capacity ?? eventRecord.capacity} capacity
                   </p>
                 </div>
               </div>

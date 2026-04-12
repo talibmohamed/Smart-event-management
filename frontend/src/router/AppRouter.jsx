@@ -9,6 +9,7 @@ import DashboardPage from "../pages/DashboardPage"
 import CreateEventPage from "../pages/CreateEventPage"
 import EditEventPage from "../pages/EditEventPage"
 import MyBookingsPage from "../pages/MyBookingsPage"
+import BookingStatusPage from "../pages/BookingStatusPage"
 import ProtectedRoute from "./ProtectedRoute"
 
 export default function AppRouter() {
@@ -23,6 +24,11 @@ export default function AppRouter() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/bookings/:id/payment-success" element={<BookingStatusPage />} />
+          <Route path="/bookings/:id/payment-cancelled" element={<BookingStatusPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["attendee"]} />}>
           <Route path="/my-bookings" element={<MyBookingsPage />} />
         </Route>
 

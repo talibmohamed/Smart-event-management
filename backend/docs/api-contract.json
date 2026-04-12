@@ -569,6 +569,36 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/api/bookings/:id/retry-payment",
+      "authRequired": true,
+      "allowedRoles": ["attendee_owner"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Payment retry created successfully",
+          "data": "bookingCreatePaidResult"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 401, "message": "Token invalid" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
+        { "status": 403, "message": "Access denied. You can only retry payment for your own bookings" },
+        { "status": 404, "message": "Booking not found" },
+        { "status": 400, "message": "Only pending payment bookings can be retried" },
+        { "status": 400, "message": "This event is fully booked" },
+        { "status": 500, "message": "Server error while retrying payment" }
+      ],
+      "behaviorNotes": [
+        "Creates a fresh Stripe Checkout Session for an existing pending_payment booking.",
+        "Re-checks event capacity before creating the checkout session.",
+        "Updates stripe_checkout_session_id on the booking."
+      ]
+    },
+    {
       "method": "PUT",
       "path": "/api/bookings/:id/cancel",
       "authRequired": true,

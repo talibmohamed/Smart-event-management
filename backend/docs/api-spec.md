@@ -497,6 +497,51 @@ Last updated: 2026-04-11
   - `404 { "success": false, "message": "Booking not found" }`
   - `500 { "success": false, "message": "Server error while fetching booking", "error": "..." }`
 
+### `POST /api/bookings/:id/retry-payment`
+
+- Auth: yes
+- Allowed roles: booking owner with `attendee` role
+- Request body: none
+- Notes:
+  - Creates a fresh Stripe Checkout Session for an existing `pending_payment` booking
+  - Re-checks event capacity before creating the new checkout session
+  - Updates `stripe_checkout_session_id` on the booking
+  - Stripe recommends creating a new Checkout Session for each new payment attempt
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Payment retry created successfully",
+  "data": {
+    "booking": {
+      "id": "uuid",
+      "user_id": "uuid",
+      "event_id": "uuid",
+      "booking_date": "2026-04-08T10:00:00.000Z",
+      "status": "pending_payment",
+      "payment_status": "unpaid",
+      "amount_paid": null,
+      "currency": "eur"
+    },
+    "payment_required": true,
+    "payment": {
+      "provider": "stripe",
+      "checkout_url": "https://checkout.stripe.com/..."
+    }
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Insufficient permissions" }`
+  - `403 { "success": false, "message": "Access denied. You can only retry payment for your own bookings" }`
+  - `404 { "success": false, "message": "Booking not found" }`
+  - `400 { "success": false, "message": "Only pending payment bookings can be retried" }`
+  - `400 { "success": false, "message": "This event is fully booked" }`
+  - `500 { "success": false, "message": "Server error while retrying payment", "error": "..." }`
+
 ### `PUT /api/bookings/:id/cancel`
 
 - Auth: yes
