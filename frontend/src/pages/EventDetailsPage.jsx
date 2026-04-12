@@ -1,10 +1,11 @@
 import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
-import { CalendarDays, MapPin, PencilLine, Users } from "lucide-react";
+import { CalendarDays, MapPin, PencilLine, Ticket, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
+import bookingService from "../services/bookingService";
 import eventService from "../services/eventService";
 import { formatEventDate, formatEventPrice, formatEventVenue } from "../utils/eventUtils";
 
@@ -12,8 +13,11 @@ export default function EventDetailsPage() {
   const [eventRecord, setEventRecord] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [bookingMessage, setBookingMessage] = useState(null);
+  const [isBooking, setIsBooking] = useState(false);
+  const [hasCreatedBooking, setHasCreatedBooking] = useState(false);
   const { id } = useParams();
-  const { user, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,6 +75,44 @@ export default function EventDetailsPage() {
 
     return user.role === "admin" || eventRecord.organizer_id === user.id;
   }, [eventRecord, user]);
+
+  async function handleBookEvent() {
+    if (!isAuthenticated) {
+      navigate("/login", {
+        state: { from: `${location.pathname}${location.search}` },
+      });
+      return;
+    }
+
+    try {
+      setIsBooking(true);
+      setBookingMessage(null);
+
+      const response = await bookingService.createBooking(id);
+
+      setBookingMessage({
+        tone: "success",
+        message: response.data.message || "Booking created successfully",
+      });
+      setHasCreatedBooking(true);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        logout();
+        navigate("/login", {
+          replace: true,
+          state: { from: `${location.pathname}${location.search}` },
+        });
+        return;
+      }
+
+      setBookingMessage({
+        tone: "error",
+        message: extractApiErrorMessage(error, "Unable to book this event."),
+      });
+    } finally {
+      setIsBooking(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 md:py-16">
@@ -132,18 +174,54 @@ export default function EventDetailsPage() {
                   </div>
 
                   {canEditEvent ? (
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <Button
+                        as={RouterLink}
+                        to={`/events/${eventRecord.id}/edit`}
+                        radius="full"
+                        startContent={<PencilLine size={15} />}
+                        className="bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+                      >
+                        Edit Event
+                      </Button>
+                      <Button
+                        radius="full"
+                        variant="bordered"
+                        startContent={<Ticket size={15} />}
+                        isLoading={isBooking}
+                        isDisabled={hasCreatedBooking}
+                        onPress={handleBookEvent}
+                        className="border-zinc-200 bg-white/80 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                      >
+                        {hasCreatedBooking ? "Booked" : isAuthenticated ? "Book event" : "Login to book"}
+                      </Button>
+                    </div>
+                  ) : (
                     <Button
-                      as={RouterLink}
-                      to={`/events/${eventRecord.id}/edit`}
                       radius="full"
-                      startContent={<PencilLine size={15} />}
+                      startContent={<Ticket size={15} />}
+                      isLoading={isBooking}
+                      isDisabled={hasCreatedBooking}
+                      onPress={handleBookEvent}
                       className="bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
                     >
-                      Edit Event
+                      {hasCreatedBooking ? "Booked" : isAuthenticated ? "Book event" : "Login to book"}
                     </Button>
-                  ) : null}
+                  )}
                 </div>
               </div>
+
+              {bookingMessage?.message ? (
+                <div
+                  className={`rounded-2xl border px-4 py-3 text-sm ${
+                    bookingMessage.tone === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
+                      : "border-red-200 bg-red-50 text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300"
+                  }`}
+                >
+                  {bookingMessage.message}
+                </div>
+              ) : null}
 
               <p className="text-sm leading-7 text-zinc-700 dark:text-zinc-300">
                 {eventRecord.description}

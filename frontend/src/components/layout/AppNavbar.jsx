@@ -33,7 +33,12 @@ export default function AppNavbar() {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/events", label: "Events" },
-    ...(isAuthenticated ? [{ href: "/dashboard", label: "Dashboard" }] : []),
+    ...(isAuthenticated
+      ? [
+          { href: "/my-bookings", label: "My Bookings" },
+          { href: "/dashboard", label: "Dashboard" },
+        ]
+      : []),
   ];
 
   const isActive = useMemo(
