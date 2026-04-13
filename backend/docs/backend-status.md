@@ -12,6 +12,7 @@ Last updated: 2026-04-13
 - Transactional emails use Resend with best-effort delivery
 - `backend/docs` is the current frontend source of truth
 - Local development seeding is available through Prisma
+- Critical backend tests are available with Vitest
 - Event locations use structured address, city, latitude, and longitude fields
 - Optional event cover images use Supabase Storage
 - Events support multi-tier ticketing with booking line items
@@ -32,6 +33,9 @@ Last updated: 2026-04-13
 - `npm run db:payment-schema` applies the booking payment columns/check constraints to Supabase
 - `npm run storage:setup` creates or updates the public Supabase `event-images` bucket
 - `npm run db:ticket-tier-schema` applies ticket tier and booking item tables, then backfills existing data
+- `npm run test` runs critical backend tests with mocked external services
+- `npm run test:watch` runs the same tests in watch mode
+- `npm run test:coverage` runs critical backend tests with a V8 coverage report
 - Seeded events cover multiple French cities for list/map UI development
 - Seeded sample login password: `Password123!`
 - Event image upload requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_EVENT_IMAGES_BUCKET`
@@ -47,6 +51,7 @@ Last updated: 2026-04-13
 - `POST /api/auth/reset-password`
 - `GET /api/auth/me`
 - JWT protection middleware
+- Critical auth middleware and password reset tests
 
 ### Roles And Access
 
@@ -89,6 +94,7 @@ Last updated: 2026-04-13
 - Stripe Checkout line items are generated from backend-calculated booking item prices
 - Resend emails are sent for booking confirmations, paid confirmations, payment failures/expirations, booking cancellations, event updates, and event deletions
 - Password reset emails are sent through Resend and expire after 60 minutes
+- Critical booking and Stripe webhook tests use mocked model/payment/email boundaries
 
 ## Pending Features
 
@@ -128,6 +134,7 @@ Last updated: 2026-04-13
 - Pending paid bookings can be retried through `POST /api/bookings/:id/retry-payment`
 - `POST /api/bookings` returns `201` even when reactivating a cancelled booking
 - Supabase pooler connections automatically add `pgbouncer=true` and `connection_limit=1` at runtime to avoid prepared statement collisions
+- Tests do not contact Supabase, Stripe, Resend, Nominatim, or Supabase Storage
 
 ## Frontend Ready Areas
 

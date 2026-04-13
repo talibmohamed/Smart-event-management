@@ -12,6 +12,9 @@
     "db:password-reset-schema": "node scripts/applyPasswordResetSchema.js",
     "db:ticket-tier-schema": "node scripts/applyTicketTierSchema.js",
     "postinstall": "npm run prisma:generate",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },
@@ -29,6 +32,8 @@
     "stripe": "^22.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "@vitest/coverage-v8": "^4.1.4",
+    "nodemon": "^3.1.10",
+    "vitest": "^4.1.4"
   }
 }
