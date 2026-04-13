@@ -10,10 +10,14 @@ function FilterSelect({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 rounded-2xl border border-zinc-200 bg-white/85 px-4 text-sm font-medium text-zinc-900 outline-none transition-colors focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30 dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:focus:border-sky-400"
+        className="h-12 rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-900 outline-none transition-colors [color-scheme:light] focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50 dark:[color-scheme:dark] dark:focus:border-sky-400"
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option
+            key={option.value}
+            value={option.value}
+            className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50"
+          >
             {option.label}
           </option>
         ))}
