@@ -195,11 +195,15 @@ export default function LoginPage() {
                     input: "!text-zinc-900 placeholder:!text-zinc-400 dark:!text-white dark:placeholder:!text-zinc-500"
                   }}
                   endContent={
-                    <button
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      radius="full"
+                      variant="light"
                       type="button"
-                      onClick={toggleVisibility}
+                      onPress={toggleVisibility}
                       aria-label={isVisible ? "Hide password" : "Show password"}
-                      className="flex h-full items-center justify-center px-1 text-zinc-500 transition-colors hover:text-zinc-900 focus:outline-none dark:text-zinc-400 dark:hover:text-white"
+                      className="min-w-8 text-zinc-500 dark:text-zinc-400"
                     >
                       {isVisible ? (
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,7 +215,7 @@ export default function LoginPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                       )}
-                    </button>
+                    </Button>
                   }
                 />
               </div>
@@ -260,14 +264,17 @@ export default function LoginPage() {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {DEV_SEEDED_ACCOUNTS.map((seededEmail) => (
-                    <button
+                    <Button
                       key={seededEmail}
                       type="button"
-                      onClick={() => handleUseSeededAccount(seededEmail)}
-                      className="rounded-full border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-950 dark:border-white/10 dark:bg-white/[0.05] dark:text-zinc-300 dark:hover:border-white/15 dark:hover:text-white"
+                      size="sm"
+                      radius="full"
+                      variant="bordered"
+                      onPress={() => handleUseSeededAccount(seededEmail)}
+                      className="border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-zinc-300"
                     >
                       {seededEmail}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>

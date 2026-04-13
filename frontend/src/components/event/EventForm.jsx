@@ -1,6 +1,7 @@
-import { Button, Input, Textarea } from "@heroui/react";
+import { Button, Checkbox, DatePicker, Input, Select, SelectItem, Textarea } from "@heroui/react";
+import { parseDateTime } from "@internationalized/date";
 import { ImagePlus, Plus, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
   buildEventPayload,
@@ -15,6 +16,37 @@ import CityAutocomplete from "./CityAutocomplete";
 import EventCoverImage from "./EventCoverImage";
 
 const EMPTY_EVENT_VALUES = toEventFormValues();
+const EVENT_CATEGORY_OPTIONS = [
+  "Technology",
+  "Business",
+  "Design",
+  "Music",
+  "Engineering",
+  "Data",
+  "Robotics",
+  "Aerospace",
+  "Education",
+  "Networking",
+  "Workshop",
+  "Conference",
+  "Festival",
+  "Sports",
+  "Health",
+  "Arts",
+  "Community",
+];
+
+function getDatePickerValue(dateValue) {
+  if (!dateValue) {
+    return null;
+  }
+
+  try {
+    return parseDateTime(dateValue);
+  } catch {
+    return null;
+  }
+}
 
 function validateEventForm(values, isCitySelected) {
   if (
@@ -131,6 +163,24 @@ export default function EventForm({
     };
   }
 
+  function handleDateChange(nextDate) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      event_date: nextDate ? nextDate.toString() : "",
+    }));
+  }
+
+  function handleCategoryChange(keys) {
+    const selectedCategory = Array.from(keys)[0];
+
+    if (selectedCategory) {
+      setValues((currentValues) => ({
+        ...currentValues,
+        category: selectedCategory,
+      }));
+    }
+  }
+
   function handleTicketTierChange(index, field, nextValue) {
     setValues((currentValues) => ({
       ...currentValues,
@@ -233,6 +283,15 @@ export default function EventForm({
   const eventCapacity = Number(values.capacity);
   const isTierCapacityOverLimit =
     Number.isFinite(eventCapacity) && eventCapacity > 0 && ticketTierCapacityTotal > eventCapacity;
+  const categoryOptions = useMemo(() => {
+    const options = new Set(EVENT_CATEGORY_OPTIONS);
+
+    if (values.category) {
+      options.add(values.category);
+    }
+
+    return Array.from(options);
+  }, [values.category]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -280,13 +339,16 @@ export default function EventForm({
             className="sr-only"
             id="event-cover-image"
           />
-          <label
+          <Button
+            as="label"
             htmlFor="event-cover-image"
-            className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white/70 px-4 text-sm font-medium text-zinc-950 transition-colors hover:bg-white focus-within:ring-2 focus-within:ring-sky-400/30 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            radius="full"
+            variant="bordered"
+            startContent={<ImagePlus size={15} />}
+            className="cursor-pointer border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
           >
-            <ImagePlus size={15} />
             {hasCoverImage ? "Replace image" : "Upload image"}
-          </label>
+          </Button>
 
           {hasCoverImage ? (
             <Button
@@ -330,18 +392,35 @@ export default function EventForm({
           }}
         />
 
-        <Input
+        <Select
           label="Category"
           labelPlacement="outside"
-          placeholder="Technology"
-          value={values.category}
-          onChange={handleChange("category")}
+          placeholder="Select category"
+          selectedKeys={values.category ? [values.category] : []}
+          onSelectionChange={handleCategoryChange}
           radius="lg"
+          variant="bordered"
           classNames={{
-            inputWrapper:
-              "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+            trigger:
+              "h-10 border border-zinc-200 bg-white/80 shadow-none data-[hover=true]:bg-white dark:border-white/10 dark:bg-white/5 dark:data-[hover=true]:bg-white/[0.08]",
+            label: "font-medium !text-zinc-700 dark:!text-zinc-300",
+            value: "text-zinc-900 dark:text-white",
+            selectorIcon: "text-zinc-500 dark:text-zinc-400",
+            popoverContent:
+              "rounded-2xl border border-zinc-200 bg-white/95 p-1 shadow-xl shadow-slate-200/70 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/95 dark:shadow-black/30",
+            listbox: "gap-1",
           }}
-        />
+        >
+          {categoryOptions.map((category) => (
+            <SelectItem
+              key={category}
+              textValue={category}
+              className="rounded-xl text-zinc-800 data-[hover=true]:bg-zinc-100 data-[selectable=true]:focus:bg-zinc-100 data-[selected=true]:bg-zinc-950 data-[selected=true]:text-white dark:text-zinc-100 dark:data-[hover=true]:bg-white/10 dark:data-[selectable=true]:focus:bg-white/10 dark:data-[selected=true]:bg-white dark:data-[selected=true]:text-zinc-950"
+            >
+              {category}
+            </SelectItem>
+          ))}
+        </Select>
 
         <Input
           label="Address"
@@ -368,16 +447,28 @@ export default function EventForm({
           isSelected={isCitySelected}
         />
 
-        <Input
+        <DatePicker
           label="Date and Time"
           labelPlacement="outside"
-          type="datetime-local"
-          value={values.event_date}
-          onChange={handleChange("event_date")}
+          value={getDatePickerValue(values.event_date)}
+          onChange={handleDateChange}
+          granularity="minute"
+          hourCycle={24}
+          showMonthAndYearPickers
           radius="lg"
+          variant="bordered"
           classNames={{
             inputWrapper:
-              "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+              "h-10 border border-zinc-200 bg-white/80 shadow-none data-[hover=true]:bg-white dark:border-white/10 dark:bg-white/5 dark:data-[hover=true]:bg-white/[0.08]",
+            label: "font-medium !text-zinc-700 dark:!text-zinc-300",
+            input: "!text-zinc-900 dark:!text-white",
+            segment:
+              "text-zinc-900 data-[editable=true]:hover:bg-zinc-100 dark:text-white dark:data-[editable=true]:hover:bg-white/10",
+            selectorButton: "text-zinc-500 dark:text-zinc-400",
+            popoverContent:
+              "rounded-2xl border border-zinc-200 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/95 dark:shadow-black/30",
+            calendar: "bg-transparent",
+            calendarContent: "bg-transparent",
           }}
         />
 
@@ -516,15 +607,19 @@ export default function EventForm({
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <label className="flex w-fit items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      <input
-                        type="checkbox"
-                        checked={tier.is_active !== false}
-                        onChange={(event) => handleTicketTierChange(index, "is_active", event.target.checked)}
-                        className="h-4 w-4 rounded border-zinc-300 text-sky-600 focus:ring-sky-500"
-                      />
+                    <Checkbox
+                      isSelected={tier.is_active !== false}
+                      onValueChange={(isSelected) =>
+                        handleTicketTierChange(index, "is_active", isSelected)
+                      }
+                      classNames={{
+                        label: "text-sm font-medium text-zinc-700 dark:text-zinc-300",
+                        wrapper:
+                          "border-zinc-300 before:border-zinc-300 dark:border-white/20 dark:before:border-white/20",
+                      }}
+                    >
                       Active tier
-                    </label>
+                    </Checkbox>
 
                     <div className="flex flex-wrap items-center gap-3">
                       {soldQuantity > 0 ? (

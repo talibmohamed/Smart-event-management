@@ -1,4 +1,4 @@
-import { Input, Spinner } from "@heroui/react";
+import { Button, Input, Spinner } from "@heroui/react";
 import { MapPin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { extractApiErrorMessage } from "../../services/api";
@@ -125,21 +125,25 @@ export default function CityAutocomplete({
           ) : cities.length > 0 ? (
             <div className="space-y-1">
               {cities.map((city) => (
-                <button
+                <Button
                   key={`${city.name}-${city.postal_code}-${city.department}`}
                   type="button"
-                  onClick={() => handleSelectCity(city)}
-                  className="w-full rounded-xl px-3 py-2 text-left transition-colors hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none dark:hover:bg-white/10 dark:focus:bg-white/10"
+                  variant="light"
+                  radius="lg"
+                  onPress={() => handleSelectCity(city)}
+                  className="h-auto w-full justify-start px-3 py-2 text-left data-[hover=true]:bg-zinc-100 dark:data-[hover=true]:bg-white/10"
                 >
-                  <span className="block text-sm font-medium text-zinc-950 dark:text-white">
-                    {city.name}
-                  </span>
-                  {formatCityLabel(city) ? (
-                    <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
-                      {formatCityLabel(city)}
+                  <span>
+                    <span className="block text-sm font-medium text-zinc-950 dark:text-white">
+                      {city.name}
                     </span>
-                  ) : null}
-                </button>
+                    {formatCityLabel(city) ? (
+                      <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
+                        {formatCityLabel(city)}
+                      </span>
+                    ) : null}
+                  </span>
+                </Button>
               ))}
             </div>
           ) : (

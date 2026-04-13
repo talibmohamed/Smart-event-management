@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, CardHeader, Chip, Spinner } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Chip, Select, SelectItem, Spinner } from "@heroui/react";
 import { ArrowLeft, CalendarDays, Mail, Ticket, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -131,6 +131,14 @@ export default function EventAttendeesPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  function handleStatusSelectionChange(keys) {
+    const selectedKey = Array.from(keys)[0];
+
+    if (selectedKey) {
+      setStatusFilter(selectedKey);
+    }
+  }
 
   useEffect(() => {
     let ignore = false;
@@ -271,22 +279,32 @@ export default function EventAttendeesPage() {
               >
                 Status filter
               </label>
-              <select
-                id="attendee-status"
-                value={statusFilter}
-                onChange={(eventValue) => setStatusFilter(eventValue.target.value)}
-                className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-900 outline-none transition [color-scheme:light] focus:border-zinc-400 focus:ring-2 focus:ring-zinc-950/10 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50 dark:[color-scheme:dark] dark:focus:border-white/30"
+              <Select
+                aria-label="Status filter"
+                selectedKeys={[statusFilter]}
+                onSelectionChange={handleStatusSelectionChange}
+                radius="lg"
+                variant="bordered"
+                classNames={{
+                  trigger:
+                    "h-12 rounded-2xl border border-zinc-200 bg-white/88 px-4 shadow-none transition-colors data-[hover=true]:bg-white data-[open=true]:border-zinc-400 data-[open=true]:ring-2 data-[open=true]:ring-zinc-950/10 dark:border-white/10 dark:bg-white/[0.06] dark:data-[hover=true]:bg-white/[0.08] dark:data-[open=true]:border-white/30",
+                  value: "text-sm font-medium text-zinc-900 dark:text-zinc-50",
+                  selectorIcon: "text-zinc-500 dark:text-zinc-400",
+                  popoverContent:
+                    "rounded-2xl border border-zinc-200 bg-white/95 p-1 shadow-xl shadow-slate-200/70 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/95 dark:shadow-black/30",
+                  listbox: "gap-1",
+                }}
               >
                 {STATUS_FILTERS.map((filter) => (
-                  <option
+                  <SelectItem
                     key={filter.value}
-                    value={filter.value}
-                    className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50"
+                    textValue={filter.label}
+                    className="rounded-xl text-zinc-800 data-[hover=true]:bg-zinc-100 data-[selectable=true]:focus:bg-zinc-100 data-[selected=true]:bg-zinc-950 data-[selected=true]:text-white dark:text-zinc-100 dark:data-[hover=true]:bg-white/10 dark:data-[selectable=true]:focus:bg-white/10 dark:data-[selected=true]:bg-white dark:data-[selected=true]:text-zinc-950"
                   >
                     {filter.label}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
         </section>

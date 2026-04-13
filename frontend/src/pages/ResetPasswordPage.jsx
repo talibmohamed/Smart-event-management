@@ -114,11 +114,15 @@ export default function ResetPasswordPage() {
                   input: "!text-zinc-900 placeholder:!text-zinc-400 dark:!text-white dark:placeholder:!text-zinc-500",
                 }}
                 endContent={
-                  <button
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    radius="full"
+                    variant="light"
                     type="button"
-                    onClick={() => setIsPasswordVisible((current) => !current)}
+                    onPress={() => setIsPasswordVisible((current) => !current)}
                     aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-                    className="flex h-full items-center justify-center px-1 text-zinc-500 transition-colors hover:text-zinc-900 focus:outline-none dark:text-zinc-400 dark:hover:text-white"
+                    className="min-w-8 text-zinc-500 dark:text-zinc-400"
                   >
                     {isPasswordVisible ? (
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +134,7 @@ export default function ResetPasswordPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
                     )}
-                  </button>
+                  </Button>
                 }
               />
 
@@ -152,11 +156,15 @@ export default function ResetPasswordPage() {
                   input: "!text-zinc-900 placeholder:!text-zinc-400 dark:!text-white dark:placeholder:!text-zinc-500",
                 }}
                 endContent={
-                  <button
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    radius="full"
+                    variant="light"
                     type="button"
-                    onClick={() => setIsConfirmPasswordVisible((current) => !current)}
+                    onPress={() => setIsConfirmPasswordVisible((current) => !current)}
                     aria-label={isConfirmPasswordVisible ? "Hide password confirmation" : "Show password confirmation"}
-                    className="flex h-full items-center justify-center px-1 text-zinc-500 transition-colors hover:text-zinc-900 focus:outline-none dark:text-zinc-400 dark:hover:text-white"
+                    className="min-w-8 text-zinc-500 dark:text-zinc-400"
                   >
                     {isConfirmPasswordVisible ? (
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,7 +176,7 @@ export default function ResetPasswordPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
                     )}
-                  </button>
+                  </Button>
                 }
               />
 

@@ -1,28 +1,47 @@
-import { Button, Input } from "@heroui/react";
+import { Button, Input, Select, SelectItem } from "@heroui/react";
 import { Search, SlidersHorizontal } from "lucide-react";
 
+const EMPTY_SELECT_VALUE = "__all__";
+
 function FilterSelect({ label, value, options, onChange }) {
+  function handleSelectionChange(keys) {
+    const selectedKey = Array.from(keys)[0];
+
+    onChange(selectedKey === EMPTY_SELECT_VALUE ? "" : selectedKey);
+  }
+
   return (
-    <label className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
       <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         {label}
       </span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-12 rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-900 outline-none transition-colors [color-scheme:light] focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50 dark:[color-scheme:dark] dark:focus:border-sky-400"
+      <Select
+        aria-label={label}
+        selectedKeys={[value || EMPTY_SELECT_VALUE]}
+        onSelectionChange={handleSelectionChange}
+        radius="lg"
+        variant="bordered"
+        classNames={{
+          trigger:
+            "h-12 rounded-2xl border border-zinc-200 bg-white/85 px-4 shadow-none transition-colors data-[hover=true]:bg-white data-[open=true]:border-sky-400 data-[open=true]:ring-2 data-[open=true]:ring-sky-400/30 dark:border-white/10 dark:bg-white/[0.05] dark:data-[hover=true]:bg-white/[0.08]",
+          value: "text-sm font-medium text-zinc-900 dark:text-zinc-50",
+          selectorIcon: "text-zinc-500 dark:text-zinc-400",
+          popoverContent:
+            "rounded-2xl border border-zinc-200 bg-white/95 p-1 shadow-xl shadow-slate-200/70 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/95 dark:shadow-black/30",
+          listbox: "gap-1",
+        }}
       >
         {options.map((option) => (
-          <option
-            key={option.value}
-            value={option.value}
-            className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50"
+          <SelectItem
+            key={option.value || EMPTY_SELECT_VALUE}
+            textValue={option.label}
+            className="rounded-xl text-zinc-800 data-[hover=true]:bg-zinc-100 data-[selectable=true]:focus:bg-zinc-100 data-[selected=true]:bg-zinc-950 data-[selected=true]:text-white dark:text-zinc-100 dark:data-[hover=true]:bg-white/10 dark:data-[selectable=true]:focus:bg-white/10 dark:data-[selected=true]:bg-white dark:data-[selected=true]:text-zinc-950"
           >
             {option.label}
-          </option>
+          </SelectItem>
         ))}
-      </select>
-    </label>
+      </Select>
+    </div>
   );
 }
 
