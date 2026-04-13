@@ -4,6 +4,11 @@ import {
   deleteEventImage,
   uploadEventImage
 } from "../utils/eventImageStorage.js";
+import { sendEmailBestEffort } from "../utils/emailService.js";
+import {
+  eventDeletedEmail,
+  eventUpdatedEmail
+} from "../utils/emailTemplates.js";
 import { findSupportedFrenchCity } from "../utils/frenchCities.js";
 
 const shouldRemoveImage = (value) => value === true || value === "true";
@@ -13,6 +18,40 @@ const hasCoordinates = (coordinates) =>
   coordinates?.latitude !== undefined &&
   coordinates?.longitude !== null &&
   coordinates?.longitude !== undefined;
+
+const didKeyEventDetailsChange = (beforeEvent, afterEvent) => {
+  return (
+    beforeEvent.title !== afterEvent.title ||
+    new Date(beforeEvent.event_date).getTime() !==
+      new Date(afterEvent.event_date).getTime() ||
+    beforeEvent.address !== afterEvent.address ||
+    beforeEvent.city !== afterEvent.city ||
+    Number(beforeEvent.price) !== Number(afterEvent.price)
+  );
+};
+
+const sendEventUpdatedEmails = ({ attendees, beforeEvent, afterEvent }) => {
+  attendees.forEach((booking) => {
+    sendEmailBestEffort(
+      eventUpdatedEmail({
+        attendee: booking.user,
+        beforeEvent,
+        afterEvent
+      })
+    );
+  });
+};
+
+const sendEventDeletedEmails = ({ attendees, event }) => {
+  attendees.forEach((booking) => {
+    sendEmailBestEffort(
+      eventDeletedEmail({
+        attendee: booking.user,
+        event
+      })
+    );
+  });
+};
 
 const createEvent = async (req, res) => {
   try {
@@ -253,6 +292,9 @@ const updateEvent = async (req, res) => {
 
     const trimmedAddress = address.trim();
     const trimmedCity = supportedCity.name;
+    const confirmedAttendees = await Event.getConfirmedAttendeesForEvent(
+      existingEvent.id
+    );
     const hasExistingCoordinates = hasCoordinates(existingEvent);
     const locationChanged =
       existingEvent.address !== trimmedAddress ||
@@ -318,6 +360,14 @@ const updateEvent = async (req, res) => {
       await deleteEventImage(existingEvent.image_path);
     }
 
+    if (didKeyEventDetailsChange(existingEvent, updatedEvent)) {
+      sendEventUpdatedEmails({
+        attendees: confirmedAttendees,
+        beforeEvent: existingEvent,
+        afterEvent: updatedEvent
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Event updated successfully",
@@ -355,8 +405,15 @@ const deleteEvent = async (req, res) => {
       });
     }
 
+    const confirmedAttendees = await Event.getConfirmedAttendeesForEvent(
+      existingEvent.id
+    );
     const deletedEvent = await Event.deleteEvent(req.params.id);
     await deleteEventImage(existingEvent.image_path);
+    sendEventDeletedEmails({
+      attendees: confirmedAttendees,
+      event: existingEvent
+    });
 
     return res.status(200).json({
       success: true,

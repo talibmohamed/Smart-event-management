@@ -1,6 +1,6 @@
 # Backend Status
 
-Last updated: 2026-04-11
+Last updated: 2026-04-13
 
 ## Current State
 
@@ -9,6 +9,7 @@ Last updated: 2026-04-11
 - Authentication is implemented with JWT
 - Core auth, event, and booking flows are available
 - Paid bookings use Stripe Checkout and webhook confirmation
+- Transactional emails use Resend with best-effort delivery
 - `backend/docs` is the current frontend source of truth
 - Local development seeding is available through Prisma
 - Event locations use structured address, city, latitude, and longitude fields
@@ -33,11 +34,15 @@ Last updated: 2026-04-11
 - Seeded sample login password: `Password123!`
 - Event image upload requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_EVENT_IMAGES_BUCKET`
 - Stripe Checkout requires `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CURRENCY`, and `FRONTEND_URL`
+- Transactional emails require `RESEND_API_KEY`, `EMAIL_FROM`, and optional `EMAIL_REPLY_TO`
+- Forgot password requires the password reset database fields from `npm run db:password-reset-schema`
 
 ### Authentication
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
 - `GET /api/auth/me`
 - JWT protection middleware
 
@@ -75,6 +80,8 @@ Last updated: 2026-04-11
 - Booking cancellation
 - Stripe webhook handles completed and expired Checkout Sessions
 - Webhook processing validates metadata, amount, currency, capacity, and duplicate Stripe events
+- Resend emails are sent for booking confirmations, paid confirmations, payment failures/expirations, booking cancellations, event updates, and event deletions
+- Password reset emails are sent through Resend and expire after 60 minutes
 
 ## Pending Features
 
@@ -102,6 +109,8 @@ Last updated: 2026-04-11
 - Only attendees can create bookings and view their own booking list
 - Pending paid bookings do not reserve seats; only confirmed bookings count against capacity
 - Stripe success redirect is not payment confirmation; only the webhook confirms paid bookings
+- Email delivery is best-effort and does not change API success/failure results
+- Forgot password responses do not reveal whether an email exists
 - Duplicate pending paid bookings return `409`
 - Pending paid bookings can be retried through `POST /api/bookings/:id/retry-payment`
 - `POST /api/bookings` returns `201` even when reactivating a cancelled booking

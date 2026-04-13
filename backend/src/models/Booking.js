@@ -111,6 +111,32 @@ const getBookingWithEventById = async (id) => {
   });
 };
 
+const getBookingEmailContextById = async (id) => {
+  return prisma.booking.findUnique({
+    where: { id },
+    include: {
+      user: {
+        select: {
+          first_name: true,
+          last_name: true,
+          email: true,
+        },
+      },
+      event: {
+        include: {
+          organizer: {
+            select: {
+              first_name: true,
+              last_name: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
 const getBookingSummaryById = async (id) => {
   const booking = await getBookingWithEventById(id);
   return flattenBookingWithEvent(booking);
@@ -210,6 +236,7 @@ export default {
   cancelBooking,
   getBookingById,
   getBookingWithEventById,
+  getBookingEmailContextById,
   getBookingSummaryById,
   updateCheckoutSession,
   failPayment,

@@ -2,12 +2,13 @@
   "metadata": {
     "name": "Smart Event Management Backend API",
     "version": "1.0.0",
-    "lastUpdated": "2026-04-11",
+    "lastUpdated": "2026-04-13",
     "baseUrl": "http://localhost:5000"
   },
   "development": {
     "seedCommand": "npm run db:seed",
     "paymentSchemaCommand": "npm run db:payment-schema",
+    "passwordResetSchemaCommand": "npm run db:password-reset-schema",
     "storageSetupCommand": "npm run storage:setup",
     "seedPassword": "Password123!",
     "seedUsers": [
@@ -40,6 +41,12 @@
       "STRIPE_WEBHOOK_SECRET": "Required for webhook signature verification",
       "STRIPE_CURRENCY": "Payment currency, default eur",
       "FRONTEND_URL": "Frontend base URL for Stripe success and cancel redirects"
+    },
+    "transactionalEmail": {
+      "RESEND_API_KEY": "Required Resend API key when EMAIL_ENABLED is not false",
+      "EMAIL_FROM": "Required sender address",
+      "EMAIL_REPLY_TO": "Optional reply-to address",
+      "EMAIL_ENABLED": "Set to false to disable email sending"
     }
   },
   "authentication": {
@@ -56,6 +63,8 @@
     "geocoding": "Event create and update geocode address + city + France through backend-only Nominatim requests. Frontend must not call Nominatim directly.",
     "databaseConnection": "Runtime Prisma connection normalizes Supabase pooler URLs with pgbouncer=true and connection_limit=1.",
     "eventImages": "Event cover images are uploaded by the backend to Supabase Storage. API responses expose image_url only and never expose image_path.",
+    "transactionalEmail": "Resend emails are sent best-effort for booking/payment/event lifecycle actions and never determine API success or failure.",
+    "passwordReset": "Forgot password responses do not reveal whether an email exists. Reset tokens are emailed, stored hashed, and expire after 60 minutes.",
     "responseException": "GET /api/auth/me returns success and data without message on success"
   },
   "schemas": {
@@ -260,6 +269,62 @@
       "commonErrors": [
         { "status": 400, "message": "Invalid credentials" },
         { "status": 500, "message": "Server error during login" }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/forgot-password",
+      "authRequired": false,
+      "allowedRoles": ["public"],
+      "requestBody": {
+        "email": { "type": "string(email)", "required": true }
+      },
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "If an account exists for this email, a password reset link has been sent"
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "Email is required" },
+        { "status": 500, "message": "Server error during password reset request" }
+      ],
+      "behaviorNotes": [
+        "Public endpoint.",
+        "Does not reveal whether the account exists.",
+        "If account exists, stores a SHA-256 reset token hash and emails FRONTEND_URL/reset-password?token=<token> through Resend.",
+        "Reset token expires after 60 minutes.",
+        "Email delivery is best-effort and not part of the API success/failure contract."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/reset-password",
+      "authRequired": false,
+      "allowedRoles": ["public"],
+      "requestBody": {
+        "token": { "type": "string", "required": true },
+        "password": { "type": "string", "required": true, "minimumLength": 6 }
+      },
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Password reset successfully"
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "Token and password are required" },
+        { "status": 400, "message": "Password must be at least 6 characters" },
+        { "status": 400, "message": "Invalid or expired password reset token" },
+        { "status": 500, "message": "Server error during password reset" }
+      ],
+      "behaviorNotes": [
+        "Public endpoint.",
+        "Uses the raw token from the email URL.",
+        "Backend hashes the token and compares it with the stored token hash.",
+        "On success, updates password_hash and clears reset token fields."
       ]
     },
     {

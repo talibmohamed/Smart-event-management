@@ -1,4 +1,11 @@
 import Booking from "../models/Booking.js";
+import { sendEmailBestEffort } from "../utils/emailService.js";
+import {
+  bookingConfirmedEmail,
+  organizerBookingNotificationEmail,
+  paymentExpiredEmail,
+  paymentFailedEmail
+} from "../utils/emailTemplates.js";
 import {
   constructStripeWebhookEvent,
   getExpectedAmountInCents,
@@ -13,6 +20,61 @@ const logWebhook = ({ event, bookingId, action }) => {
       stripe_event_id: event.id,
       booking_id: bookingId || null,
       action
+    })
+  );
+};
+
+const sendPaidBookingConfirmedEmails = async (bookingId) => {
+  const booking = await Booking.getBookingEmailContextById(bookingId);
+
+  if (!booking) {
+    return;
+  }
+
+  sendEmailBestEffort(
+    bookingConfirmedEmail({
+      attendee: booking.user,
+      event: booking.event,
+      booking
+    })
+  );
+  sendEmailBestEffort(
+    organizerBookingNotificationEmail({
+      organizer: booking.event.organizer,
+      attendee: booking.user,
+      event: booking.event,
+      booking
+    })
+  );
+};
+
+const sendPaymentFailedEmail = async (bookingId, reason) => {
+  const booking = await Booking.getBookingEmailContextById(bookingId);
+
+  if (!booking) {
+    return;
+  }
+
+  sendEmailBestEffort(
+    paymentFailedEmail({
+      attendee: booking.user,
+      event: booking.event,
+      reason
+    })
+  );
+};
+
+const sendPaymentExpiredEmail = async (bookingId) => {
+  const booking = await Booking.getBookingEmailContextById(bookingId);
+
+  if (!booking) {
+    return;
+  }
+
+  sendEmailBestEffort(
+    paymentExpiredEmail({
+      attendee: booking.user,
+      event: booking.event
     })
   );
 };
@@ -48,6 +110,7 @@ const handleCheckoutCompleted = async (event) => {
       amount_paid: session.amount_total ? session.amount_total / 100 : null,
       currency: session.currency || getPaymentCurrency()
     });
+    await sendPaymentFailedEmail(booking.id, "Payment validation failed");
     logWebhook({ event, bookingId: booking.id, action: "failed_validation" });
     return;
   }
@@ -80,6 +143,7 @@ const handleCheckoutCompleted = async (event) => {
       amount_paid: Number.isNaN(paidAmount) ? null : paidAmount / 100,
       currency: paidCurrency || expectedCurrency
     });
+    await sendPaymentFailedEmail(booking.id, "Payment amount or currency did not match the event price");
     logWebhook({ event, bookingId: booking.id, action: "failed_validation" });
     return;
   }
@@ -95,6 +159,7 @@ const handleCheckoutCompleted = async (event) => {
       amount_paid: paidAmount / 100,
       currency: paidCurrency
     });
+    await sendPaymentFailedEmail(booking.id, "The event became full before payment confirmation");
     logWebhook({ event, bookingId: booking.id, action: "failed_full" });
     return;
   }
@@ -105,6 +170,7 @@ const handleCheckoutCompleted = async (event) => {
     amount_paid: paidAmount / 100,
     currency: paidCurrency
   });
+  await sendPaidBookingConfirmedEmails(booking.id);
   logWebhook({ event, bookingId: booking.id, action: "confirmed" });
 };
 
@@ -140,6 +206,7 @@ const handleCheckoutExpired = async (event) => {
   }
 
   await Booking.expirePayment(booking.id, event.id);
+  await sendPaymentExpiredEmail(booking.id);
   logWebhook({ event, bookingId: booking.id, action: "expired" });
 };
 
@@ -185,4 +252,3 @@ const handleStripeWebhook = async (req, res) => {
 export default {
   handleStripeWebhook
 };
-

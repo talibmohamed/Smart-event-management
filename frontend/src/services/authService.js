@@ -30,6 +30,14 @@ const authService = {
     return api.post("/auth/register", payload)
   },
 
+  forgotPassword(email) {
+    return api.post("/auth/forgot-password", { email })
+  },
+
+  resetPassword(payload) {
+    return api.post("/auth/reset-password", payload)
+  },
+
   getProfile() {
     return api.get("/auth/me")
   },

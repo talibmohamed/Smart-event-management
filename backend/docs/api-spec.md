@@ -1,6 +1,6 @@
 # Smart Event Management API Spec
 
-Last updated: 2026-04-11
+Last updated: 2026-04-13
 
 ## Global Rules
 
@@ -15,6 +15,7 @@ Last updated: 2026-04-11
 - `GET /api/auth/me` is the only current success response that does not include `message`
 - Local development seed command: `npm run db:seed`
 - Local booking payment schema command: `npm run db:payment-schema`
+- Local password reset schema command: `npm run db:password-reset-schema`
 - Local storage setup command: `npm run storage:setup`
 - Seeded sample password for all seed users: `Password123!`
 - Event geocoding uses Nominatim from the backend only; frontend must never call Nominatim directly
@@ -24,6 +25,9 @@ Last updated: 2026-04-11
 - Required storage env variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_EVENT_IMAGES_BUCKET`
 - Paid bookings use Stripe Checkout and are confirmed only by verified Stripe webhooks
 - Required Stripe env variables: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CURRENCY`, `FRONTEND_URL`
+- Required Resend env variables: `RESEND_API_KEY`, `EMAIL_FROM`, optional `EMAIL_REPLY_TO`, `EMAIL_ENABLED`
+- Transactional emails are best-effort and never determine API success/failure
+- Password reset links are emailed with Resend, expire after 60 minutes, and use `FRONTEND_URL/reset-password?token=...`
 
 ## Endpoints
 
@@ -136,6 +140,68 @@ Last updated: 2026-04-11
 - Common errors:
   - `400 { "success": false, "message": "Invalid credentials" }`
   - `500 { "success": false, "message": "Server error during login", "error": "..." }`
+
+### `POST /api/auth/forgot-password`
+
+- Auth: no
+- Allowed roles: all
+- Request body:
+
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+- Notes:
+  - Always returns the same success message for existing and non-existing accounts to avoid email enumeration
+  - If the account exists, backend stores a hashed reset token and sends a best-effort Resend email
+  - Reset link format: `FRONTEND_URL/reset-password?token=<token>`
+  - Token expires after 60 minutes
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "If an account exists for this email, a password reset link has been sent"
+}
+```
+
+- Common errors:
+  - `400 { "success": false, "message": "Email is required" }`
+  - `500 { "success": false, "message": "Server error during password reset request", "error": "..." }`
+
+### `POST /api/auth/reset-password`
+
+- Auth: no
+- Allowed roles: all
+- Request body:
+
+```json
+{
+  "token": "password-reset-token-from-email",
+  "password": "newPassword123"
+}
+```
+
+- Notes:
+  - Uses the raw token from the email link
+  - Backend compares the SHA-256 token hash stored in the database
+  - On success, backend updates the password and clears the reset token
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Password reset successfully"
+}
+```
+
+- Common errors:
+  - `400 { "success": false, "message": "Token and password are required" }`
+  - `400 { "success": false, "message": "Password must be at least 6 characters" }`
+  - `400 { "success": false, "message": "Invalid or expired password reset token" }`
+  - `500 { "success": false, "message": "Server error during password reset", "error": "..." }`
 
 ### `GET /api/auth/me`
 
@@ -275,6 +341,7 @@ Last updated: 2026-04-11
   - Backend geocodes `address + city + France` with Nominatim and stores coordinates
   - `cover_image` is optional and must be JPEG, PNG, or WebP under 5MB
   - Backend stores `image_url` and `image_path`, but only exposes `image_url`
+  - Confirmed attendees receive best-effort emails if key event details later change
 - Success:
 
 ```json
@@ -355,6 +422,7 @@ Last updated: 2026-04-11
   - Organizers can delete only their own events
   - Admins can delete any event
   - Stored image cleanup is best-effort
+  - Confirmed attendees receive best-effort event cancellation emails
 - Success: same event object shape as `POST /api/events`
 - Common errors:
   - `401 { "success": false, "message": "Not authorized" }`
@@ -424,6 +492,7 @@ Last updated: 2026-04-11
   - Paid events create `pending_payment` bookings and return a Stripe Checkout URL
   - Pending paid bookings do not reserve seats
   - Stripe success redirects are not payment confirmation
+  - Free confirmed bookings trigger best-effort attendee and organizer emails
   - If a cancelled booking exists for the same user and event, backend reactivates it using the current event price rule and still returns `201`
 - Success:
 
@@ -587,6 +656,8 @@ Last updated: 2026-04-11
   - Validates amount and currency before confirming
   - If event is full at webhook time, booking becomes `cancelled` and `payment_status` becomes `failed`
   - If amount/currency validation fails, booking becomes `cancelled` and `payment_status` becomes `failed`
+  - Successful paid confirmation triggers best-effort attendee and organizer emails
+  - Failed or expired payments trigger best-effort attendee emails
   - Duplicate/already-confirmed webhook events are logged and ignored safely
 - Success:
 

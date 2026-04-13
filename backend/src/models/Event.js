@@ -117,6 +117,24 @@ const getEventRecordById = async (id) => {
   });
 };
 
+const getConfirmedAttendeesForEvent = async (event_id) => {
+  return prisma.booking.findMany({
+    where: {
+      event_id,
+      status: "confirmed",
+    },
+    include: {
+      user: {
+        select: {
+          first_name: true,
+          last_name: true,
+          email: true,
+        },
+      },
+    },
+  });
+};
+
 const updateEvent = async (
   id,
   {
@@ -168,6 +186,7 @@ export default {
   getAllEvents,
   getEventById,
   getEventRecordById,
+  getConfirmedAttendeesForEvent,
   updateEvent,
   deleteEvent,
 };

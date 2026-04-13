@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-11
+Last updated: 2026-04-13
 
 ## Base Setup
 
@@ -15,6 +15,7 @@ Authorization: Bearer <jwt>
 
 - Local seed command: `npm run db:seed`
 - Local booking payment schema command: `npm run db:payment-schema`
+- Local password reset schema command: `npm run db:password-reset-schema`
 - Local storage setup command: `npm run storage:setup`
 - Backend runtime normalizes Supabase pooler connections for Prisma
 - Backend uploads event cover images to the public Supabase Storage bucket `event-images`
@@ -28,6 +29,11 @@ Authorization: Bearer <jwt>
   - `STRIPE_WEBHOOK_SECRET`
   - `STRIPE_CURRENCY=eur`
   - `FRONTEND_URL`
+- Required backend env variables for Resend emails:
+  - `RESEND_API_KEY`
+  - `EMAIL_FROM`
+  - `EMAIL_REPLY_TO` optional
+  - `EMAIL_ENABLED=true`
 - Seeded sample password for all seed users: `Password123!`
 - Seeded sample emails:
   - `admin@smartevent.test`
@@ -63,6 +69,8 @@ Authorization: Bearer <jwt>
 | App health check | `GET /` | Optional dev check |
 | Register page | `POST /api/auth/register` | `role` can be `attendee` or `organizer` |
 | Login page | `POST /api/auth/login` | Returns JWT and user |
+| Forgot password page | `POST /api/auth/forgot-password` | Public, sends reset email if account exists |
+| Reset password page | `POST /api/auth/reset-password` | Public, uses token from email link |
 | Session restore | `GET /api/auth/me` | Requires JWT |
 | City autocomplete/select | `GET /api/cities?search=paris` | Public, returns max 20 backend-approved French cities |
 | Events list page | `GET /api/events` | Public |
@@ -85,6 +93,65 @@ Authorization: Bearer <jwt>
 - Required fields: `first_name`, `last_name`, `email`, `password`
 - Optional field: `role`
 - If `role` is not `attendee` or `organizer`, backend stores `attendee`
+
+### Forgot Password
+
+- Request password reset email:
+
+```http
+POST /api/auth/forgot-password
+```
+
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+- Success response is the same whether the account exists or not:
+
+```json
+{
+  "success": true,
+  "message": "If an account exists for this email, a password reset link has been sent"
+}
+```
+
+- Backend sends a Resend email with this link shape:
+
+```text
+FRONTEND_URL/reset-password?token=<token>
+```
+
+- The reset token expires after 60 minutes.
+- Frontend should read `token` from the reset password page URL.
+
+### Reset Password
+
+```http
+POST /api/auth/reset-password
+```
+
+```json
+{
+  "token": "token-from-url",
+  "password": "newPassword123"
+}
+```
+
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Password reset successfully"
+}
+```
+
+- Common frontend-handled errors:
+  - `Token and password are required`
+  - `Password must be at least 6 characters`
+  - `Invalid or expired password reset token`
 
 ### Create Or Update Event
 
@@ -179,6 +246,15 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
 - `checkout.session.completed` confirms valid paid bookings
 - `checkout.session.expired` marks pending paid bookings as cancelled/expired
 - Amount, currency, metadata, and capacity are validated before confirmation
+
+### Transactional Emails
+
+- Backend sends best-effort emails with Resend
+- Email failures are logged but do not fail API requests or webhooks
+- Emails are sent for free booking confirmation, paid booking confirmation, payment failure, payment expiration, booking cancellation, event updates, and event deletion
+- Forgot password emails are also sent through Resend
+- No email is sent for duplicate booking errors, failed validation requests, pending payment retry creation, or frontend Stripe success redirects
+- Set `EMAIL_ENABLED=false` to disable email sending locally
 
 ## Response Notes
 

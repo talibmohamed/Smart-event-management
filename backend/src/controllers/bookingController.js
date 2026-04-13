@@ -5,6 +5,13 @@ import {
   createBookingCheckoutSession,
   getPaymentCurrency
 } from "../utils/stripe.js";
+import { sendEmailBestEffort } from "../utils/emailService.js";
+import {
+  bookingCancelledEmail,
+  bookingConfirmedEmail,
+  organizerBookingCancelledEmail,
+  organizerBookingNotificationEmail
+} from "../utils/emailTemplates.js";
 
 const isPaidEvent = (event) => Number(event.price) > 0;
 
@@ -22,6 +29,55 @@ const buildBookingResponse = ({ booking, paymentRequired, checkoutUrl }) => {
   }
 
   return response;
+};
+
+const sendBookingConfirmedEmails = async (bookingId) => {
+  const booking = await Booking.getBookingEmailContextById(bookingId);
+
+  if (!booking) {
+    return;
+  }
+
+  sendEmailBestEffort(
+    bookingConfirmedEmail({
+      attendee: booking.user,
+      event: booking.event,
+      booking
+    })
+  );
+  sendEmailBestEffort(
+    organizerBookingNotificationEmail({
+      organizer: booking.event.organizer,
+      attendee: booking.user,
+      event: booking.event,
+      booking
+    })
+  );
+};
+
+const sendBookingCancelledEmails = async (booking) => {
+  const context = await Booking.getBookingEmailContextById(booking.id);
+
+  if (!context) {
+    return;
+  }
+
+  sendEmailBestEffort(
+    bookingCancelledEmail({
+      attendee: context.user,
+      event: context.event
+    })
+  );
+
+  if (booking.status === "confirmed") {
+    sendEmailBestEffort(
+      organizerBookingCancelledEmail({
+        organizer: context.event.organizer,
+        attendee: context.user,
+        event: context.event
+      })
+    );
+  }
 };
 
 const createBooking = async (req, res) => {
@@ -127,6 +183,8 @@ const createBooking = async (req, res) => {
       });
     }
 
+    await sendBookingConfirmedEmails(booking.id);
+
     return res.status(201).json({
       success: true,
       message: "Booking created successfully",
@@ -172,6 +230,7 @@ const cancelBooking = async (req, res) => {
     }
 
     const updatedBooking = await Booking.cancelBooking(booking.id);
+    await sendBookingCancelledEmails(booking);
 
     return res.status(200).json({
       success: true,

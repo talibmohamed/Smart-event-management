@@ -24,6 +24,8 @@ export default function LoginPage() {
   const { login, isAuthenticated, isBootstrapping, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const routeMessage =
+    typeof location.state?.message === "string" ? location.state.message : "";
 
   const toggleVisibility = () => setIsVisible((prev) => !prev);
   const redirectPath =
@@ -143,6 +145,12 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {routeMessage ? (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  {routeMessage}
+                </div>
+              ) : null}
+
               {error ? (
                 <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-500 dark:text-red-400">
                   {error}
@@ -206,6 +214,16 @@ export default function LoginPage() {
                     </button>
                   }
                 />
+              </div>
+
+              <div className="-mt-3 flex justify-end">
+                <Link
+                  as={RouterLink}
+                  to="/forgot-password"
+                  className="text-sm font-semibold !text-zinc-700 transition-colors hover:!text-violet-600 dark:!text-zinc-300 dark:hover:!text-violet-400"
+                >
+                  Forgot password?
+                </Link>
               </div>
 
               <Button
