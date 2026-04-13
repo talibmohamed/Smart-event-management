@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, CardHeader, Chip, Spinner } from "@heroui/react";
-import { CalendarDays, PencilLine, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, PencilLine, Plus, Trash2, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
@@ -433,6 +433,16 @@ export default function DashboardPage() {
                               className="border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
                             >
                               Edit
+                            </Button>
+                            <Button
+                              as={RouterLink}
+                              to={`/events/${event.id}/attendees`}
+                              radius="full"
+                              variant="bordered"
+                              startContent={<UsersRound size={15} />}
+                              className="border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                            >
+                              Attendees
                             </Button>
                             <Button
                               radius="full"

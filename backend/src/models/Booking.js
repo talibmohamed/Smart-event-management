@@ -496,6 +496,112 @@ const getMyBookings = async (user_id) => {
   return Promise.all(bookings.map(flattenBookingWithEvent));
 };
 
+const formatAttendeeRow = (row) => ({
+  booking_id: row.booking_id,
+  booking_date: row.booking_date,
+  status: row.status,
+  payment_status: row.payment_status,
+  attendee: {
+    id: row.attendee_id,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    email: row.email,
+  },
+  item: row.booking_item_id
+    ? {
+        ticket_tier_id: row.ticket_tier_id,
+        ticket_tier_name: row.ticket_tier_name,
+        quantity: Number(row.quantity),
+        unit_price: toNumber(row.unit_price).toFixed(2),
+        total_price: toNumber(row.total_price).toFixed(2),
+      }
+    : null,
+});
+
+const groupAttendeeRows = (rows) => {
+  const attendeesByBookingId = new Map();
+
+  rows.map(formatAttendeeRow).forEach((row) => {
+    if (!attendeesByBookingId.has(row.booking_id)) {
+      attendeesByBookingId.set(row.booking_id, {
+        booking_id: row.booking_id,
+        booking_date: row.booking_date,
+        status: row.status,
+        payment_status: row.payment_status,
+        total_quantity: 0,
+        total_price: "0.00",
+        attendee: row.attendee,
+        items: [],
+      });
+    }
+
+    const attendee = attendeesByBookingId.get(row.booking_id);
+
+    if (row.item) {
+      attendee.items.push(row.item);
+      attendee.total_quantity += row.item.quantity;
+      attendee.total_price = (
+        toNumber(attendee.total_price) + toNumber(row.item.total_price)
+      ).toFixed(2);
+    }
+  });
+
+  return [...attendeesByBookingId.values()];
+};
+
+const getEventAttendees = async ({ event_id, status }) => {
+  const rows = status === "all"
+    ? await prisma.$queryRaw`
+        SELECT
+          b.id AS booking_id,
+          b.booking_date,
+          b.status,
+          b.payment_status,
+          u.id AS attendee_id,
+          u.first_name,
+          u.last_name,
+          u.email,
+          bi.id AS booking_item_id,
+          bi.ticket_tier_id,
+          bi.quantity,
+          bi.unit_price,
+          bi.total_price,
+          tt.name AS ticket_tier_name
+        FROM bookings b
+        JOIN users u ON u.id = b.user_id
+        LEFT JOIN booking_items bi ON bi.booking_id = b.id
+        LEFT JOIN ticket_tiers tt ON tt.id = bi.ticket_tier_id
+        WHERE b.event_id = CAST(${event_id} AS uuid)
+        ORDER BY b.booking_date DESC, tt.sort_order ASC, tt.created_at ASC
+      `
+    : await prisma.$queryRaw`
+        SELECT
+          b.id AS booking_id,
+          b.booking_date,
+          b.status,
+          b.payment_status,
+          u.id AS attendee_id,
+          u.first_name,
+          u.last_name,
+          u.email,
+          bi.id AS booking_item_id,
+          bi.ticket_tier_id,
+          bi.quantity,
+          bi.unit_price,
+          bi.total_price,
+          tt.name AS ticket_tier_name
+        FROM bookings b
+        JOIN users u ON u.id = b.user_id
+        LEFT JOIN booking_items bi ON bi.booking_id = b.id
+        LEFT JOIN ticket_tiers tt ON tt.id = bi.ticket_tier_id
+        WHERE b.event_id = CAST(${event_id} AS uuid)
+          AND b.status = ${status}
+        ORDER BY b.booking_date DESC, tt.sort_order ASC, tt.created_at ASC
+      `;
+
+  return groupAttendeeRows(rows);
+};
+
 export default {
   findBookingByUserAndEvent,
   createBookingWithStatus,
@@ -516,4 +622,5 @@ export default {
   getBookingTotalAmount,
   prepareBookingItems,
   getMyBookings,
+  getEventAttendees,
 };

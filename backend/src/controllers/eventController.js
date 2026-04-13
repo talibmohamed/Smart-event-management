@@ -1,4 +1,5 @@
 import Event from "../models/Event.js";
+import Booking from "../models/Booking.js";
 import { geocodeFrenchAddress } from "../utils/geocoder.js";
 import {
   deleteEventImage,
@@ -13,6 +14,7 @@ import { findSupportedFrenchCity } from "../utils/frenchCities.js";
 import { parseEventTicketTiers } from "../utils/ticketTiers.js";
 
 const shouldRemoveImage = (value) => value === true || value === "true";
+const ATTENDEE_STATUS_FILTERS = ["confirmed", "pending_payment", "cancelled", "all"];
 
 const hasCoordinates = (coordinates) =>
   coordinates?.latitude !== null &&
@@ -226,6 +228,61 @@ const getEventById = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error while fetching event",
+      error: error.message
+    });
+  }
+};
+
+const getEventAttendees = async (req, res) => {
+  try {
+    const status = req.query.status || "confirmed";
+
+    if (!ATTENDEE_STATUS_FILTERS.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid attendee status filter"
+      });
+    }
+
+    const event = await Event.getEventRecordById(req.params.id);
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found"
+      });
+    }
+
+    if (req.user.role !== "admin" && event.organizer_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only view attendees for your own events"
+      });
+    }
+
+    const attendees = await Booking.getEventAttendees({
+      event_id: event.id,
+      status
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Event attendees retrieved successfully",
+      data: {
+        event: {
+          id: event.id,
+          title: event.title,
+          status_filter: status
+        },
+        attendees
+      }
+    });
+  } catch (error) {
+    console.error("Get event attendees error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching event attendees",
       error: error.message
     });
   }
@@ -478,6 +535,7 @@ export default {
   createEvent,
   getAllEvents,
   getEventById,
+  getEventAttendees,
   updateEvent,
   deleteEvent
 };

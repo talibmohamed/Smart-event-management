@@ -201,8 +201,30 @@
       "items": ["bookingItem"],
       "total_quantity": "number",
       "total_price": "string(decimal)"
-    }
-    ,
+    },
+    "eventAttendee": {
+      "booking_id": "string(uuid)",
+      "booking_date": "string(datetime)",
+      "status": "string(pending_payment|confirmed|cancelled)",
+      "payment_status": "string(unpaid|paid|failed|cancelled|expired)|null",
+      "total_quantity": "number",
+      "total_price": "string(decimal)",
+      "attendee": {
+        "id": "string(uuid)",
+        "first_name": "string",
+        "last_name": "string",
+        "email": "string"
+      },
+      "items": [
+        {
+          "ticket_tier_id": "string(uuid)",
+          "ticket_tier_name": "string",
+          "quantity": "number",
+          "unit_price": "string(decimal)",
+          "total_price": "string(decimal)"
+        }
+      ]
+    },
     "bookingCreateFreeResult": {
       "booking": "booking",
       "payment_required": false
@@ -453,6 +475,51 @@
       "commonErrors": [
         { "status": 404, "message": "Event not found" },
         { "status": 500, "message": "Server error while fetching event" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/attendees",
+      "authRequired": true,
+      "allowedRoles": ["organizer_owner", "admin"],
+      "queryParams": {
+        "status": {
+          "type": "string",
+          "required": false,
+          "allowedValues": ["confirmed", "pending_payment", "cancelled", "all"],
+          "default": "confirmed"
+        }
+      },
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Event attendees retrieved successfully",
+          "data": {
+            "event": {
+              "id": "string(uuid)",
+              "title": "string",
+              "status_filter": "string"
+            },
+            "attendees": ["eventAttendee"]
+          }
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "Invalid attendee status filter" },
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
+        { "status": 403, "message": "Access denied. You can only view attendees for your own events" },
+        { "status": 404, "message": "Event not found" },
+        { "status": 500, "message": "Server error while fetching event attendees" }
+      ],
+      "behaviorNotes": [
+        "Default status filter is confirmed.",
+        "status=all includes confirmed, pending_payment, and cancelled bookings.",
+        "Attendees are sorted by booking_date DESC.",
+        "total_quantity is the sum of booking item quantities.",
+        "total_price is the sum of booking item total prices."
       ]
     },
     {

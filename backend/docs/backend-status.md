@@ -67,6 +67,7 @@ Last updated: 2026-04-13
 - Organizer/admin event creation
 - Organizer/admin event update
 - Organizer/admin event deletion
+- Organizer/admin attendee list with booking status filtering
 - Backend-approved French city validation on event create and update
 - Backend-only Nominatim geocoding on event create and update
 - Stored event coordinates for split list/map UI support
@@ -101,7 +102,7 @@ Last updated: 2026-04-13
 - Feedback endpoints and business logic
 - Admin-specific supervision endpoints beyond current role checks
 - Event filtering, search, and pagination
-- Organizer booking attendee list and reports
+- Attendee export/download support
 - Advanced ticket rules such as deadline-based Early Bird tiers
 - Refund handling and advanced payment operations
 - Fully consistent success response shape across all endpoints
@@ -142,6 +143,7 @@ Last updated: 2026-04-13
 - French city autocomplete/select through `GET /api/cities`
 - Public events list and event detail
 - Organizer event create, update, and delete
+- Organizer/admin event attendee list
 - Organizer/admin event cover image upload and removal
 - Attendee booking create, cancel, payment retry, payment redirect, status polling, and my-bookings view
 - Event tier editor and tier-aware booking UI can be integrated from the documented API contract

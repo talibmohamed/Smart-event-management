@@ -14,8 +14,10 @@ export default defineConfig({
       include: [
         "src/controllers/authController.js",
         "src/controllers/bookingController.js",
+        "src/controllers/eventController.js",
         "src/controllers/paymentController.js",
         "src/middlewares/authMiddleware.js",
+        "src/middlewares/roleMiddleware.js",
         "src/utils/ticketTiers.js",
       ],
       exclude: [

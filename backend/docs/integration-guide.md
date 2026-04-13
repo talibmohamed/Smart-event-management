@@ -76,6 +76,7 @@ Authorization: Bearer <jwt>
 | City autocomplete/select | `GET /api/cities?search=paris` | Public, returns max 20 backend-approved French cities |
 | Events list page | `GET /api/events` | Public |
 | Event detail page | `GET /api/events/:id` | Public |
+| Organizer event attendees page | `GET /api/events/:id/attendees?status=confirmed` | Requires organizer/admin; organizer owns event unless admin |
 | Organizer create event page | `POST /api/events` | Requires `organizer` or `admin` |
 | Organizer edit event page | `PUT /api/events/:id` | Requires `organizer` or `admin`; supports safe ticket tier edits |
 | Organizer delete event action | `DELETE /api/events/:id` | Requires `organizer` or `admin` and ownership unless admin |
@@ -213,6 +214,27 @@ Example `ticket_tiers`:
   }
 ]
 ```
+
+### Organizer Event Attendees
+
+- Endpoint:
+
+```http
+GET /api/events/:id/attendees?status=confirmed
+```
+
+- Auth: organizer/admin JWT required
+- Organizers can view only their own event attendees
+- Admins can view any event attendees
+- Status filter values:
+  - `confirmed`
+  - `pending_payment`
+  - `cancelled`
+  - `all`
+- Default status is `confirmed`
+- Use `status=all` for support/refund preparation views, not normal check-in lists
+- Response contains event metadata and an `attendees` array
+- Each attendee contains attendee identity, booking status, payment status, ticket items, `total_quantity`, and `total_price`
 
 ### Event Cover Images
 

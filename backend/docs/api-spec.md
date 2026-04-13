@@ -323,6 +323,69 @@ Last updated: 2026-04-13
   - `404 { "success": false, "message": "Event not found" }`
   - `500 { "success": false, "message": "Server error while fetching event", "error": "..." }`
 
+### `GET /api/events/:id/attendees`
+
+- Auth: yes
+- Allowed roles: `organizer`, `admin`
+- Request body: none
+- Query params:
+  - `status` optional: `confirmed`, `pending_payment`, `cancelled`, or `all`
+  - Default: `confirmed`
+- Notes:
+  - Organizers can view attendees only for their own events
+  - Admins can view attendees for any event
+  - Attendees are sorted by `booking_date DESC`
+  - `total_quantity` is the sum of booking item quantities
+  - `total_price` is the sum of booking item total prices
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Event attendees retrieved successfully",
+  "data": {
+    "event": {
+      "id": "uuid",
+      "title": "Tech Conference",
+      "status_filter": "confirmed"
+    },
+    "attendees": [
+      {
+        "booking_id": "uuid",
+        "booking_date": "2026-04-13T10:00:00.000Z",
+        "status": "confirmed",
+        "payment_status": "paid",
+        "total_quantity": 2,
+        "total_price": "50.00",
+        "attendee": {
+          "id": "uuid",
+          "first_name": "John",
+          "last_name": "Doe",
+          "email": "john@example.com"
+        },
+        "items": [
+          {
+            "ticket_tier_id": "uuid",
+            "ticket_tier_name": "VIP",
+            "quantity": 2,
+            "unit_price": "25.00",
+            "total_price": "50.00"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+- Common errors:
+  - `400 { "success": false, "message": "Invalid attendee status filter" }`
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Insufficient permissions" }`
+  - `403 { "success": false, "message": "Access denied. You can only view attendees for your own events" }`
+  - `404 { "success": false, "message": "Event not found" }`
+  - `500 { "success": false, "message": "Server error while fetching event attendees", "error": "..." }`
+
 ### `POST /api/events`
 
 - Auth: yes

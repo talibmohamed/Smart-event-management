@@ -7,6 +7,12 @@ import roleMiddleware from "../middlewares/roleMiddleware.js";
 const router = express.Router();
 
 router.get("/", eventController.getAllEvents);
+router.get(
+  "/:id/attendees",
+  authMiddleware,
+  roleMiddleware("organizer", "admin"),
+  eventController.getEventAttendees
+);
 router.get("/:id", eventController.getEventById);
 
 router.post(

@@ -12,6 +12,7 @@ import TermsOfServicePage from "../pages/TermsOfServicePage"
 import DashboardPage from "../pages/DashboardPage"
 import CreateEventPage from "../pages/CreateEventPage"
 import EditEventPage from "../pages/EditEventPage"
+import EventAttendeesPage from "../pages/EventAttendeesPage"
 import MyBookingsPage from "../pages/MyBookingsPage"
 import BookingStatusPage from "../pages/BookingStatusPage"
 import ProtectedRoute from "./ProtectedRoute"
@@ -43,6 +44,7 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute allowedRoles={["organizer", "admin"]} />}>
           <Route path="/create-event" element={<CreateEventPage />} />
           <Route path="/events/:id/edit" element={<EditEventPage />} />
+          <Route path="/events/:id/attendees" element={<EventAttendeesPage />} />
         </Route>
       </Route>
     </Routes>

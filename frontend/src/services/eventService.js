@@ -35,6 +35,12 @@ const eventService = {
   deleteEvent(id) {
     return api.delete(`/events/${id}`);
   },
+
+  getEventAttendees(id, status = "confirmed") {
+    const config = status && status !== "confirmed" ? { params: { status } } : undefined;
+
+    return api.get(`/events/${id}/attendees`, config);
+  },
 };
 
 export default eventService;
