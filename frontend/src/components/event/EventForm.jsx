@@ -1,11 +1,13 @@
 import { Button, Input, Textarea } from "@heroui/react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus, Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
   buildEventPayload,
+  calculateTicketTierTotal,
   EVENT_IMAGE_ACCEPT,
   EVENT_IMAGE_ERROR_MESSAGE,
+  normalizeTicketTiers,
   toEventFormValues,
   validateEventImageFile,
 } from "../../utils/eventUtils";
@@ -22,8 +24,7 @@ function validateEventForm(values, isCitySelected) {
     !values.address.trim() ||
     !values.city.trim() ||
     !values.event_date ||
-    values.capacity === "" ||
-    values.price === ""
+    values.capacity === ""
   ) {
     return "All event fields are required";
   }
@@ -33,8 +34,8 @@ function validateEventForm(values, isCitySelected) {
   }
 
   const capacity = Number(values.capacity);
-  const price = Number(values.price);
   const parsedDate = new Date(values.event_date);
+  const ticketTiers = normalizeTicketTiers(values.ticket_tiers);
 
   if (Number.isNaN(parsedDate.getTime())) {
     return "Please provide a valid event date and time";
@@ -48,8 +49,32 @@ function validateEventForm(values, isCitySelected) {
     return "Capacity must be a whole number";
   }
 
-  if (Number.isNaN(price) || price < 0) {
-    return "Price must be a valid number greater than or equal to 0";
+  if (ticketTiers.length < 1 || ticketTiers.length > 10) {
+    return "Event must have between 1 and 10 ticket tiers";
+  }
+
+  for (const tier of ticketTiers) {
+    const tierPrice = Number(tier.price);
+    const tierCapacity = Number(tier.capacity);
+
+    if (
+      !tier.name.trim() ||
+      Number.isNaN(tierPrice) ||
+      tierPrice < 0 ||
+      Number.isNaN(tierCapacity) ||
+      tierCapacity <= 0 ||
+      !Number.isInteger(tierCapacity)
+    ) {
+      return "Each ticket tier requires name, price >= 0, and capacity > 0";
+    }
+
+    if (tier.sold_quantity && tierCapacity < Number(tier.sold_quantity)) {
+      return "Ticket tier capacity cannot be lower than sold quantity";
+    }
+  }
+
+  if (calculateTicketTierTotal(ticketTiers) > capacity) {
+    return "Ticket tier capacities cannot exceed event capacity";
   }
 
   return "";
@@ -104,6 +129,44 @@ export default function EventForm({
         [field]: nextValue,
       }));
     };
+  }
+
+  function handleTicketTierChange(index, field, nextValue) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      ticket_tiers: normalizeTicketTiers(currentValues.ticket_tiers).map((tier, tierIndex) =>
+        tierIndex === index
+          ? {
+              ...tier,
+              [field]: nextValue,
+            }
+          : tier,
+      ),
+    }));
+  }
+
+  function handleAddTicketTier() {
+    setValues((currentValues) => ({
+      ...currentValues,
+      ticket_tiers: [
+        ...normalizeTicketTiers(currentValues.ticket_tiers),
+        {
+          name: "",
+          description: "",
+          price: "0",
+          capacity: "1",
+          is_active: true,
+          sort_order: normalizeTicketTiers(currentValues.ticket_tiers).length,
+        },
+      ],
+    }));
+  }
+
+  function handleRemoveTicketTier(index) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      ticket_tiers: normalizeTicketTiers(currentValues.ticket_tiers).filter((_, tierIndex) => tierIndex !== index),
+    }));
   }
 
   async function handleSubmit(event) {
@@ -165,6 +228,11 @@ export default function EventForm({
 
   const displayError = validationMessage || errorMessage;
   const hasCoverImage = Boolean(coverImagePreviewUrl);
+  const ticketTiers = normalizeTicketTiers(values.ticket_tiers);
+  const ticketTierCapacityTotal = calculateTicketTierTotal(ticketTiers);
+  const eventCapacity = Number(values.capacity);
+  const isTierCapacityOverLimit =
+    Number.isFinite(eventCapacity) && eventCapacity > 0 && ticketTierCapacityTotal > eventCapacity;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -328,22 +396,6 @@ export default function EventForm({
               "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
           }}
         />
-
-        <Input
-          label="Price (EUR)"
-          labelPlacement="outside"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
-          value={values.price}
-          onChange={handleChange("price")}
-          radius="lg"
-          classNames={{
-            inputWrapper:
-              "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
-          }}
-        />
       </div>
 
       <Textarea
@@ -359,6 +411,148 @@ export default function EventForm({
             "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
         }}
       />
+
+      <div className="space-y-4 rounded-[1.5rem] border border-zinc-200/80 bg-white/60 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div>
+            <h2 className="text-lg font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
+              Ticket tiers
+            </h2>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+              Add 1 to 10 custom tiers. Total tier capacity must stay within event capacity.
+            </p>
+            <p
+              className={`mt-2 text-xs font-semibold ${
+                isTierCapacityOverLimit
+                  ? "text-red-600 dark:text-red-300"
+                  : "text-zinc-500 dark:text-zinc-400"
+              }`}
+            >
+              Tier capacity total: {ticketTierCapacityTotal}
+              {values.capacity ? ` / ${values.capacity}` : ""}
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            radius="full"
+            variant="bordered"
+            startContent={<Plus size={15} />}
+            onPress={handleAddTicketTier}
+            isDisabled={ticketTiers.length >= 10}
+            className="border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+          >
+            Add tier
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          {ticketTiers.map((tier, index) => {
+            const soldQuantity = Number(tier.sold_quantity) || 0;
+            const canRemoveTier = ticketTiers.length > 1 && soldQuantity === 0;
+
+            return (
+              <div
+                key={tier.id || `ticket-tier-${index}`}
+                className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-white/10 dark:bg-white/[0.04]"
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="grid gap-4 md:grid-cols-[1fr_1fr_8rem_8rem]">
+                    <Input
+                      label="Tier name"
+                      labelPlacement="outside"
+                      placeholder="VIP"
+                      value={tier.name}
+                      onChange={(event) => handleTicketTierChange(index, "name", event.target.value)}
+                      radius="lg"
+                      classNames={{
+                        inputWrapper:
+                          "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                      }}
+                    />
+
+                    <Input
+                      label="Description"
+                      labelPlacement="outside"
+                      placeholder="Premium access"
+                      value={tier.description}
+                      onChange={(event) => handleTicketTierChange(index, "description", event.target.value)}
+                      radius="lg"
+                      classNames={{
+                        inputWrapper:
+                          "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                      }}
+                    />
+
+                    <Input
+                      label="Price"
+                      labelPlacement="outside"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={tier.price}
+                      onChange={(event) => handleTicketTierChange(index, "price", event.target.value)}
+                      radius="lg"
+                      classNames={{
+                        inputWrapper:
+                          "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                      }}
+                    />
+
+                    <Input
+                      label="Capacity"
+                      labelPlacement="outside"
+                      type="number"
+                      min={Math.max(1, soldQuantity)}
+                      step="1"
+                      value={tier.capacity}
+                      onChange={(event) => handleTicketTierChange(index, "capacity", event.target.value)}
+                      radius="lg"
+                      classNames={{
+                        inputWrapper:
+                          "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <label className="flex w-fit items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={tier.is_active !== false}
+                        onChange={(event) => handleTicketTierChange(index, "is_active", event.target.checked)}
+                        className="h-4 w-4 rounded border-zinc-300 text-sky-600 focus:ring-sky-500"
+                      />
+                      Active tier
+                    </label>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      {soldQuantity > 0 ? (
+                        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                          {soldQuantity} sold
+                        </span>
+                      ) : null}
+
+                      <Button
+                        type="button"
+                        radius="full"
+                        color="danger"
+                        variant="flat"
+                        startContent={<Trash2 size={15} />}
+                        onPress={() => handleRemoveTicketTier(index)}
+                        isDisabled={!canRemoveTier}
+                        className="bg-red-50 font-medium text-red-600 dark:bg-red-500/10 dark:text-red-300"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Button

@@ -44,7 +44,11 @@ function parseDateValue(dateValue) {
   return parsedDate;
 }
 
-function parsePriceValue(priceValue) {
+function parsePriceValue(eventOrPriceValue) {
+  const priceValue =
+    eventOrPriceValue && typeof eventOrPriceValue === "object"
+      ? eventOrPriceValue.min_price ?? eventOrPriceValue.price
+      : eventOrPriceValue;
   const numericPrice = Number(priceValue);
 
   if (Number.isNaN(numericPrice)) {
@@ -144,7 +148,7 @@ export function getFilteredAndSortedEvents(events, filters) {
     const category = normalizeText(event.category);
     const address = normalizeText(event.address);
     const city = normalizeText(event.city);
-    const price = parsePriceValue(event.price);
+    const price = parsePriceValue(event);
     const parsedDate = parseDateValue(event.event_date);
     const eventTime = parsedDate?.getTime() ?? null;
 
@@ -180,8 +184,8 @@ export function getFilteredAndSortedEvents(events, filters) {
   return [...filteredEvents].sort((left, right) => {
     const leftDate = parseDateValue(left.event_date)?.getTime() ?? 0;
     const rightDate = parseDateValue(right.event_date)?.getTime() ?? 0;
-    const leftPrice = parsePriceValue(left.price);
-    const rightPrice = parsePriceValue(right.price);
+    const leftPrice = parsePriceValue(left);
+    const rightPrice = parsePriceValue(right);
 
     switch (filters.sort) {
       case "latest":

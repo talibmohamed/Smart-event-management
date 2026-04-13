@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
-import { AlertTriangle, CheckCircle2, Clock3, CreditCard, WalletCards, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, CreditCard, Ticket, WalletCards, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
@@ -7,11 +7,12 @@ import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
 import {
+  formatBookingAmount,
   getBookingDisplayState,
   getBookingToneClassName,
   isFinalBookingPaymentState,
 } from "../utils/bookingUtils";
-import { formatEventDate, formatEventPrice, formatEventVenue } from "../utils/eventUtils";
+import { formatEventDate, formatEventVenue } from "../utils/eventUtils";
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 30;
@@ -232,11 +233,42 @@ export default function BookingStatusPage() {
                   <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">
                     <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                       <CreditCard size={14} />
-                      Event price
+                      Booking total
                     </div>
                     <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
-                      {formatEventPrice(booking.price)}
+                      {formatBookingAmount(
+                        booking.total_price ?? booking.amount_paid,
+                        booking.currency,
+                      )}
                     </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-4 dark:border-white/10 dark:bg-white/[0.03] md:col-span-3">
+                    <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      <Ticket size={14} />
+                      Tickets
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      {Array.isArray(booking.items) && booking.items.length > 0 ? (
+                        booking.items.map((item) => (
+                          <div
+                            key={item.id || item.ticket_tier_id}
+                            className="flex flex-col gap-1 rounded-xl bg-zinc-50/90 px-3 py-2 dark:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                              {item.ticket_tier?.name || "Ticket tier"} x {item.quantity}
+                            </p>
+                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                              {formatBookingAmount(item.total_price, booking.currency)}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                          Ticket details are unavailable for this booking.
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">

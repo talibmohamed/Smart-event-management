@@ -16,6 +16,7 @@ Authorization: Bearer <jwt>
 - Local seed command: `npm run db:seed`
 - Local booking payment schema command: `npm run db:payment-schema`
 - Local password reset schema command: `npm run db:password-reset-schema`
+- Local ticket tier schema command: `npm run db:ticket-tier-schema`
 - Local storage setup command: `npm run storage:setup`
 - Backend runtime normalizes Supabase pooler connections for Prisma
 - Backend uploads event cover images to the public Supabase Storage bucket `event-images`
@@ -76,7 +77,7 @@ Authorization: Bearer <jwt>
 | Events list page | `GET /api/events` | Public |
 | Event detail page | `GET /api/events/:id` | Public |
 | Organizer create event page | `POST /api/events` | Requires `organizer` or `admin` |
-| Organizer edit event page | `PUT /api/events/:id` | Requires `organizer` or `admin` and ownership unless admin |
+| Organizer edit event page | `PUT /api/events/:id` | Requires `organizer` or `admin`; supports safe ticket tier edits |
 | Organizer delete event action | `DELETE /api/events/:id` | Requires `organizer` or `admin` and ownership unless admin |
 | My bookings page | `GET /api/bookings/my-bookings` | Requires attendee JWT |
 | Booking detail/status polling | `GET /api/bookings/:id` | Requires JWT, owner attendee or admin |
@@ -164,13 +165,54 @@ POST /api/auth/reset-password
   - `event_date`
   - `capacity`
   - `price`
+  - `ticket_tiers` optional for old compatibility, recommended for new frontend
 - `organizer_id` is taken from the JWT and must not be sent by the frontend
 - `city` must be selected from `GET /api/cities`; invalid cities return `400`
 - Do not send `latitude` or `longitude`; backend geocodes the address and city
 - Optional image upload uses multipart file field `cover_image`
 - Optional image removal on update uses `remove_image=true`
+- `ticket_tiers` can be sent as an array in JSON requests or as a JSON string in multipart requests
+- Each ticket tier needs `name`, `price >= 0`, and `capacity > 0`
+- Event must have 1-10 ticket tiers when `ticket_tiers` is provided
+- Sum of tier capacities must be less than or equal to event `capacity`
+- If `ticket_tiers` is omitted on create, backend creates one `Standard` tier from `price` and `capacity`
+- If `ticket_tiers` is omitted on update, backend preserves existing tiers
+- Sold tiers cannot be deleted, and tier capacity cannot be reduced below confirmed sold quantity
+- Unsold tiers omitted from an update payload are disabled instead of hard-deleted
+- `price` in event responses is the minimum active tier price for old frontend compatibility
 - `capacity` must be greater than `0`
 - `price` must be greater than or equal to `0`
+
+Example `ticket_tiers`:
+
+```json
+[
+  {
+    "name": "Early Bird",
+    "description": "Limited early access",
+    "price": 10,
+    "capacity": 20,
+    "is_active": true,
+    "sort_order": 0
+  },
+  {
+    "name": "Standard",
+    "description": "General admission",
+    "price": 25,
+    "capacity": 60,
+    "is_active": true,
+    "sort_order": 1
+  },
+  {
+    "name": "VIP",
+    "description": "Premium access",
+    "price": 50,
+    "capacity": 20,
+    "is_active": true,
+    "sort_order": 2
+  }
+]
+```
 
 ### Event Cover Images
 
@@ -218,7 +260,13 @@ GET /api/cities?search=paris
 
 ```json
 {
-  "event_id": "uuid"
+  "event_id": "uuid",
+  "items": [
+    {
+      "ticket_tier_id": "uuid",
+      "quantity": 2
+    }
+  ]
 }
 ```
 
@@ -226,12 +274,18 @@ GET /api/cities?search=paris
 - If the user already has a pending paid booking, backend returns `409`
 - If the user has a cancelled booking for the same event, backend reactivates it and still returns `201`
 - If the event is full, backend returns `400`
-- Free events return a `confirmed` booking and `payment_required: false`
-- Paid events return a `pending_payment` booking, `payment_required: true`, and Stripe `checkout_url`
+- `items` is optional only for old compatibility; new frontend should always send selected tiers and quantities
+- Max total quantity per booking is 5 tickets
+- Backend validates each selected tier belongs to the event and is active
+- Backend validates tier remaining quantity and event remaining seats
+- Backend calculates `unit_price`, `total_price`, and booking total from stored ticket tier prices
+- Booking total `0` returns a `confirmed` booking and `payment_required: false`
+- Booking total greater than `0` returns a `pending_payment` booking, `payment_required: true`, and Stripe `checkout_url`
 - Frontend must redirect to `checkout_url` for paid bookings
 - Stripe success pages are UX only; use `GET /api/bookings/:id` to poll final booking status
 - Pending paid bookings do not reserve seats
 - To continue payment for an existing `pending_payment` booking, call `POST /api/bookings/:id/retry-payment` and redirect to the returned `checkout_url`
+- My bookings and booking detail responses include `items`, `total_quantity`, and `total_price`
 
 ### Stripe Webhook
 
@@ -246,6 +300,8 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
 - `checkout.session.completed` confirms valid paid bookings
 - `checkout.session.expired` marks pending paid bookings as cancelled/expired
 - Amount, currency, metadata, and capacity are validated before confirmation
+- Stripe amount validation uses the sum of backend-created booking item totals
+- Stripe line items are generated from backend ticket tier prices, not frontend prices
 
 ### Transactional Emails
 
@@ -274,6 +330,8 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
 - Event responses include `latitude` and `longitude` for map rendering
 - Event responses include optional `image_url` for cover images
 - Event responses include `confirmed_bookings`, `remaining_seats`, and `is_full`
+- Event responses include `ticket_tiers`, `min_price`, and `max_price`
+- `confirmed_bookings` now counts confirmed ticket quantities, not booking rows
 - Event create/update geocodes `address + city + France` on the backend with Nominatim
 - Frontend must never call Nominatim or ask users to enter coordinates manually
 - `POST`, `PUT`, and `DELETE` on events return the event record without organizer display fields
@@ -295,6 +353,10 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
   - `capacity`
   - `price`
   - `organizer_id`
+- Booking responses also include:
+  - `items`
+  - `total_quantity`
+  - `total_price`
 - Booking statuses: `pending_payment`, `confirmed`, `cancelled`
 - Payment statuses: `unpaid`, `paid`, `failed`, `cancelled`, `expired`
 

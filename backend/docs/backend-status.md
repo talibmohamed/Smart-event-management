@@ -14,6 +14,7 @@ Last updated: 2026-04-13
 - Local development seeding is available through Prisma
 - Event locations use structured address, city, latitude, and longitude fields
 - Optional event cover images use Supabase Storage
+- Events support multi-tier ticketing with booking line items
 - Supabase Storage requires a public `event-images` bucket and service role credentials in backend env
 
 ## Implemented Features
@@ -30,6 +31,7 @@ Last updated: 2026-04-13
 - `npm run db:seed` seeds sample users, events, bookings, and feedback
 - `npm run db:payment-schema` applies the booking payment columns/check constraints to Supabase
 - `npm run storage:setup` creates or updates the public Supabase `event-images` bucket
+- `npm run db:ticket-tier-schema` applies ticket tier and booking item tables, then backfills existing data
 - Seeded events cover multiple French cities for list/map UI development
 - Seeded sample login password: `Password123!`
 - Event image upload requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_EVENT_IMAGES_BUCKET`
@@ -64,11 +66,15 @@ Last updated: 2026-04-13
 - Backend-only Nominatim geocoding on event create and update
 - Stored event coordinates for split list/map UI support
 - Optional event cover image upload, replace, remove, and delete cleanup
+- Custom ticket tiers with tier price, capacity, active state, and sort order
+- Event responses include tier availability, `min_price`, and `max_price`
 - Public event responses expose `image_url` and hide internal `image_path`
 
 ### Bookings
 
 - Authenticated booking creation
+- Booking items support multiple ticket tiers and quantities in one booking
+- Max 5 tickets per booking
 - Free event bookings confirm immediately
 - Paid event bookings start as `pending_payment` and confirm only from Stripe webhook
 - One active booking per user per event
@@ -80,6 +86,7 @@ Last updated: 2026-04-13
 - Booking cancellation
 - Stripe webhook handles completed and expired Checkout Sessions
 - Webhook processing validates metadata, amount, currency, capacity, and duplicate Stripe events
+- Stripe Checkout line items are generated from backend-calculated booking item prices
 - Resend emails are sent for booking confirmations, paid confirmations, payment failures/expirations, booking cancellations, event updates, and event deletions
 - Password reset emails are sent through Resend and expire after 60 minutes
 
@@ -89,6 +96,7 @@ Last updated: 2026-04-13
 - Admin-specific supervision endpoints beyond current role checks
 - Event filtering, search, and pagination
 - Organizer booking attendee list and reports
+- Advanced ticket rules such as deadline-based Early Bird tiers
 - Refund handling and advanced payment operations
 - Fully consistent success response shape across all endpoints
 
@@ -105,9 +113,14 @@ Last updated: 2026-04-13
 - Event create/update returns `400` with `Address could not be located` when Nominatim cannot resolve the address
 - Invalid event images return `400` with `Event image must be a JPEG, PNG, or WebP file under 5MB`
 - Event `price` is serialized as a string in JSON responses
+- Event `price` now means minimum active ticket tier price for compatibility
+- Ticket tier capacities must sum to less than or equal to event capacity
+- Confirmed booking item quantities count toward event and tier availability
+- Pending paid bookings do not reserve event or tier seats
+- Organizers/admins cannot delete sold tiers or reduce tier capacity below confirmed sold quantity; omitted unsold tiers are disabled
 - `POST /api/auth/register` only honors `attendee` and `organizer`; any other role becomes `attendee`
 - Only attendees can create bookings and view their own booking list
-- Pending paid bookings do not reserve seats; only confirmed bookings count against capacity
+- Pending paid bookings do not reserve seats; only confirmed booking items count against capacity
 - Stripe success redirect is not payment confirmation; only the webhook confirms paid bookings
 - Email delivery is best-effort and does not change API success/failure results
 - Forgot password responses do not reveal whether an email exists
@@ -124,3 +137,4 @@ Last updated: 2026-04-13
 - Organizer event create, update, and delete
 - Organizer/admin event cover image upload and removal
 - Attendee booking create, cancel, payment retry, payment redirect, status polling, and my-bookings view
+- Event tier editor and tier-aware booking UI can be integrated from the documented API contract

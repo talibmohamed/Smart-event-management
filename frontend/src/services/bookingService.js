@@ -1,9 +1,10 @@
 import api from "./api";
 
 const bookingService = {
-  createBooking(eventId) {
+  createBooking(eventId, items = []) {
     return api.post("/bookings", {
       event_id: eventId,
+      items,
     });
   },
 

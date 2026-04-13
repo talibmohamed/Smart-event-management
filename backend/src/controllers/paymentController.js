@@ -131,7 +131,9 @@ const handleCheckoutCompleted = async (event) => {
     return;
   }
 
-  const expectedAmount = getExpectedAmountInCents(booking.event.price);
+  const expectedAmount = getExpectedAmountInCents(
+    Booking.getBookingTotalAmount(booking)
+  );
   const expectedCurrency = getPaymentCurrency();
   const paidAmount = Number(session.amount_total);
   const paidCurrency = String(session.currency || "").toLowerCase();
@@ -148,11 +150,9 @@ const handleCheckoutCompleted = async (event) => {
     return;
   }
 
-  const confirmedBookings = await Booking.countConfirmedBookingsForEvent(
-    booking.event_id
-  );
+  const hasCapacity = await Booking.canConfirmPendingBookingCapacity(booking);
 
-  if (confirmedBookings >= booking.event.capacity) {
+  if (!hasCapacity) {
     await Booking.failPayment(booking.id, {
       stripe_event_id: event.id,
       stripe_payment_intent_id: session.payment_intent,

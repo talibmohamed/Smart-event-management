@@ -7,6 +7,8 @@ import LoginPage from "../pages/LoginPage"
 import RegisterPage from "../pages/RegisterPage"
 import ForgotPasswordPage from "../pages/ForgotPasswordPage"
 import ResetPasswordPage from "../pages/ResetPasswordPage"
+import PrivacyPolicyPage from "../pages/PrivacyPolicyPage"
+import TermsOfServicePage from "../pages/TermsOfServicePage"
 import DashboardPage from "../pages/DashboardPage"
 import CreateEventPage from "../pages/CreateEventPage"
 import EditEventPage from "../pages/EditEventPage"
@@ -25,6 +27,8 @@ export default function AppRouter() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />

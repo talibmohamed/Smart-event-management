@@ -12,8 +12,9 @@ import {
   organizerBookingCancelledEmail,
   organizerBookingNotificationEmail
 } from "../utils/emailTemplates.js";
+import { parseBookingItems } from "../utils/ticketTiers.js";
 
-const isPaidEvent = (event) => Number(event.price) > 0;
+const isPaidBooking = (totalAmount) => Number(totalAmount) > 0;
 
 const buildBookingResponse = ({ booking, paymentRequired, checkoutUrl }) => {
   const response = {
@@ -116,26 +117,24 @@ const createBooking = async (req, res) => {
       });
     }
 
-    const confirmedBookings = await Booking.countConfirmedBookingsForEvent(event_id);
-
-    if (confirmedBookings >= event.capacity) {
-      return res.status(400).json({
-        success: false,
-        message: "This event is fully booked"
-      });
-    }
+    const requestedItems = parseBookingItems(req.body.items);
+    const preparedBooking = await Booking.prepareBookingItems({
+      event,
+      items: requestedItems,
+    });
 
     let booking;
-    const paidEvent = isPaidEvent(event);
-    const nextStatus = paidEvent ? "pending_payment" : "confirmed";
-    const nextPaymentStatus = paidEvent ? "unpaid" : "paid";
-    const nextAmountPaid = paidEvent ? null : 0;
+    const paidBooking = isPaidBooking(preparedBooking.totalAmount);
+    const nextStatus = paidBooking ? "pending_payment" : "confirmed";
+    const nextPaymentStatus = paidBooking ? "unpaid" : "paid";
+    const nextAmountPaid = paidBooking ? null : preparedBooking.totalAmount;
 
     if (existingBooking && existingBooking.status === "cancelled") {
       booking = await Booking.reactivateBooking(existingBooking.id, {
         status: nextStatus,
         payment_status: nextPaymentStatus,
         amount_paid: nextAmountPaid,
+        items: preparedBooking.items,
       });
     } else {
       booking = await Booking.createBookingWithStatus({
@@ -144,10 +143,11 @@ const createBooking = async (req, res) => {
         status: nextStatus,
         payment_status: nextPaymentStatus,
         amount_paid: nextAmountPaid,
+        items: preparedBooking.items,
       });
     }
 
-    if (paidEvent) {
+    if (paidBooking) {
       const user = await User.findUserById(req.user.id);
       let checkoutSession;
 
@@ -195,6 +195,13 @@ const createBooking = async (req, res) => {
     });
   } catch (error) {
     console.error("Create booking error:", error);
+
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
 
     return res.status(500).json({
       success: false,
@@ -341,11 +348,9 @@ const retryPayment = async (req, res) => {
       });
     }
 
-    const confirmedBookings = await Booking.countConfirmedBookingsForEvent(
-      booking.event_id
-    );
+    const hasCapacity = await Booking.canConfirmPendingBookingCapacity(booking);
 
-    if (confirmedBookings >= booking.event.capacity) {
+    if (!hasCapacity) {
       return res.status(400).json({
         success: false,
         message: "This event is fully booked"

@@ -11,7 +11,7 @@ import {
   getBookingDisplayState,
   getBookingToneClassName,
 } from "../utils/bookingUtils";
-import { formatEventDate, formatEventPrice, formatEventVenue } from "../utils/eventUtils";
+import { formatEventDate, formatEventVenue } from "../utils/eventUtils";
 
 function BookingFlash({ message, tone = "info" }) {
   const toneClassName =
@@ -126,6 +126,9 @@ export default function MyBookingsPage() {
                 payment_status: updatedBooking.payment_status,
                 amount_paid: updatedBooking.amount_paid,
                 currency: updatedBooking.currency,
+                items: updatedBooking.items || currentBooking.items,
+                total_quantity: updatedBooking.total_quantity ?? currentBooking.total_quantity,
+                total_price: updatedBooking.total_price ?? currentBooking.total_price,
               }
             : currentBooking,
         ),
@@ -351,10 +354,13 @@ export default function MyBookingsPage() {
 
                       <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
                         <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          Event price
+                          Booking total
                         </p>
                         <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
-                          {formatEventPrice(booking.price)}
+                          {formatBookingAmount(
+                            booking.total_price ?? booking.amount_paid,
+                            booking.currency,
+                          )}
                         </p>
                       </div>
 
@@ -365,6 +371,46 @@ export default function MyBookingsPage() {
                         </div>
                         <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
                           {formatEventVenue(booking)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03] sm:col-span-2">
+                        <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                          <Ticket size={14} />
+                          Tickets
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {Array.isArray(booking.items) && booking.items.length > 0 ? (
+                            booking.items.map((item) => (
+                              <div
+                                key={item.id || item.ticket_tier_id}
+                                className="flex flex-col gap-1 rounded-xl bg-zinc-50/90 px-3 py-2 dark:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
+                              >
+                                <div>
+                                  <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                                    {item.ticket_tier?.name || "Ticket tier"}
+                                  </p>
+                                  {item.ticket_tier?.description ? (
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                      {item.ticket_tier.description}
+                                    </p>
+                                  ) : null}
+                                </div>
+                                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                  {item.quantity} x{" "}
+                                  {formatBookingAmount(item.unit_price, booking.currency)} ={" "}
+                                  {formatBookingAmount(item.total_price, booking.currency)}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                              Ticket details are unavailable for this booking.
+                            </p>
+                          )}
+                        </div>
+                        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                          Total quantity: {booking.total_quantity ?? 1}
                         </p>
                       </div>
 
@@ -381,7 +427,10 @@ export default function MyBookingsPage() {
                             {displayState.label}
                           </Chip>
                           <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                            {formatBookingAmount(booking.amount_paid, booking.currency)}
+                            {formatBookingAmount(
+                              booking.amount_paid ?? booking.total_price,
+                              booking.currency,
+                            )}
                           </span>
                         </div>
                         <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">

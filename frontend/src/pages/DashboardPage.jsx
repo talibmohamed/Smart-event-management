@@ -7,7 +7,14 @@ import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
 import { isOrganizerRole } from "../services/authService";
-import { formatEventDate, formatEventPrice, formatEventVenue, isUpcomingEvent } from "../utils/eventUtils";
+import {
+  formatEventDate,
+  formatEventPrice,
+  formatEventPriceRange,
+  formatEventVenue,
+  getTicketTierRemainingQuantity,
+  isUpcomingEvent,
+} from "../utils/eventUtils";
 
 function FlashBanner({ message, tone = "info" }) {
   const toneClassName =
@@ -318,7 +325,7 @@ export default function DashboardPage() {
                           variant="flat"
                           className="border border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-white/10 dark:bg-white/10 dark:text-zinc-200"
                         >
-                          {formatEventPrice(event.price)}
+                          {formatEventPriceRange(event)}
                         </Chip>
                       </div>
                     </CardHeader>
@@ -366,6 +373,40 @@ export default function DashboardPage() {
                                 event.organizer_email ||
                                 "Organizer"}
                             </p>
+                          </div>
+                        ) : null}
+
+                        {Array.isArray(event.ticket_tiers) && event.ticket_tiers.length > 0 ? (
+                          <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03] sm:col-span-2">
+                            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                              Ticket tiers
+                            </p>
+                            <div className="mt-3 grid gap-2">
+                              {event.ticket_tiers.map((tier) => (
+                                <div
+                                  key={tier.id}
+                                  className="flex flex-col gap-1 rounded-xl bg-zinc-50/90 px-3 py-2 dark:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
+                                >
+                                  <div>
+                                    <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                                      {tier.name}{" "}
+                                      {tier.is_active === false ? (
+                                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                          (inactive)
+                                        </span>
+                                      ) : null}
+                                    </p>
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                      {formatEventPrice(tier.price)}
+                                    </p>
+                                  </div>
+                                  <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                                    {Number(tier.sold_quantity) || 0} sold |{" "}
+                                    {getTicketTierRemainingQuantity(tier)} left | {tier.capacity} cap
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ) : null}
                       </div>

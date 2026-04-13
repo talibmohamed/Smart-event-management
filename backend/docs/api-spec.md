@@ -16,6 +16,7 @@ Last updated: 2026-04-13
 - Local development seed command: `npm run db:seed`
 - Local booking payment schema command: `npm run db:payment-schema`
 - Local password reset schema command: `npm run db:password-reset-schema`
+- Local ticket tier schema command: `npm run db:ticket-tier-schema`
 - Local storage setup command: `npm run storage:setup`
 - Seeded sample password for all seed users: `Password123!`
 - Event geocoding uses Nominatim from the backend only; frontend must never call Nominatim directly
@@ -28,6 +29,7 @@ Last updated: 2026-04-13
 - Required Resend env variables: `RESEND_API_KEY`, `EMAIL_FROM`, optional `EMAIL_REPLY_TO`, `EMAIL_ENABLED`
 - Transactional emails are best-effort and never determine API success/failure
 - Password reset links are emailed with Resend, expire after 60 minutes, and use `FRONTEND_URL/reset-password?token=...`
+- Events use ticket tiers for pricing and availability; `Event.price` remains the minimum active tier price for old frontend compatibility
 
 ## Endpoints
 
@@ -286,6 +288,20 @@ Last updated: 2026-04-13
       "confirmed_bookings": 25,
       "remaining_seats": 75,
       "is_full": false,
+      "min_price": "10.00",
+      "max_price": "50.00",
+      "ticket_tiers": [
+        {
+          "id": "uuid",
+          "name": "VIP",
+          "description": "Front-row access",
+          "price": "50.00",
+          "capacity": 20,
+          "sold_quantity": 4,
+          "remaining_quantity": 16,
+          "is_active": true
+        }
+      ],
       "first_name": "Jane",
       "last_name": "Smith",
       "organizer_email": "jane@example.com"
@@ -325,12 +341,39 @@ Last updated: 2026-04-13
   "city": "Paris",
   "event_date": "2026-05-01T09:00:00.000Z",
   "capacity": 100,
-  "price": 10
+  "price": 10,
+  "ticket_tiers": [
+    {
+      "name": "Early Bird",
+      "description": "Limited early access",
+      "price": 10,
+      "capacity": 20,
+      "is_active": true,
+      "sort_order": 0
+    },
+    {
+      "name": "Standard",
+      "description": "General admission",
+      "price": 25,
+      "capacity": 60,
+      "is_active": true,
+      "sort_order": 1
+    },
+    {
+      "name": "VIP",
+      "description": "Premium access",
+      "price": 50,
+      "capacity": 20,
+      "is_active": true,
+      "sort_order": 2
+    }
+  ]
 }
 ```
 
 - Multipart fields:
   - Same event fields as above
+  - Optional `ticket_tiers` JSON string
   - Optional file field: `cover_image`
 
 - Notes:
@@ -341,6 +384,9 @@ Last updated: 2026-04-13
   - Backend geocodes `address + city + France` with Nominatim and stores coordinates
   - `cover_image` is optional and must be JPEG, PNG, or WebP under 5MB
   - Backend stores `image_url` and `image_path`, but only exposes `image_url`
+  - `ticket_tiers` is optional for old frontend compatibility; when omitted, backend creates one active `Standard` tier from `price` and `capacity`
+  - When sent, `ticket_tiers` must contain 1-10 tiers and total tier capacity must be less than or equal to event capacity
+  - `Event.price` is stored and returned as the minimum active tier price
   - Confirmed attendees receive best-effort emails if key event details later change
 - Success:
 
@@ -375,6 +421,9 @@ Last updated: 2026-04-13
   - `400 { "success": false, "message": "Price must be a valid number greater than or equal to 0" }`
   - `400 { "success": false, "message": "City must be a supported French city" }`
   - `400 { "success": false, "message": "Address could not be located" }`
+  - `400 { "success": false, "message": "Event must have between 1 and 10 ticket tiers" }`
+  - `400 { "success": false, "message": "Each ticket tier requires name, price >= 0, and capacity > 0" }`
+  - `400 { "success": false, "message": "Ticket tier capacities cannot exceed event capacity" }`
   - `400 { "success": false, "message": "Event image must be a JPEG, PNG, or WebP file under 5MB" }`
   - `500 { "success": false, "message": "Server error while creating event", "error": "..." }`
 
@@ -388,6 +437,7 @@ Last updated: 2026-04-13
   - `multipart/form-data` for optional image replacement/removal
 - Multipart fields:
   - Same event fields as `POST /api/events`
+  - Optional `ticket_tiers` JSON string
   - Optional file field: `cover_image`
   - Optional field: `remove_image=true`
 - Notes:
@@ -399,6 +449,10 @@ Last updated: 2026-04-13
   - Backend geocodes `address + city + France` when address or city changes
   - New `cover_image` replaces the old image and old storage cleanup is best-effort
   - `remove_image=true` removes the old image best-effort and sets `image_url` to `null`
+  - If `ticket_tiers` is omitted, backend preserves existing tiers
+  - Sold ticket tiers cannot be deleted
+  - Unsold tiers omitted from the update payload are disabled instead of hard-deleted
+  - Tier capacity cannot be reduced below confirmed sold quantity
 - Success: same event object shape as `POST /api/events`
 - Common errors:
   - `401 { "success": false, "message": "Not authorized" }`
@@ -410,6 +464,9 @@ Last updated: 2026-04-13
   - `400 { "success": false, "message": "Price must be a valid number greater than or equal to 0" }`
   - `400 { "success": false, "message": "City must be a supported French city" }`
   - `400 { "success": false, "message": "Address could not be located" }`
+  - `400 { "success": false, "message": "Event capacity cannot be lower than sold ticket quantity" }`
+  - `400 { "success": false, "message": "Ticket tier capacity cannot be lower than sold quantity" }`
+  - `400 { "success": false, "message": "Sold ticket tiers cannot be deleted" }`
   - `400 { "success": false, "message": "Event image must be a JPEG, PNG, or WebP file under 5MB" }`
   - `500 { "success": false, "message": "Server error while updating event", "error": "..." }`
 
@@ -452,6 +509,22 @@ Last updated: 2026-04-13
       "payment_status": "paid",
       "amount_paid": null,
       "currency": "eur",
+      "total_quantity": 2,
+      "total_price": "50.00",
+      "items": [
+        {
+          "ticket_tier_id": "uuid",
+          "quantity": 2,
+          "unit_price": "25.00",
+          "total_price": "50.00",
+          "ticket_tier": {
+            "id": "uuid",
+            "name": "Standard",
+            "description": "General admission",
+            "price": "25.00"
+          }
+        }
+      ],
       "title": "AI Workshop",
       "description": "Hands-on session",
       "category": "Technology",
@@ -483,13 +556,24 @@ Last updated: 2026-04-13
 
 ```json
 {
-  "event_id": "uuid"
+  "event_id": "uuid",
+  "items": [
+    {
+      "ticket_tier_id": "uuid",
+      "quantity": 2
+    }
+  ]
 }
 ```
 
 - Notes:
-  - Free events create `confirmed` bookings immediately
-  - Paid events create `pending_payment` bookings and return a Stripe Checkout URL
+  - `items` is optional only for old frontend compatibility; when omitted, backend books quantity 1 from the first active tier
+  - Max total quantity per booking is 5 tickets
+  - Backend validates every tier belongs to the event and is active
+  - Backend calculates `unit_price`, `total_price`, and booking total from stored tier prices
+  - If booking total is `0`, booking becomes `confirmed` immediately
+  - If booking total is greater than `0`, booking becomes `pending_payment` and returns a Stripe Checkout URL
+  - Stripe Checkout line items are generated from backend-calculated booking items
   - Pending paid bookings do not reserve seats
   - Stripe success redirects are not payment confirmation
   - Free confirmed bookings trigger best-effort attendee and organizer emails
@@ -509,7 +593,17 @@ Last updated: 2026-04-13
       "status": "confirmed",
       "payment_status": "paid",
       "amount_paid": "0.00",
-      "currency": "eur"
+      "currency": "eur",
+      "total_quantity": 2,
+      "total_price": "0.00",
+      "items": [
+        {
+          "ticket_tier_id": "uuid",
+          "quantity": 2,
+          "unit_price": "0.00",
+          "total_price": "0.00"
+        }
+      ]
     },
     "payment_required": false
   }
@@ -531,7 +625,17 @@ Last updated: 2026-04-13
       "status": "pending_payment",
       "payment_status": "unpaid",
       "amount_paid": null,
-      "currency": "eur"
+      "currency": "eur",
+      "total_quantity": 2,
+      "total_price": "50.00",
+      "items": [
+        {
+          "ticket_tier_id": "uuid",
+          "quantity": 2,
+          "unit_price": "25.00",
+          "total_price": "50.00"
+        }
+      ]
     },
     "payment_required": true,
     "payment": {
@@ -550,6 +654,9 @@ Last updated: 2026-04-13
   - `409 { "success": false, "message": "You have already booked this event" }`
   - `409 { "success": false, "message": "You already have a pending payment for this event" }`
   - `400 { "success": false, "message": "This event is fully booked" }`
+  - `400 { "success": false, "message": "You can book a maximum of 5 tickets per booking" }`
+  - `400 { "success": false, "message": "Booking items must reference active ticket tiers for this event" }`
+  - `400 { "success": false, "message": "Requested ticket quantity exceeds tier availability" }`
   - `500 { "success": false, "message": "Server error while creating booking", "error": "..." }`
 
 ### `GET /api/bookings/:id`
@@ -573,7 +680,7 @@ Last updated: 2026-04-13
 - Request body: none
 - Notes:
   - Creates a fresh Stripe Checkout Session for an existing `pending_payment` booking
-  - Re-checks event capacity before creating the new checkout session
+  - Re-checks event capacity and ticket tier availability before creating the new checkout session
   - Updates `stripe_checkout_session_id` on the booking
   - Stripe recommends creating a new Checkout Session for each new payment attempt
 - Success:

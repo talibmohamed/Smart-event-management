@@ -12,6 +12,33 @@ export function formatEventPrice(price) {
   }).format(numericPrice);
 }
 
+function formatCurrencyPrice(price) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  }).format(Number(price) || 0);
+}
+
+export function formatEventPriceRange(event = {}) {
+  const minPrice = Number(event.min_price ?? event.price);
+  const maxPrice = Number(event.max_price ?? event.min_price ?? event.price);
+
+  if (!Number.isFinite(minPrice)) {
+    return "Free";
+  }
+
+  if (!Number.isFinite(maxPrice) || minPrice === maxPrice) {
+    return formatEventPrice(minPrice);
+  }
+
+  if (minPrice <= 0 && maxPrice <= 0) {
+    return "Free";
+  }
+
+  return `From ${formatCurrencyPrice(minPrice)}`;
+}
+
 export function formatEventDate(dateValue, options = {}) {
   if (!dateValue) {
     return "Date not available";
@@ -106,6 +133,91 @@ export function toDateTimeLocalValue(dateValue) {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
+export const DEFAULT_TICKET_TIERS = [
+  {
+    name: "Early Bird",
+    description: "Limited early access",
+    price: "10",
+    capacity: "20",
+    is_active: true,
+    sort_order: 0,
+  },
+  {
+    name: "Standard",
+    description: "General admission",
+    price: "25",
+    capacity: "60",
+    is_active: true,
+    sort_order: 1,
+  },
+  {
+    name: "VIP",
+    description: "Premium access",
+    price: "50",
+    capacity: "20",
+    is_active: true,
+    sort_order: 2,
+  },
+];
+
+function cloneDefaultTicketTiers() {
+  return DEFAULT_TICKET_TIERS.map((tier) => ({ ...tier }));
+}
+
+export function normalizeTicketTiers(ticketTiers) {
+  if (!Array.isArray(ticketTiers) || ticketTiers.length === 0) {
+    return cloneDefaultTicketTiers();
+  }
+
+  return ticketTiers
+    .slice()
+    .sort((firstTier, secondTier) => Number(firstTier.sort_order ?? 0) - Number(secondTier.sort_order ?? 0))
+    .map((tier, index) => ({
+      id: tier.id,
+      name: tier.name || "",
+      description: tier.description || "",
+      price: tier.price?.toString?.() ?? "0",
+      capacity: tier.capacity?.toString?.() ?? "",
+      sold_quantity: Number(tier.sold_quantity) || 0,
+      remaining_quantity:
+        tier.remaining_quantity === null || tier.remaining_quantity === undefined
+          ? null
+          : Math.max(Number(tier.remaining_quantity) || 0, 0),
+      is_active: tier.is_active !== false,
+      sort_order: Number.isFinite(Number(tier.sort_order)) ? Number(tier.sort_order) : index,
+    }));
+}
+
+export function getActiveTicketTiers(event = {}) {
+  return Array.isArray(event.ticket_tiers)
+    ? event.ticket_tiers
+        .filter((tier) => tier?.is_active !== false)
+        .slice()
+        .sort((firstTier, secondTier) => Number(firstTier.sort_order ?? 0) - Number(secondTier.sort_order ?? 0))
+    : [];
+}
+
+export function getTicketTierRemainingQuantity(tier = {}) {
+  const remainingQuantity = Number(tier.remaining_quantity);
+
+  if (Number.isFinite(remainingQuantity)) {
+    return Math.max(remainingQuantity, 0);
+  }
+
+  const capacity = Number(tier.capacity);
+  const soldQuantity = Number(tier.sold_quantity);
+
+  if (Number.isFinite(capacity)) {
+    return Math.max(capacity - (Number.isFinite(soldQuantity) ? soldQuantity : 0), 0);
+  }
+
+  return 0;
+}
+
+export function calculateTicketTierTotal(ticketTiers = []) {
+  return ticketTiers.reduce((total, tier) => total + Number(tier.capacity || 0), 0);
+}
+
 export function toEventFormValues(event = {}) {
   return {
     title: event.title || "",
@@ -115,7 +227,8 @@ export function toEventFormValues(event = {}) {
     city: event.city || "",
     event_date: toDateTimeLocalValue(event.event_date),
     capacity: event.capacity?.toString() || "",
-    price: event.price?.toString() || "0",
+    price: event.min_price?.toString?.() || event.price?.toString?.() || "0",
+    ticket_tiers: normalizeTicketTiers(event.ticket_tiers),
   };
 }
 
@@ -140,6 +253,20 @@ export function validateEventImageFile(file) {
 
 export function buildEventPayload(values, imageOptions = {}) {
   const payload = new FormData();
+  const ticketTiers = normalizeTicketTiers(values.ticket_tiers).map((tier, index) => ({
+    ...(tier.id ? { id: tier.id } : {}),
+    name: tier.name.trim(),
+    description: tier.description.trim(),
+    price: Number(tier.price),
+    capacity: Number(tier.capacity),
+    is_active: tier.is_active !== false,
+    sort_order: index,
+  }));
+  const activePrices = ticketTiers
+    .filter((tier) => tier.is_active)
+    .map((tier) => tier.price)
+    .filter((price) => Number.isFinite(price));
+  const compatibilityPrice = activePrices.length > 0 ? Math.min(...activePrices) : 0;
 
   payload.append("title", values.title.trim());
   payload.append("description", values.description.trim());
@@ -148,7 +275,8 @@ export function buildEventPayload(values, imageOptions = {}) {
   payload.append("city", values.city.trim());
   payload.append("event_date", new Date(values.event_date).toISOString());
   payload.append("capacity", String(Number(values.capacity)));
-  payload.append("price", String(Number(values.price)));
+  payload.append("price", String(compatibilityPrice));
+  payload.append("ticket_tiers", JSON.stringify(ticketTiers));
 
   if (imageOptions.coverImageFile) {
     payload.append("cover_image", imageOptions.coverImageFile);

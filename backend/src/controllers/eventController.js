@@ -10,6 +10,7 @@ import {
   eventUpdatedEmail
 } from "../utils/emailTemplates.js";
 import { findSupportedFrenchCity } from "../utils/frenchCities.js";
+import { parseEventTicketTiers } from "../utils/ticketTiers.js";
 
 const shouldRemoveImage = (value) => value === true || value === "true";
 
@@ -99,6 +100,12 @@ const createEvent = async (req, res) => {
       });
     }
 
+    const ticketTiers = parseEventTicketTiers({
+      rawTicketTiers: req.body.ticket_tiers,
+      fallbackPrice: numericPrice,
+      eventCapacity: numericCapacity
+    });
+
     const supportedCity = findSupportedFrenchCity(city);
 
     if (!supportedCity) {
@@ -146,6 +153,7 @@ const createEvent = async (req, res) => {
         event_date,
         capacity: numericCapacity,
         price: numericPrice,
+        ticket_tiers: ticketTiers,
         organizer_id: req.user.id
       });
     } catch (error) {
@@ -160,6 +168,13 @@ const createEvent = async (req, res) => {
     });
   } catch (error) {
     console.error("Create event error:", error);
+
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
 
     return res.status(500).json({
       success: false,
@@ -281,6 +296,26 @@ const updateEvent = async (req, res) => {
       });
     }
 
+    const existingTicketTiers = req.body.ticket_tiers === undefined
+      ? await Event.getTicketTiersForEvent(existingEvent.id)
+      : null;
+    const ticketTiers = existingTicketTiers || parseEventTicketTiers({
+      rawTicketTiers: req.body.ticket_tiers,
+      fallbackPrice: numericPrice,
+      eventCapacity: numericCapacity
+    });
+    const ticketTierCapacityTotal = ticketTiers.reduce(
+      (sum, tier) => sum + Number(tier.capacity),
+      0
+    );
+
+    if (ticketTierCapacityTotal > numericCapacity) {
+      return res.status(400).json({
+        success: false,
+        message: "Ticket tier capacities cannot exceed event capacity"
+      });
+    }
+
     const supportedCity = findSupportedFrenchCity(city);
 
     if (!supportedCity) {
@@ -345,7 +380,8 @@ const updateEvent = async (req, res) => {
         image_path: imageData.image_path,
         event_date,
         capacity: numericCapacity,
-        price: numericPrice
+        price: numericPrice,
+        ticket_tiers: ticketTiers
       });
     } catch (error) {
       await deleteEventImage(uploadedImagePath);
@@ -375,6 +411,13 @@ const updateEvent = async (req, res) => {
     });
   } catch (error) {
     console.error("Update event error:", error);
+
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
 
     return res.status(500).json({
       success: false,

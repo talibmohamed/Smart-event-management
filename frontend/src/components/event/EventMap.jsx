@@ -2,7 +2,7 @@ import L from "leaflet";
 import { useEffect, useMemo, useRef } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import { formatEventPrice } from "../../utils/eventUtils";
+import { formatEventPriceRange } from "../../utils/eventUtils";
 import { FRANCE_MAP_CENTER, getMappableEvents } from "../../utils/mapHelpers";
 
 function createMarkerIcon(isSelected) {
@@ -173,7 +173,7 @@ export default function EventMap({
                   <p className="text-sm font-semibold text-zinc-950">{event.title}</p>
                   <p className="text-xs text-zinc-600">{event.city || "City not available"}</p>
                   <p className="text-xs font-medium text-zinc-900">
-                    {formatEventPrice(event.price)}
+                    {formatEventPriceRange(event)}
                   </p>
                   <RouterLink
                     to={`/events/${event.id}`}

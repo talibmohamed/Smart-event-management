@@ -31,23 +31,36 @@ export async function createBookingCheckoutSession({ booking, event, user }) {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   const currency = getPaymentCurrency();
   const stripe = getStripe();
+  const lineItems = booking.items?.length
+    ? booking.items.map((item) => ({
+        quantity: item.quantity,
+        price_data: {
+          currency,
+          unit_amount: getExpectedAmountInCents(item.unit_price),
+          product_data: {
+            name: `${event.title} - ${item.ticket_tier?.name || "Ticket"}`,
+            description: item.ticket_tier?.description || event.category || "Smart Event Management event"
+          }
+        }
+      }))
+    : [
+        {
+          quantity: 1,
+          price_data: {
+            currency,
+            unit_amount: getExpectedAmountInCents(event.price),
+            product_data: {
+              name: event.title,
+              description: event.category || "Smart Event Management event"
+            }
+          }
+        }
+      ];
 
   return stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency,
-          unit_amount: getExpectedAmountInCents(event.price),
-          product_data: {
-            name: event.title,
-            description: event.category || "Smart Event Management event"
-          }
-        }
-      }
-    ],
+    line_items: lineItems,
     metadata: {
       booking_id: booking.id,
       user_id: user.id,
