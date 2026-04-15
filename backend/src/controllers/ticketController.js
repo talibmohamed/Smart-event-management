@@ -1,5 +1,9 @@
 import Booking from "../models/Booking.js";
 import Ticket from "../models/Ticket.js";
+import {
+  generateTicketsPdf,
+  getTicketPdfFilename,
+} from "../utils/ticketPdf.js";
 
 const canManageTicket = (user, ticket) =>
   user.role === "admin" ||
@@ -44,6 +48,54 @@ const getBookingTickets = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error while fetching tickets",
+      error: error.message,
+    });
+  }
+};
+
+const getBookingTicketsPdf = async (req, res) => {
+  try {
+    const booking = await Booking.getBookingById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only download your own tickets",
+      });
+    }
+
+    if (booking.status !== "confirmed") {
+      return res.status(409).json({
+        success: false,
+        message: "Tickets are available only for confirmed bookings",
+      });
+    }
+
+    await Ticket.generateTicketsForBooking(booking.id);
+    const data = await Ticket.getBookingTicketsSummary(booking);
+    const pdfBuffer = await generateTicketsPdf(data);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${getTicketPdfFilename(booking.id)}"`
+    );
+
+    return res.status(200).send(pdfBuffer);
+  } catch (error) {
+    console.error("Download booking tickets PDF error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while downloading tickets",
       error: error.message,
     });
   }
@@ -135,6 +187,7 @@ const checkInTicket = async (req, res) => {
 
 export default {
   getBookingTickets,
+  getBookingTicketsPdf,
   getTicketByCode,
   checkInTicket,
 };

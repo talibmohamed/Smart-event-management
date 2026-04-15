@@ -18,7 +18,7 @@ const getResendClient = () => {
   return resendClient;
 };
 
-export async function sendEmail({ to, subject, html, text }) {
+export async function sendEmail({ to, subject, html, text, attachments }) {
   if (!isEmailEnabled()) {
     return { skipped: true };
   }
@@ -34,6 +34,10 @@ export async function sendEmail({ to, subject, html, text }) {
     html,
     text
   };
+
+  if (attachments?.length) {
+    payload.attachments = attachments;
+  }
 
   if (process.env.EMAIL_REPLY_TO) {
     payload.replyTo = process.env.EMAIL_REPLY_TO;

@@ -1,5 +1,16 @@
-import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
-import { ArrowLeft, CalendarDays, Mail, MapPin, Printer, QrCode, Ticket } from "lucide-react";
+import {
+  Button,
+  Card,
+  CardBody,
+  Chip,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Spinner,
+} from "@heroui/react";
+import { ArrowLeft, CalendarDays, Download, Mail, MapPin, QrCode, Ticket } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -55,8 +66,11 @@ export default function BookingTicketsPage() {
   const [event, setEvent] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [downloadErrorMessage, setDownloadErrorMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [errorStatus, setErrorStatus] = useState(null);
+  const [selectedQrTicket, setSelectedQrTicket] = useState(null);
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -115,6 +129,28 @@ export default function BookingTicketsPage() {
   }, [id, location.pathname, location.search, logout, navigate]);
 
   const venue = useMemo(() => formatEventVenue(event || {}), [event]);
+
+  async function handleDownloadPdf() {
+    try {
+      setIsDownloadingPdf(true);
+      setDownloadErrorMessage("");
+
+      await ticketService.downloadBookingTicketsPdf(id);
+    } catch (error) {
+      if (error.status === 401) {
+        logout();
+        navigate("/login", {
+          replace: true,
+          state: { from: `${location.pathname}${location.search}` },
+        });
+        return;
+      }
+
+      setDownloadErrorMessage(error.message || "Unable to download ticket PDF.");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -180,14 +216,21 @@ export default function BookingTicketsPage() {
 
             <Button
               radius="full"
-              startContent={<Printer size={15} />}
-              onPress={() => window.print()}
+              startContent={<Download size={15} />}
+              isLoading={isDownloadingPdf}
+              onPress={handleDownloadPdf}
               className="bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 print:hidden"
             >
-              Print tickets
+              Download PDF
             </Button>
           </div>
         </section>
+
+        {downloadErrorMessage ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+            {downloadErrorMessage}
+          </div>
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-3 print:grid-cols-3">
           <Card className="border border-zinc-200/80 bg-white/88 shadow-sm dark:border-white/10 dark:bg-white/[0.04] print:border-zinc-200 print:bg-white print:shadow-none">
@@ -252,14 +295,26 @@ export default function BookingTicketsPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-3 print:border-zinc-200">
-                      <QRCodeSVG
-                        value={ticket.qr_value || ticket.ticket_code || ""}
-                        size={164}
-                        level="M"
-                        marginSize={2}
-                        title={`QR code for ticket ${ticket.ticket_code}`}
-                      />
+                    <div className="space-y-3">
+                      <div className="rounded-2xl border border-zinc-200 bg-white p-3 print:border-zinc-200">
+                        <QRCodeSVG
+                          value={ticket.qr_value || ticket.ticket_code || ""}
+                          size={164}
+                          level="M"
+                          marginSize={2}
+                          title={`QR code for ticket ${ticket.ticket_code}`}
+                        />
+                      </div>
+                      <Button
+                        radius="full"
+                        size="sm"
+                        variant="bordered"
+                        startContent={<QrCode size={14} />}
+                        onPress={() => setSelectedQrTicket(ticket)}
+                        className="w-full border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white print:hidden"
+                      >
+                        View QR
+                      </Button>
                     </div>
                   </div>
 
@@ -314,6 +369,64 @@ export default function BookingTicketsPage() {
           </section>
         )}
       </div>
+
+      <Modal
+        backdrop="blur"
+        isOpen={Boolean(selectedQrTicket)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setSelectedQrTicket(null);
+          }
+        }}
+        placement="center"
+        classNames={{
+          base: "border border-zinc-200 bg-white text-zinc-950 shadow-2xl dark:border-white/10 dark:bg-zinc-950 dark:text-white",
+          backdrop: "bg-zinc-950/45 backdrop-blur-sm",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Ticket QR
+                <span className="font-mono text-sm font-normal text-zinc-500 dark:text-zinc-400">
+                  {selectedQrTicket?.ticket_code}
+                </span>
+              </ModalHeader>
+              <ModalBody className="items-center text-center">
+                <div className="rounded-[1.5rem] border border-zinc-200 bg-white p-5">
+                  <QRCodeSVG
+                    value={selectedQrTicket?.qr_value || selectedQrTicket?.ticket_code || ""}
+                    size={280}
+                    level="M"
+                    marginSize={2}
+                    title={`QR code for ticket ${selectedQrTicket?.ticket_code || ""}`}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-zinc-950 dark:text-white">
+                    {selectedQrTicket?.ticket_tier?.name || "Ticket"}
+                  </p>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    {formatAttendeeName(selectedQrTicket?.attendee)}
+                  </p>
+                  <Chip
+                    variant="flat"
+                    className={`mx-auto w-fit border capitalize ${getTicketStatusClassName(selectedQrTicket?.status)}`}
+                  >
+                    {selectedQrTicket?.status || "unknown"}
+                  </Chip>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button radius="full" onPress={onClose} className="bg-zinc-950 text-white dark:bg-white dark:text-zinc-950">
+                  Close
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

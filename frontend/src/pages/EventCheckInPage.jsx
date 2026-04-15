@@ -1,4 +1,16 @@
-import { Button, Card, CardBody, Chip, Input, Spinner } from "@heroui/react";
+import {
+  Button,
+  Card,
+  CardBody,
+  Chip,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Spinner,
+} from "@heroui/react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -68,6 +80,7 @@ export default function EventCheckInPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [scannerMessage, setScannerMessage] = useState("");
+  const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
   const videoRef = useRef(null);
   const controlsRef = useRef(null);
   const { logout } = useAuth();
@@ -208,6 +221,7 @@ export default function EventCheckInPage() {
         status: updatedTicket.status || "used",
         checked_in_at: updatedTicket.checked_in_at || currentTicket?.checked_in_at || null,
       }));
+      setIsCheckInModalOpen(false);
       setSuccessMessage(response.data.message || "Ticket checked in successfully");
     } catch (error) {
       if (error.response?.status === 401) {
@@ -502,7 +516,7 @@ export default function EventCheckInPage() {
                         radius="full"
                         startContent={<UserCheck size={15} />}
                         isLoading={isCheckingIn}
-                        onPress={handleCheckIn}
+                        onPress={() => setIsCheckInModalOpen(true)}
                         className="bg-emerald-600 text-white"
                       >
                         Check in
@@ -539,6 +553,99 @@ export default function EventCheckInPage() {
           </Card>
         </section>
       </div>
+
+      <Modal
+        backdrop="blur"
+        isOpen={isCheckInModalOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !isCheckingIn) {
+            setIsCheckInModalOpen(false);
+          }
+        }}
+        placement="center"
+        classNames={{
+          base: "border border-zinc-200 bg-white text-zinc-950 shadow-2xl dark:border-white/10 dark:bg-zinc-950 dark:text-white",
+          backdrop: "bg-zinc-950/45 backdrop-blur-sm",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Confirm check-in
+                <span className="text-sm font-normal text-zinc-500 dark:text-zinc-400">
+                  This marks the ticket as used.
+                </span>
+              </ModalHeader>
+              <ModalBody>
+                <div className="grid gap-3 text-sm">
+                  <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      Attendee
+                    </p>
+                    <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
+                      {formatAttendeeName(validatedTicket?.attendee)}
+                    </p>
+                    {validatedTicket?.attendee?.email ? (
+                      <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                        {validatedTicket.attendee.email}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      Event
+                    </p>
+                    <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
+                      {validatedTicket?.event?.title || "Event unavailable"}
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                        Tier
+                      </p>
+                      <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
+                        {validatedTicket?.ticket_tier?.name || "Ticket"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                        Ticket code
+                      </p>
+                      <p className="mt-2 font-mono font-medium text-zinc-900 dark:text-zinc-100">
+                        {validatedTicket?.ticket_code || "Unavailable"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  radius="full"
+                  variant="light"
+                  onPress={onClose}
+                  isDisabled={isCheckingIn}
+                >
+                  Back
+                </Button>
+                <Button
+                  radius="full"
+                  color="success"
+                  isLoading={isCheckingIn}
+                  onPress={handleCheckIn}
+                  className="text-white"
+                >
+                  Confirm check-in
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

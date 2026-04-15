@@ -36,11 +36,21 @@ const baseHtml = ({ title, intro, lines = [], extraHtml = "" }) => `
 const baseText = ({ title, intro, lines = [], extraText = "" }) =>
   [title, "", intro, ...lines, extraText, "", appName].filter(Boolean).join("\n");
 
-const createEmail = ({ to, subject, title, intro, lines, extraHtml, extraText }) => ({
+const createEmail = ({
+  to,
+  subject,
+  title,
+  intro,
+  lines,
+  extraHtml,
+  extraText,
+  attachments,
+}) => ({
   to,
   subject,
   html: baseHtml({ title, intro, lines, extraHtml }),
-  text: baseText({ title, intro, lines, extraText })
+  text: baseText({ title, intro, lines, extraText }),
+  attachments,
 });
 
 const ticketHtml = (tickets = []) => {
@@ -75,7 +85,14 @@ const ticketText = (tickets = []) => {
   ].join("\n");
 };
 
-export const bookingConfirmedEmail = ({ attendee, event, booking, ticketUrl, tickets = [] }) =>
+export const bookingConfirmedEmail = ({
+  attendee,
+  event,
+  booking,
+  ticketUrl,
+  tickets = [],
+  attachments,
+}) =>
   createEmail({
     to: attendee.email,
     subject: `Booking confirmed: ${event.title}`,
@@ -88,7 +105,8 @@ export const bookingConfirmedEmail = ({ attendee, event, booking, ticketUrl, tic
       ticketUrl ? `View your tickets: ${ticketUrl}` : null
     ].filter(Boolean),
     extraHtml: ticketHtml(tickets),
-    extraText: ticketText(tickets)
+    extraText: ticketText(tickets),
+    attachments,
   });
 
 export const organizerBookingNotificationEmail = ({

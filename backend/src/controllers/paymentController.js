@@ -8,6 +8,7 @@ import {
   paymentFailedEmail
 } from "../utils/emailTemplates.js";
 import { buildEmailTickets, getTicketUrl } from "../utils/ticketEmail.js";
+import { buildTicketPdfAttachment } from "../utils/ticketPdf.js";
 import {
   constructStripeWebhookEvent,
   getExpectedAmountInCents,
@@ -35,6 +36,11 @@ const sendPaidBookingConfirmedEmails = async (bookingId) => {
 
   const tickets = await Ticket.getTicketsForBooking(bookingId);
   const emailTickets = await buildEmailTickets(tickets);
+  const ticketPdfAttachment = await buildTicketPdfAttachment({
+    booking,
+    event: tickets[0]?.event || booking.event,
+    tickets,
+  });
 
   sendEmailBestEffort(
     bookingConfirmedEmail({
@@ -42,7 +48,8 @@ const sendPaidBookingConfirmedEmails = async (bookingId) => {
       event: booking.event,
       booking,
       ticketUrl: getTicketUrl(booking.id),
-      tickets: emailTickets
+      tickets: emailTickets,
+      attachments: ticketPdfAttachment ? [ticketPdfAttachment] : undefined
     })
   );
   sendEmailBestEffort(

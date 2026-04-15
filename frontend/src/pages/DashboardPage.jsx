@@ -1,4 +1,16 @@
-import { Button, Card, CardBody, CardHeader, Chip, Spinner } from "@heroui/react";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Chip,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Spinner,
+} from "@heroui/react";
 import { CalendarDays, ClipboardCheck, PencilLine, Plus, Trash2, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
@@ -46,6 +58,7 @@ export default function DashboardPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [flashState, setFlashState] = useState(null);
   const [deletingEventId, setDeletingEventId] = useState("");
+  const [eventPendingDelete, setEventPendingDelete] = useState(null);
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -125,12 +138,10 @@ export default function DashboardPage() {
 
   const pastEventsCount = managedEvents.length - upcomingEventsCount;
 
-  async function handleDeleteEvent(event) {
-    const hasConfirmed = window.confirm(
-      `Delete "${event.title}"? This action cannot be undone.`,
-    );
+  async function handleDeleteEvent() {
+    const event = eventPendingDelete;
 
-    if (!hasConfirmed) {
+    if (!event) {
       return;
     }
 
@@ -171,6 +182,7 @@ export default function DashboardPage() {
       });
     } finally {
       setDeletingEventId("");
+      setEventPendingDelete(null);
     }
   }
 
@@ -460,7 +472,7 @@ export default function DashboardPage() {
                               variant="flat"
                               startContent={<Trash2 size={15} />}
                               isLoading={deletingEventId === event.id}
-                              onPress={() => handleDeleteEvent(event)}
+                              onPress={() => setEventPendingDelete(event)}
                               className="bg-red-50 font-medium text-red-600 dark:bg-red-500/10 dark:text-red-300"
                             >
                               Delete
@@ -476,6 +488,60 @@ export default function DashboardPage() {
           )}
         </section>
       </div>
+
+      <Modal
+        backdrop="blur"
+        isOpen={Boolean(eventPendingDelete)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !deletingEventId) {
+            setEventPendingDelete(null);
+          }
+        }}
+        placement="center"
+        classNames={{
+          base: "border border-zinc-200 bg-white text-zinc-950 shadow-2xl dark:border-white/10 dark:bg-zinc-950 dark:text-white",
+          backdrop: "bg-zinc-950/45 backdrop-blur-sm",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Delete event
+                <span className="text-sm font-normal text-zinc-500 dark:text-zinc-400">
+                  This action cannot be undone.
+                </span>
+              </ModalHeader>
+              <ModalBody>
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                  Delete "{eventPendingDelete?.title}" and remove it from the platform?
+                </div>
+                <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                  Existing links to this event will no longer work after deletion.
+                </p>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  radius="full"
+                  variant="light"
+                  onPress={onClose}
+                  isDisabled={Boolean(deletingEventId)}
+                >
+                  Keep event
+                </Button>
+                <Button
+                  radius="full"
+                  color="danger"
+                  isLoading={Boolean(deletingEventId)}
+                  onPress={handleDeleteEvent}
+                >
+                  Delete event
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

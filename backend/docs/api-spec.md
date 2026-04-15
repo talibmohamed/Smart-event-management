@@ -32,6 +32,7 @@ Last updated: 2026-04-14
 - Password reset links are emailed with Resend, expire after 60 minutes, and use `FRONTEND_URL/reset-password?token=...`
 - Events use ticket tiers for pricing and availability; `Event.price` remains the minimum active tier price for old frontend compatibility
 - Confirmed bookings generate backend-issued tickets with QR values based on `ticket_code`
+- Confirmed booking emails include a ticket PDF attachment when PDF generation succeeds
 
 ## Endpoints
 
@@ -795,6 +796,25 @@ Last updated: 2026-04-14
   - `404 { "success": false, "message": "Booking not found" }`
   - `409 { "success": false, "message": "Tickets are available only for confirmed bookings" }`
   - `500 { "success": false, "message": "Server error while fetching tickets", "error": "..." }`
+
+### `GET /api/bookings/:id/tickets/pdf`
+
+- Auth: yes
+- Allowed roles: booking owner with `attendee` role, or `admin`
+- Request body: none
+- Notes:
+  - Returns the same backend-generated ticket PDF used for email attachments
+  - Tickets are available only for confirmed bookings
+  - Frontend should download this response as a PDF file
+- Success:
+  - `200 application/pdf`
+  - `Content-Disposition: attachment; filename="smart-event-tickets-<bookingId>.pdf"`
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. You can only download your own tickets" }`
+  - `404 { "success": false, "message": "Booking not found" }`
+  - `409 { "success": false, "message": "Tickets are available only for confirmed bookings" }`
+  - `500 { "success": false, "message": "Server error while downloading tickets", "error": "..." }`
 
 ### `POST /api/bookings/:id/retry-payment`
 

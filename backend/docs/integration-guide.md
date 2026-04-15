@@ -84,6 +84,7 @@ Authorization: Bearer <jwt>
 | My bookings page | `GET /api/bookings/my-bookings` | Requires attendee JWT |
 | Booking detail/status polling | `GET /api/bookings/:id` | Requires JWT, owner attendee or admin |
 | View booking tickets | `GET /api/bookings/:id/tickets` | Requires confirmed booking, owner attendee or admin |
+| Download booking tickets PDF | `GET /api/bookings/:id/tickets/pdf` | Requires confirmed booking, owner attendee or admin; returns PDF |
 | Book event action | `POST /api/bookings` | Requires attendee JWT, body only needs `event_id` |
 | Retry paid checkout | `POST /api/bookings/:id/retry-payment` | Requires attendee JWT and pending payment booking |
 | Cancel booking action | `PUT /api/bookings/:id/cancel` | Requires JWT, owner or admin |
@@ -340,6 +341,8 @@ GET /api/bookings/:id/tickets
   - Generate QR images from `qr_value`
   - Treat `qr_value` as the same value as backend `ticket_code`
   - Hide ticket actions for `pending_payment`, `cancelled`, `failed`, or `expired` bookings
+  - Use `GET /api/bookings/:id/tickets/pdf` for the Download PDF button
+  - Treat the PDF response as a binary blob, not JSON
 
 ### Organizer Ticket Validation And Check-In
 
@@ -386,6 +389,7 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
 - Forgot password emails are also sent through Resend
 - Booking confirmation emails include a ticket page link
 - Confirmation emails may include inline QR images for each generated ticket
+- Confirmation emails include a ticket PDF attachment when PDF generation succeeds
 - Inline email QR codes are convenience only; backend ticket validation remains the source of truth
 - If inline QR generation fails, the email still sends with the ticket link
 - No email is sent for duplicate booking errors, failed validation requests, pending payment retry creation, or frontend Stripe success redirects

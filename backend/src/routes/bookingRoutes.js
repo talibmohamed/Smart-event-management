@@ -12,6 +12,7 @@ router.get(
   roleMiddleware("attendee"),
   bookingController.getMyBookings
 );
+router.get("/:id/tickets/pdf", authMiddleware, ticketController.getBookingTicketsPdf);
 router.get("/:id/tickets", authMiddleware, ticketController.getBookingTickets);
 router.get("/:id", authMiddleware, bookingController.getBookingById);
 router.post(

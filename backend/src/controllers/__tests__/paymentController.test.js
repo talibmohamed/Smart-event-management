@@ -32,6 +32,15 @@ vi.mock("../../utils/emailService.js", () => ({
   sendEmailBestEffort: vi.fn(),
 }));
 
+vi.mock("../../utils/ticketPdf.js", () => ({
+  buildTicketPdfAttachment: vi.fn(() =>
+    Promise.resolve({
+      filename: "smart-event-tickets-booking-1.pdf",
+      content: "base64-pdf",
+    })
+  ),
+}));
+
 const { default: Booking } = await import("../../models/Booking.js");
 const { default: Ticket } = await import("../../models/Ticket.js");
 const { constructStripeWebhookEvent } = await import("../../utils/stripe.js");

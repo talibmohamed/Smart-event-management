@@ -1,5 +1,17 @@
-import { Button, Card, CardBody, CardFooter, CardHeader, Chip, Spinner } from "@heroui/react";
-import { CalendarDays, CreditCard, MapPin, QrCode, Ticket, WalletCards, XCircle } from "lucide-react";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  Chip,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Spinner,
+} from "@heroui/react";
+import { ArrowRight, CalendarClock, CreditCard, MapPin, QrCode, Ticket, WalletCards, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
@@ -34,6 +46,223 @@ function getBookingStatusTone(status) {
   return "border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-white/10 dark:bg-white/10 dark:text-zinc-300";
 }
 
+function BookingCard({
+  booking,
+  displayState,
+  isConfirmed,
+  isPendingPayment,
+  canCancelBooking,
+  cancellingBookingId,
+  retryingBookingId,
+  onCancelBooking,
+  onRetryPayment,
+}) {
+  const isActiveBooking = isConfirmed || isPendingPayment;
+
+  return (
+    <Card
+      className={`group w-full overflow-hidden rounded-[1.75rem] border bg-white/76 shadow-[0_18px_55px_rgba(148,163,184,0.14)] backdrop-blur-xl transition-all duration-300 dark:bg-white/[0.045] dark:shadow-black/15 ${
+        isActiveBooking
+          ? "border-zinc-200/80 hover:-translate-y-1 hover:border-zinc-300/90 hover:bg-white/90 hover:shadow-[0_26px_70px_rgba(148,163,184,0.24)] dark:border-white/10 dark:hover:border-white/18 dark:hover:bg-white/[0.065] dark:hover:shadow-black/30"
+          : "border-zinc-200/70 opacity-75 dark:border-white/10"
+      }`}
+    >
+      <div className="relative p-3 pb-0">
+        {booking.image_url ? (
+          <EventCoverImage
+            src={booking.image_url}
+            alt={`${booking.title} cover`}
+            className="h-48 w-full rounded-[1.35rem]"
+            imageClassName="transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+        ) : (
+          <div className="relative h-32 overflow-hidden rounded-[1.35rem] bg-[radial-gradient(circle_at_18%_18%,rgba(14,165,233,0.34),transparent_34%),radial-gradient(circle_at_85%_15%,rgba(139,92,246,0.3),transparent_34%),linear-gradient(135deg,rgba(241,245,249,0.96),rgba(226,232,240,0.82))] dark:bg-[radial-gradient(circle_at_18%_18%,rgba(56,189,248,0.24),transparent_34%),radial-gradient(circle_at_85%_15%,rgba(139,92,246,0.22),transparent_34%),linear-gradient(135deg,rgba(39,39,42,0.92),rgba(15,23,42,0.86))]">
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.06)_1px,transparent_1px)] bg-[size:2rem_2rem] opacity-35 dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)]" />
+            <div className="absolute bottom-4 left-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white/72 text-sky-600 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-sky-200">
+              <CalendarClock size={18} />
+            </div>
+          </div>
+        )}
+
+        <div className="absolute left-6 top-6 flex max-w-[calc(100%-3rem)] flex-wrap items-center gap-2">
+          <span className="truncate rounded-full border border-white/55 bg-white/82 px-3 py-1 text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-zinc-700 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-zinc-950/58 dark:text-zinc-200">
+            {booking.category || "Event"}
+          </span>
+          <Chip
+            variant="flat"
+            className={`shrink-0 border capitalize shadow-sm backdrop-blur-md ${getBookingStatusTone(booking.status)}`}
+          >
+            {booking.status?.replace("_", " ") || "Unknown"}
+          </Chip>
+        </div>
+      </div>
+
+      <CardBody className="gap-5 px-5 pb-0 pt-5">
+        <div className="space-y-3">
+          <h2 className="text-[1.35rem] font-semibold leading-tight tracking-[-0.045em] text-zinc-950 dark:text-white">
+            {booking.title}
+          </h2>
+          <p className="line-clamp-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
+            {booking.description}
+          </p>
+        </div>
+
+        <div className="space-y-3 border-y border-zinc-200/70 py-4 text-sm dark:border-white/10">
+          <div className="flex items-start gap-3 text-zinc-700 dark:text-zinc-300">
+            <CalendarClock size={16} className="mt-0.5 shrink-0 text-sky-600 dark:text-sky-300" />
+            <span className="font-medium leading-6 text-zinc-900 dark:text-zinc-100">
+              {formatEventDate(booking.event_date)}
+            </span>
+          </div>
+
+          <div className="flex items-start gap-3 text-zinc-700 dark:text-zinc-300">
+            <MapPin size={16} className="mt-0.5 shrink-0 text-sky-600 dark:text-sky-300" />
+            <span className="line-clamp-2 font-medium leading-6 text-zinc-900 dark:text-zinc-100">
+              {formatEventVenue(booking)}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid gap-3 text-sm sm:grid-cols-2">
+          <div className="rounded-2xl bg-zinc-100/80 px-4 py-3 dark:bg-white/8">
+            <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              <CreditCard size={14} />
+              Booking total
+            </div>
+            <p className="mt-2 font-semibold text-zinc-950 dark:text-white">
+              {formatBookingAmount(booking.total_price ?? booking.amount_paid, booking.currency)}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-zinc-100/80 px-4 py-3 dark:bg-white/8">
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              Payment
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Chip
+                variant="flat"
+                className={`border capitalize ${getBookingToneClassName(displayState.tone)}`}
+              >
+                {displayState.label}
+              </Chip>
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                {booking.payment_status || "not paid"}
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-zinc-100/80 px-4 py-3 dark:bg-white/8 sm:col-span-2">
+            <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              <Ticket size={14} />
+              Tickets
+            </div>
+            <div className="mt-3 space-y-2">
+              {Array.isArray(booking.items) && booking.items.length > 0 ? (
+                booking.items.map((item) => (
+                  <div
+                    key={item.id || item.ticket_tier_id}
+                    className="flex flex-col gap-1 rounded-xl bg-white/75 px-3 py-2 dark:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                        {item.ticket_tier?.name || "Ticket tier"}
+                      </p>
+                      {item.ticket_tier?.description ? (
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {item.ticket_tier.description}
+                        </p>
+                      ) : null}
+                    </div>
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      {item.quantity} x {formatBookingAmount(item.unit_price, booking.currency)} ={" "}
+                      {formatBookingAmount(item.total_price, booking.currency)}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Ticket details are unavailable for this booking.
+                </p>
+              )}
+            </div>
+            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+              Total quantity: {booking.total_quantity ?? 1}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-zinc-100/80 px-4 py-3 dark:bg-white/8 sm:col-span-2">
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              Booked on
+            </p>
+            <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
+              {formatEventDate(booking.booking_date)}
+            </p>
+          </div>
+        </div>
+      </CardBody>
+
+      <CardFooter className="flex flex-col gap-3 px-5 pb-5 pt-5 sm:flex-row sm:flex-wrap">
+        <Button
+          as={RouterLink}
+          to={`/events/${booking.event_id}`}
+          state={
+            isPendingPayment
+              ? {
+                  pendingBookingId: booking.id,
+                  pendingBookingMessage: "You already have a pending payment for this event.",
+                }
+              : undefined
+          }
+          radius="full"
+          className="h-11 w-full bg-zinc-950 text-white shadow-sm transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:group-hover:bg-zinc-200 sm:w-auto"
+          endContent={<ArrowRight size={15} />}
+        >
+          View event
+        </Button>
+
+        {isConfirmed ? (
+          <Button
+            as={RouterLink}
+            to={`/bookings/${booking.id}/tickets`}
+            radius="full"
+            variant="bordered"
+            startContent={<QrCode size={15} />}
+            className="h-11 w-full border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white sm:w-auto"
+          >
+            View tickets
+          </Button>
+        ) : null}
+
+        {isPendingPayment ? (
+          <Button
+            radius="full"
+            startContent={<WalletCards size={15} />}
+            isLoading={retryingBookingId === booking.id}
+            onPress={() => onRetryPayment(booking)}
+            className="h-11 w-full bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950 sm:w-auto"
+          >
+            Continue payment
+          </Button>
+        ) : null}
+
+        {canCancelBooking ? (
+          <Button
+            radius="full"
+            color="danger"
+            variant="flat"
+            startContent={<XCircle size={15} />}
+            isLoading={cancellingBookingId === booking.id}
+            onPress={() => onCancelBooking(booking)}
+            className="h-11 w-full bg-red-50 font-medium text-red-600 dark:bg-red-500/10 dark:text-red-300 sm:w-auto"
+          >
+            Cancel booking
+          </Button>
+        ) : null}
+      </CardFooter>
+    </Card>
+  );
+}
+
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +270,7 @@ export default function MyBookingsPage() {
   const [flashState, setFlashState] = useState(null);
   const [cancellingBookingId, setCancellingBookingId] = useState("");
   const [retryingBookingId, setRetryingBookingId] = useState("");
+  const [bookingPendingCancel, setBookingPendingCancel] = useState(null);
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -100,12 +330,10 @@ export default function MyBookingsPage() {
     [bookings],
   );
 
-  async function handleCancelBooking(booking) {
-    const hasConfirmed = window.confirm(
-      `Cancel your booking for "${booking.title}"?`,
-    );
+  async function handleCancelBooking() {
+    const booking = bookingPendingCancel;
 
-    if (!hasConfirmed) {
+    if (!booking) {
       return;
     }
 
@@ -153,6 +381,7 @@ export default function MyBookingsPage() {
       });
     } finally {
       setCancellingBookingId("");
+      setBookingPendingCancel(null);
     }
   }
 
@@ -298,221 +527,92 @@ export default function MyBookingsPage() {
               const displayState = getBookingDisplayState(booking);
 
               return (
-                <Card
+                <BookingCard
                   key={booking.id}
-                  className={`overflow-hidden border bg-white/84 shadow-sm transition-all duration-300 dark:bg-white/[0.04] ${
-                    isConfirmed || isPendingPayment
-                      ? "border-zinc-200/80 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/70 dark:border-white/10 dark:hover:shadow-black/20"
-                      : "border-zinc-200/70 opacity-75 dark:border-white/10"
-                  }`}
-                >
-                  {booking.image_url ? (
-                    <EventCoverImage
-                      src={booking.image_url}
-                      alt={`${booking.title} cover`}
-                      className="h-48 w-full"
-                    />
-                  ) : (
-                    <div className="h-1.5 w-full bg-[linear-gradient(90deg,rgba(16,185,129,0.88),rgba(14,165,233,0.88),rgba(99,102,241,0.78))]" />
-                  )}
-
-                  <CardHeader className="flex flex-col items-start gap-3 px-6 pt-6">
-                    <div className="flex w-full flex-wrap items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <h2 className="text-xl font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
-                          {booking.title}
-                        </h2>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                          {booking.category} in {booking.city || "TBD"}
-                        </p>
-                      </div>
-
-                      <Chip
-                        variant="flat"
-                        className={`border capitalize ${getBookingStatusTone(booking.status)}`}
-                      >
-                        {booking.status.replace("_", " ")}
-                      </Chip>
-                    </div>
-                  </CardHeader>
-
-                  <CardBody className="gap-5 px-6 pb-2">
-                    <p className="line-clamp-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                      {booking.description}
-                    </p>
-
-                    <div className="grid gap-3 text-sm sm:grid-cols-2">
-                      <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
-                        <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          <CalendarDays size={14} />
-                          Event date
-                        </div>
-                        <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
-                          {formatEventDate(booking.event_date)}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
-                        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          Booking total
-                        </p>
-                        <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
-                          {formatBookingAmount(
-                            booking.total_price ?? booking.amount_paid,
-                            booking.currency,
-                          )}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03] sm:col-span-2">
-                        <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          <MapPin size={14} />
-                          Venue
-                        </div>
-                        <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
-                          {formatEventVenue(booking)}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03] sm:col-span-2">
-                        <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          <Ticket size={14} />
-                          Tickets
-                        </div>
-                        <div className="mt-3 space-y-2">
-                          {Array.isArray(booking.items) && booking.items.length > 0 ? (
-                            booking.items.map((item) => (
-                              <div
-                                key={item.id || item.ticket_tier_id}
-                                className="flex flex-col gap-1 rounded-xl bg-zinc-50/90 px-3 py-2 dark:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
-                              >
-                                <div>
-                                  <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                                    {item.ticket_tier?.name || "Ticket tier"}
-                                  </p>
-                                  {item.ticket_tier?.description ? (
-                                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                      {item.ticket_tier.description}
-                                    </p>
-                                  ) : null}
-                                </div>
-                                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                  {item.quantity} x{" "}
-                                  {formatBookingAmount(item.unit_price, booking.currency)} ={" "}
-                                  {formatBookingAmount(item.total_price, booking.currency)}
-                                </p>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                              Ticket details are unavailable for this booking.
-                            </p>
-                          )}
-                        </div>
-                        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-                          Total quantity: {booking.total_quantity ?? 1}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03] sm:col-span-2">
-                        <div className="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          <CreditCard size={14} />
-                          Payment
-                        </div>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <Chip
-                            variant="flat"
-                            className={`border capitalize ${getBookingToneClassName(displayState.tone)}`}
-                          >
-                            {displayState.label}
-                          </Chip>
-                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                            {formatBookingAmount(
-                              booking.amount_paid ?? booking.total_price,
-                              booking.currency,
-                            )}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                          Payment status: {booking.payment_status || "not paid"}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03] sm:col-span-2">
-                        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          Booked on
-                        </p>
-                        <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
-                          {formatEventDate(booking.booking_date)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardBody>
-
-                  <CardFooter className="flex flex-col gap-3 px-6 pb-6 pt-4 sm:flex-row">
-                    <Button
-                      as={RouterLink}
-                      to={`/events/${booking.event_id}`}
-                      state={
-                        isPendingPayment
-                          ? {
-                              pendingBookingId: booking.id,
-                              pendingBookingMessage:
-                                "You already have a pending payment for this event.",
-                            }
-                          : undefined
-                      }
-                      variant="bordered"
-                      radius="full"
-                      className="w-full border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white sm:w-auto"
-                    >
-                      View event
-                    </Button>
-
-                    {isConfirmed ? (
-                      <Button
-                        as={RouterLink}
-                        to={`/bookings/${booking.id}/tickets`}
-                        radius="full"
-                        startContent={<QrCode size={15} />}
-                        className="w-full bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950 sm:w-auto"
-                      >
-                        View tickets
-                      </Button>
-                    ) : null}
-
-                    {isPendingPayment ? (
-                      <Button
-                        radius="full"
-                        startContent={<WalletCards size={15} />}
-                        isLoading={retryingBookingId === booking.id}
-                        onPress={() => handleRetryPayment(booking)}
-                        className="w-full bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950 sm:w-auto"
-                      >
-                        Continue payment
-                      </Button>
-                    ) : null}
-
-                    {canCancelBooking ? (
-                      <Button
-                        radius="full"
-                        color="danger"
-                        variant="flat"
-                        startContent={<XCircle size={15} />}
-                        isLoading={cancellingBookingId === booking.id}
-                        onPress={() => handleCancelBooking(booking)}
-                        className="w-full bg-red-50 font-medium text-red-600 dark:bg-red-500/10 dark:text-red-300 sm:w-auto"
-                      >
-                        Cancel booking
-                      </Button>
-                    ) : null}
-                  </CardFooter>
-                </Card>
+                  booking={booking}
+                  displayState={displayState}
+                  isConfirmed={isConfirmed}
+                  isPendingPayment={isPendingPayment}
+                  canCancelBooking={canCancelBooking}
+                  cancellingBookingId={cancellingBookingId}
+                  retryingBookingId={retryingBookingId}
+                  onCancelBooking={setBookingPendingCancel}
+                  onRetryPayment={handleRetryPayment}
+                />
               );
             })}
           </div>
         )}
       </div>
+
+      <Modal
+        backdrop="blur"
+        isOpen={Boolean(bookingPendingCancel)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !cancellingBookingId) {
+            setBookingPendingCancel(null);
+          }
+        }}
+        placement="center"
+        classNames={{
+          base: "border border-zinc-200 bg-white text-zinc-950 shadow-2xl dark:border-white/10 dark:bg-zinc-950 dark:text-white",
+          backdrop: "bg-zinc-950/45 backdrop-blur-sm",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Cancel booking
+                <span className="text-sm font-normal text-zinc-500 dark:text-zinc-400">
+                  This will cancel your current reservation for this event.
+                </span>
+              </ModalHeader>
+              <ModalBody>
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                  Cancel your booking for "{bookingPendingCancel?.title}"?
+                </div>
+                <div className="grid gap-3 text-sm sm:grid-cols-2">
+                  <div className="rounded-2xl bg-zinc-100/80 px-4 py-3 dark:bg-white/8">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      Booking status
+                    </p>
+                    <p className="mt-2 font-medium capitalize text-zinc-900 dark:text-zinc-100">
+                      {bookingPendingCancel?.status?.replace("_", " ") || "Unknown"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-zinc-100/80 px-4 py-3 dark:bg-white/8">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      Payment status
+                    </p>
+                    <p className="mt-2 font-medium capitalize text-zinc-900 dark:text-zinc-100">
+                      {bookingPendingCancel?.payment_status || "Unknown"}
+                    </p>
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  radius="full"
+                  variant="light"
+                  onPress={onClose}
+                  isDisabled={Boolean(cancellingBookingId)}
+                >
+                  Keep booking
+                </Button>
+                <Button
+                  radius="full"
+                  color="danger"
+                  isLoading={Boolean(cancellingBookingId)}
+                  onPress={handleCancelBooking}
+                >
+                  Cancel booking
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

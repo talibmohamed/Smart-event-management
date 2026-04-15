@@ -29,10 +29,14 @@ export const createMockRes = () => {
   const res = {
     status: vi.fn(),
     json: vi.fn(),
+    send: vi.fn(),
+    setHeader: vi.fn(),
   };
 
   res.status.mockReturnValue(res);
   res.json.mockReturnValue(res);
+  res.send.mockReturnValue(res);
+  res.setHeader.mockReturnValue(res);
 
   return res;
 };

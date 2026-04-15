@@ -22,6 +22,11 @@ vi.mock("../../models/Ticket.js", () => ({
   },
 }));
 
+vi.mock("../../utils/ticketPdf.js", () => ({
+  generateTicketsPdf: vi.fn(() => Promise.resolve(Buffer.from("pdf"))),
+  getTicketPdfFilename: vi.fn(() => "smart-event-tickets-booking-1.pdf"),
+}));
+
 const { default: Booking } = await import("../../models/Booking.js");
 const { default: Ticket } = await import("../../models/Ticket.js");
 const ticketController = (await import("../ticketController.js")).default;
@@ -82,6 +87,28 @@ describe("ticket controller", () => {
         message: "Tickets retrieved successfully",
       })
     );
+  });
+
+  it("allows booking owner to download tickets PDF", async () => {
+    const req = createMockReq({
+      params: { id: "booking-1" },
+      user: mockUser({ id: "user-1" }),
+    });
+    const res = createMockRes();
+
+    await ticketController.getBookingTicketsPdf(req, res);
+
+    expect(res.setHeader).toHaveBeenCalledWith("Content-Type", "application/pdf");
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "Access-Control-Expose-Headers",
+      "Content-Disposition"
+    );
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "Content-Disposition",
+      'attachment; filename="smart-event-tickets-booking-1.pdf"'
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith(Buffer.from("pdf"));
   });
 
   it("blocks another attendee from viewing booking tickets", async () => {

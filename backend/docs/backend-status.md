@@ -99,6 +99,7 @@ Last updated: 2026-04-14
 - Stripe Checkout line items are generated from backend-calculated booking item prices
 - Resend emails are sent for booking confirmations, paid confirmations, payment failures/expirations, booking cancellations, event updates, and event deletions
 - Booking confirmation emails include ticket page links and may include inline ticket QR codes
+- Booking confirmation emails include a generated ticket PDF attachment when PDF generation succeeds
 - Password reset emails are sent through Resend and expire after 60 minutes
 - Critical booking and Stripe webhook tests use mocked model/payment/email boundaries
 
@@ -109,7 +110,7 @@ Last updated: 2026-04-14
 - Event filtering, search, and pagination
 - Attendee export/download support
 - Advanced ticket rules such as deadline-based Early Bird tiers
-- PDF ticket generation and attachments
+- Persisted PDF files in storage; PDFs are generated on demand
 - Refund handling and advanced payment operations
 - Fully consistent success response shape across all endpoints
 

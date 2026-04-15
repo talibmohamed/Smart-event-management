@@ -69,7 +69,7 @@
     "transactionalEmail": "Resend emails are sent best-effort for booking/payment/event lifecycle actions and never determine API success or failure.",
     "passwordReset": "Forgot password responses do not reveal whether an email exists. Reset tokens are emailed, stored hashed, and expire after 60 minutes.",
     "ticketTiers": "Events use ticket_tiers for pricing and availability. Event.price remains as the minimum active tier price for compatibility.",
-    "tickets": "Confirmed bookings generate one Ticket row per purchased ticket quantity. QR values use ticket_code.",
+    "tickets": "Confirmed bookings generate one Ticket row per purchased ticket quantity. QR values use ticket_code. Ticket PDFs are generated on demand for email attachments and frontend downloads.",
     "responseException": "GET /api/auth/me returns success and data without message on success"
   },
   "schemas": {
@@ -883,6 +883,31 @@
         "Each ticket represents one purchased ticket quantity from a booking item.",
         "qr_value equals ticket_code.",
         "Frontend generates visible QR images from qr_value."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bookings/:id/tickets/pdf",
+      "authRequired": true,
+      "allowedRoles": ["attendee_owner", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "contentType": "application/pdf",
+        "headers": {
+          "Content-Disposition": "attachment; filename=\"smart-event-tickets-<bookingId>.pdf\""
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. You can only download your own tickets" },
+        { "status": 404, "message": "Booking not found" },
+        { "status": 409, "message": "Tickets are available only for confirmed bookings" },
+        { "status": 500, "message": "Server error while downloading tickets" }
+      ],
+      "behaviorNotes": [
+        "Returns the same backend-generated ticket PDF used for email attachments.",
+        "Frontend must handle this endpoint as binary PDF, not JSON."
       ]
     },
     {

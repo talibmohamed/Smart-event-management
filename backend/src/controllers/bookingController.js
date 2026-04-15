@@ -14,6 +14,7 @@ import {
   organizerBookingNotificationEmail
 } from "../utils/emailTemplates.js";
 import { buildEmailTickets, getTicketUrl } from "../utils/ticketEmail.js";
+import { buildTicketPdfAttachment } from "../utils/ticketPdf.js";
 import { parseBookingItems } from "../utils/ticketTiers.js";
 
 const isPaidBooking = (totalAmount) => Number(totalAmount) > 0;
@@ -43,6 +44,11 @@ const sendBookingConfirmedEmails = async (bookingId) => {
 
   const tickets = await Ticket.getTicketsForBooking(bookingId);
   const emailTickets = await buildEmailTickets(tickets);
+  const ticketPdfAttachment = await buildTicketPdfAttachment({
+    booking,
+    event: tickets[0]?.event || booking.event,
+    tickets,
+  });
 
   sendEmailBestEffort(
     bookingConfirmedEmail({
@@ -50,7 +56,8 @@ const sendBookingConfirmedEmails = async (bookingId) => {
       event: booking.event,
       booking,
       ticketUrl: getTicketUrl(booking.id),
-      tickets: emailTickets
+      tickets: emailTickets,
+      attachments: ticketPdfAttachment ? [ticketPdfAttachment] : undefined
     })
   );
   sendEmailBestEffort(
