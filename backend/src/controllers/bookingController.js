@@ -1,5 +1,6 @@
 import Booking from "../models/Booking.js";
 import Event from "../models/Event.js";
+import Ticket from "../models/Ticket.js";
 import User from "../models/User.js";
 import {
   createBookingCheckoutSession,
@@ -12,6 +13,7 @@ import {
   organizerBookingCancelledEmail,
   organizerBookingNotificationEmail
 } from "../utils/emailTemplates.js";
+import { buildEmailTickets, getTicketUrl } from "../utils/ticketEmail.js";
 import { parseBookingItems } from "../utils/ticketTiers.js";
 
 const isPaidBooking = (totalAmount) => Number(totalAmount) > 0;
@@ -39,11 +41,16 @@ const sendBookingConfirmedEmails = async (bookingId) => {
     return;
   }
 
+  const tickets = await Ticket.getTicketsForBooking(bookingId);
+  const emailTickets = await buildEmailTickets(tickets);
+
   sendEmailBestEffort(
     bookingConfirmedEmail({
       attendee: booking.user,
       event: booking.event,
-      booking
+      booking,
+      ticketUrl: getTicketUrl(booking.id),
+      tickets: emailTickets
     })
   );
   sendEmailBestEffort(
@@ -183,6 +190,7 @@ const createBooking = async (req, res) => {
       });
     }
 
+    await Ticket.generateTicketsForBooking(booking.id);
     await sendBookingConfirmedEmails(booking.id);
 
     return res.status(201).json({
@@ -237,6 +245,7 @@ const cancelBooking = async (req, res) => {
     }
 
     const updatedBooking = await Booking.cancelBooking(booking.id);
+    await Ticket.cancelTicketsForBooking(booking.id);
     await sendBookingCancelledEmails(booking);
 
     return res.status(200).json({

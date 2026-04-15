@@ -21,6 +21,7 @@ model User {
   events       Event[]
   bookings     Booking[]
   feedbacks    Feedback[]
+  tickets      Ticket[]
 
   @@index([password_reset_token_hash])
   @@map("users")
@@ -47,6 +48,7 @@ model Event {
   bookings     Booking[]
   feedbacks    Feedback[]
   ticket_tiers TicketTier[]
+  tickets      Ticket[]
 
   @@map("events")
 }
@@ -67,6 +69,7 @@ model Booking {
   user         User @relation(fields: [user_id], references: [id])
   event        Event @relation(fields: [event_id], references: [id])
   items        BookingItem[]
+  tickets      Ticket[]
 
   @@unique([user_id, event_id])
   @@map("bookings")
@@ -85,6 +88,7 @@ model TicketTier {
 
   event        Event         @relation(fields: [event_id], references: [id], onDelete: Cascade)
   bookingItems BookingItem[]
+  tickets      Ticket[]
 
   @@index([event_id])
   @@map("ticket_tiers")
@@ -100,10 +104,36 @@ model BookingItem {
 
   booking    Booking    @relation(fields: [booking_id], references: [id], onDelete: Cascade)
   ticketTier TicketTier @relation(fields: [ticket_tier_id], references: [id])
+  tickets    Ticket[]
 
   @@index([booking_id])
   @@index([ticket_tier_id])
   @@map("booking_items")
+}
+
+model Ticket {
+  id             String    @id @default(uuid()) @db.Uuid
+  booking_id     String    @db.Uuid
+  booking_item_id String    @db.Uuid
+  event_id       String    @db.Uuid
+  user_id        String    @db.Uuid
+  ticket_tier_id String    @db.Uuid
+  ticket_code    String    @unique @db.VarChar(80)
+  status         String    @default("valid") @db.VarChar(20)
+  issued_at      DateTime  @default(now())
+  checked_in_at  DateTime?
+
+  booking     Booking     @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+  bookingItem BookingItem @relation(fields: [booking_item_id], references: [id], onDelete: Cascade)
+  event       Event       @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [user_id], references: [id])
+  ticketTier  TicketTier  @relation(fields: [ticket_tier_id], references: [id])
+
+  @@index([booking_id])
+  @@index([event_id])
+  @@index([user_id])
+  @@index([ticket_tier_id])
+  @@map("tickets")
 }
 
 model Feedback {

@@ -23,26 +23,59 @@ const escapeHtml = (value) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-const baseHtml = ({ title, intro, lines = [] }) => `
+const baseHtml = ({ title, intro, lines = [], extraHtml = "" }) => `
   <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
     <h2>${escapeHtml(title)}</h2>
     <p>${escapeHtml(intro)}</p>
     ${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}
+    ${extraHtml}
     <p style="margin-top: 24px;">${appName}</p>
   </div>
 `;
 
-const baseText = ({ title, intro, lines = [] }) =>
-  [title, "", intro, ...lines, "", appName].join("\n");
+const baseText = ({ title, intro, lines = [], extraText = "" }) =>
+  [title, "", intro, ...lines, extraText, "", appName].filter(Boolean).join("\n");
 
-const createEmail = ({ to, subject, title, intro, lines }) => ({
+const createEmail = ({ to, subject, title, intro, lines, extraHtml, extraText }) => ({
   to,
   subject,
-  html: baseHtml({ title, intro, lines }),
-  text: baseText({ title, intro, lines })
+  html: baseHtml({ title, intro, lines, extraHtml }),
+  text: baseText({ title, intro, lines, extraText })
 });
 
-export const bookingConfirmedEmail = ({ attendee, event, booking }) =>
+const ticketHtml = (tickets = []) => {
+  if (!tickets.length) {
+    return "";
+  }
+
+  return `
+    <div style="margin-top: 20px;">
+      <h3>Your tickets</h3>
+      ${tickets.map((ticket) => `
+        <div style="margin: 16px 0; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px;">
+          <p><strong>${escapeHtml(ticket.ticket_tier_name || "Ticket")}</strong></p>
+          <p>Code: ${escapeHtml(ticket.ticket_code)}</p>
+          ${ticket.qr_data_url ? `<img alt="Ticket QR code" width="160" height="160" src="${ticket.qr_data_url}" />` : ""}
+        </div>
+      `).join("")}
+    </div>
+  `;
+};
+
+const ticketText = (tickets = []) => {
+  if (!tickets.length) {
+    return "";
+  }
+
+  return [
+    "Tickets:",
+    ...tickets.map((ticket) =>
+      `${ticket.ticket_tier_name || "Ticket"} - Code: ${ticket.ticket_code}`
+    )
+  ].join("\n");
+};
+
+export const bookingConfirmedEmail = ({ attendee, event, booking, ticketUrl, tickets = [] }) =>
   createEmail({
     to: attendee.email,
     subject: `Booking confirmed: ${event.title}`,
@@ -51,8 +84,11 @@ export const bookingConfirmedEmail = ({ attendee, event, booking }) =>
     lines: [
       `Date: ${formatDate(event.event_date)}`,
       `Location: ${eventLocation(event)}`,
-      `Booking status: ${booking.status}`
-    ]
+      `Booking status: ${booking.status}`,
+      ticketUrl ? `View your tickets: ${ticketUrl}` : null
+    ].filter(Boolean),
+    extraHtml: ticketHtml(tickets),
+    extraText: ticketText(tickets)
   });
 
 export const organizerBookingNotificationEmail = ({

@@ -91,3 +91,30 @@ export const mockBooking = (overrides = {}) => ({
   items: [mockBookingItem({ unit_price: "0.00", total_price: "0.00" })],
   ...overrides,
 });
+
+export const mockTicket = (overrides = {}) => ({
+  id: "ticket-1",
+  booking_id: "booking-1",
+  booking_item_id: "booking-item-1",
+  event_id: "event-1",
+  user_id: "user-1",
+  ticket_tier_id: "tier-1",
+  ticket_code: "SEM-TEST123",
+  qr_value: "SEM-TEST123",
+  status: "valid",
+  issued_at: new Date("2026-04-13T10:00:00.000Z"),
+  checked_in_at: null,
+  booking: {
+    id: "booking-1",
+    status: "confirmed",
+    payment_status: "paid",
+  },
+  event: mockEvent({ organizer_id: "organizer-1" }),
+  ticket_tier: {
+    id: "tier-1",
+    name: "Standard",
+    price: "25.00",
+  },
+  attendee: mockUser(),
+  ...overrides,
+});

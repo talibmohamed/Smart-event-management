@@ -15,6 +15,13 @@ vi.mock("../../models/Booking.js", () => ({
   },
 }));
 
+vi.mock("../../models/Ticket.js", () => ({
+  default: {
+    generateTicketsForBooking: vi.fn(),
+    getTicketsForBooking: vi.fn(),
+  },
+}));
+
 vi.mock("../../utils/stripe.js", () => ({
   constructStripeWebhookEvent: vi.fn(),
   getExpectedAmountInCents: vi.fn((amount) => Math.round(Number(amount) * 100)),
@@ -26,6 +33,7 @@ vi.mock("../../utils/emailService.js", () => ({
 }));
 
 const { default: Booking } = await import("../../models/Booking.js");
+const { default: Ticket } = await import("../../models/Ticket.js");
 const { constructStripeWebhookEvent } = await import("../../utils/stripe.js");
 const { sendEmailBestEffort } = await import("../../utils/emailService.js");
 const paymentController = (await import("../paymentController.js")).default;
@@ -56,6 +64,8 @@ describe("payment controller", () => {
         stripe_checkout_session_id: "cs_test_123",
       })
     );
+    Ticket.generateTicketsForBooking.mockResolvedValue({ created: true, tickets: [] });
+    Ticket.getTicketsForBooking.mockResolvedValue([]);
   });
 
   it("ignores duplicate webhook event id without changing booking or sending email", async () => {
@@ -73,6 +83,7 @@ describe("payment controller", () => {
       message: "Stripe webhook processed",
     });
     expect(Booking.confirmPaidBooking).not.toHaveBeenCalled();
+    expect(Ticket.generateTicketsForBooking).not.toHaveBeenCalled();
     expect(Booking.failPayment).not.toHaveBeenCalled();
     expect(sendEmailBestEffort).not.toHaveBeenCalled();
   });

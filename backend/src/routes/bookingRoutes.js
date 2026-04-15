@@ -1,5 +1,6 @@
 import express from "express";
 import bookingController from "../controllers/bookingController.js";
+import ticketController from "../controllers/ticketController.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import roleMiddleware from "../middlewares/roleMiddleware.js";
 
@@ -11,6 +12,7 @@ router.get(
   roleMiddleware("attendee"),
   bookingController.getMyBookings
 );
+router.get("/:id/tickets", authMiddleware, ticketController.getBookingTickets);
 router.get("/:id", authMiddleware, bookingController.getBookingById);
 router.post(
   "/:id/retry-payment",

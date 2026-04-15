@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-13
+Last updated: 2026-04-14
 
 ## Base Setup
 
@@ -17,6 +17,7 @@ Authorization: Bearer <jwt>
 - Local booking payment schema command: `npm run db:payment-schema`
 - Local password reset schema command: `npm run db:password-reset-schema`
 - Local ticket tier schema command: `npm run db:ticket-tier-schema`
+- Local ticket schema command: `npm run db:ticket-schema` applies ticket tables and backfills confirmed booking tickets
 - Local storage setup command: `npm run storage:setup`
 - Backend runtime normalizes Supabase pooler connections for Prisma
 - Backend uploads event cover images to the public Supabase Storage bucket `event-images`
@@ -82,9 +83,12 @@ Authorization: Bearer <jwt>
 | Organizer delete event action | `DELETE /api/events/:id` | Requires `organizer` or `admin` and ownership unless admin |
 | My bookings page | `GET /api/bookings/my-bookings` | Requires attendee JWT |
 | Booking detail/status polling | `GET /api/bookings/:id` | Requires JWT, owner attendee or admin |
+| View booking tickets | `GET /api/bookings/:id/tickets` | Requires confirmed booking, owner attendee or admin |
 | Book event action | `POST /api/bookings` | Requires attendee JWT, body only needs `event_id` |
 | Retry paid checkout | `POST /api/bookings/:id/retry-payment` | Requires attendee JWT and pending payment booking |
 | Cancel booking action | `PUT /api/bookings/:id/cancel` | Requires JWT, owner or admin |
+| Organizer ticket validation | `GET /api/tickets/:ticket_code` | Requires organizer/admin; organizer owns event unless admin |
+| Organizer ticket check-in | `POST /api/tickets/:ticket_code/check-in` | Requires organizer/admin; organizer owns event unless admin |
 | Stripe webhook | `POST /api/payments/stripe/webhook` | Stripe only, raw body required |
 | Dev DB check | `GET /api/test/db` | Dev tooling, not a user page |
 
@@ -303,11 +307,60 @@ GET /api/cities?search=paris
 - Backend calculates `unit_price`, `total_price`, and booking total from stored ticket tier prices
 - Booking total `0` returns a `confirmed` booking and `payment_required: false`
 - Booking total greater than `0` returns a `pending_payment` booking, `payment_required: true`, and Stripe `checkout_url`
+- Confirmed bookings generate one ticket per purchased quantity
+- Pending payment bookings do not generate tickets
 - Frontend must redirect to `checkout_url` for paid bookings
 - Stripe success pages are UX only; use `GET /api/bookings/:id` to poll final booking status
 - Pending paid bookings do not reserve seats
 - To continue payment for an existing `pending_payment` booking, call `POST /api/bookings/:id/retry-payment` and redirect to the returned `checkout_url`
 - My bookings and booking detail responses include `items`, `total_quantity`, and `total_price`
+
+### Booking Tickets
+
+- Tickets are available only for confirmed bookings
+- Endpoint:
+
+```http
+GET /api/bookings/:id/tickets
+```
+
+- Auth: booking owner attendee or admin
+- If the booking is not confirmed, backend returns:
+
+```json
+{
+  "success": false,
+  "message": "Tickets are available only for confirmed bookings"
+}
+```
+
+- Frontend should:
+  - Show “View tickets” only when booking `status` is `confirmed`
+  - Render one ticket card per returned ticket
+  - Generate QR images from `qr_value`
+  - Treat `qr_value` as the same value as backend `ticket_code`
+  - Hide ticket actions for `pending_payment`, `cancelled`, `failed`, or `expired` bookings
+
+### Organizer Ticket Validation And Check-In
+
+- Scanner/manual validation should first call:
+
+```http
+GET /api/tickets/:ticket_code
+```
+
+- This validates that the ticket exists and that the organizer owns the event
+- It does not change ticket state
+- After the organizer confirms entry, call:
+
+```http
+POST /api/tickets/:ticket_code/check-in
+```
+
+- Successful check-in changes ticket `status` from `valid` to `used` and returns `checked_in_at`
+- Cancelled tickets return `400`
+- Already used tickets return `409` and are not updated again
+- Do not auto-check-in immediately on scan; show the scanned ticket first
 
 ### Stripe Webhook
 
@@ -331,6 +384,10 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
 - Email failures are logged but do not fail API requests or webhooks
 - Emails are sent for free booking confirmation, paid booking confirmation, payment failure, payment expiration, booking cancellation, event updates, and event deletion
 - Forgot password emails are also sent through Resend
+- Booking confirmation emails include a ticket page link
+- Confirmation emails may include inline QR images for each generated ticket
+- Inline email QR codes are convenience only; backend ticket validation remains the source of truth
+- If inline QR generation fails, the email still sends with the ticket link
 - No email is sent for duplicate booking errors, failed validation requests, pending payment retry creation, or frontend Stripe success redirects
 - Set `EMAIL_ENABLED=false` to disable email sending locally
 

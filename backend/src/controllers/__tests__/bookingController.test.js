@@ -28,6 +28,14 @@ vi.mock("../../models/Event.js", () => ({
   },
 }));
 
+vi.mock("../../models/Ticket.js", () => ({
+  default: {
+    generateTicketsForBooking: vi.fn(),
+    getTicketsForBooking: vi.fn(),
+    cancelTicketsForBooking: vi.fn(),
+  },
+}));
+
 vi.mock("../../models/User.js", () => ({
   default: {
     findUserById: vi.fn(),
@@ -45,6 +53,7 @@ vi.mock("../../utils/emailService.js", () => ({
 
 const { default: Booking } = await import("../../models/Booking.js");
 const { default: Event } = await import("../../models/Event.js");
+const { default: Ticket } = await import("../../models/Ticket.js");
 const { default: User } = await import("../../models/User.js");
 const {
   createBookingCheckoutSession,
@@ -79,6 +88,9 @@ describe("booking controller", () => {
       })
     );
     Booking.getBookingEmailContextById.mockResolvedValue(null);
+    Ticket.generateTicketsForBooking.mockResolvedValue({ created: true, tickets: [] });
+    Ticket.getTicketsForBooking.mockResolvedValue([]);
+    Ticket.cancelTicketsForBooking.mockResolvedValue([]);
     User.findUserById.mockResolvedValue(mockUser());
     createBookingCheckoutSession.mockResolvedValue({
       id: "cs_test_123",
@@ -213,6 +225,7 @@ describe("booking controller", () => {
       })
     );
     expect(createBookingCheckoutSession).not.toHaveBeenCalled();
+    expect(Ticket.generateTicketsForBooking).toHaveBeenCalledWith("booking-1");
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({

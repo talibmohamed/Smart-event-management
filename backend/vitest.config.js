@@ -16,6 +16,8 @@ export default defineConfig({
         "src/controllers/bookingController.js",
         "src/controllers/eventController.js",
         "src/controllers/paymentController.js",
+        "src/controllers/ticketController.js",
+        "src/models/Ticket.js",
         "src/middlewares/authMiddleware.js",
         "src/middlewares/roleMiddleware.js",
         "src/utils/ticketTiers.js",

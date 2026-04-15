@@ -2,7 +2,7 @@
   "metadata": {
     "name": "Smart Event Management Backend API",
     "version": "1.0.0",
-    "lastUpdated": "2026-04-13",
+    "lastUpdated": "2026-04-14",
     "baseUrl": "http://localhost:5000"
   },
   "development": {
@@ -10,6 +10,8 @@
     "paymentSchemaCommand": "npm run db:payment-schema",
     "passwordResetSchemaCommand": "npm run db:password-reset-schema",
     "ticketTierSchemaCommand": "npm run db:ticket-tier-schema",
+    "ticketSchemaCommand": "npm run db:ticket-schema",
+    "ticketSchemaCommandBehavior": "Applies ticket table and backfills tickets for existing confirmed bookings",
     "storageSetupCommand": "npm run storage:setup",
     "seedPassword": "Password123!",
     "seedUsers": [
@@ -67,6 +69,7 @@
     "transactionalEmail": "Resend emails are sent best-effort for booking/payment/event lifecycle actions and never determine API success or failure.",
     "passwordReset": "Forgot password responses do not reveal whether an email exists. Reset tokens are emailed, stored hashed, and expire after 60 minutes.",
     "ticketTiers": "Events use ticket_tiers for pricing and availability. Event.price remains as the minimum active tier price for compatibility.",
+    "tickets": "Confirmed bookings generate one Ticket row per purchased ticket quantity. QR values use ticket_code.",
     "responseException": "GET /api/auth/me returns success and data without message on success"
   },
   "schemas": {
@@ -201,6 +204,58 @@
       "items": ["bookingItem"],
       "total_quantity": "number",
       "total_price": "string(decimal)"
+    },
+    "ticket": {
+      "id": "string(uuid)",
+      "booking_id": "string(uuid)",
+      "booking_item_id": "string(uuid)",
+      "event_id": "string(uuid)",
+      "user_id": "string(uuid)",
+      "ticket_tier_id": "string(uuid)",
+      "ticket_code": "string",
+      "qr_value": "string",
+      "status": "string(valid|cancelled|used)",
+      "issued_at": "string(datetime)",
+      "checked_in_at": "string(datetime)|null",
+      "booking": {
+        "id": "string(uuid)",
+        "status": "string(confirmed)",
+        "payment_status": "string(paid)"
+      },
+      "event": {
+        "id": "string(uuid)",
+        "title": "string",
+        "event_date": "string(datetime)",
+        "address": "string|null",
+        "city": "string|null",
+        "organizer_id": "string(uuid)"
+      },
+      "ticket_tier": {
+        "id": "string(uuid)",
+        "name": "string",
+        "price": "string(decimal)"
+      },
+      "attendee": {
+        "id": "string(uuid)",
+        "first_name": "string",
+        "last_name": "string",
+        "email": "string"
+      }
+    },
+    "bookingTicketsResult": {
+      "booking": {
+        "id": "string(uuid)",
+        "status": "string(confirmed)",
+        "payment_status": "string(paid)"
+      },
+      "event": {
+        "id": "string(uuid)",
+        "title": "string",
+        "event_date": "string(datetime)",
+        "address": "string|null",
+        "city": "string|null"
+      },
+      "tickets": ["ticket"]
     },
     "eventAttendee": {
       "booking_id": "string(uuid)",
@@ -770,6 +825,7 @@
       "behaviorNotes": [
         "Booking total is calculated from backend TicketTier prices and BookingItem quantities.",
         "If total price is 0, booking is confirmed immediately.",
+        "Confirmed bookings generate one ticket per purchased ticket quantity.",
         "If total price is greater than 0, booking starts as pending_payment and returns a Stripe Checkout URL.",
         "Stripe Checkout line items are generated from backend-calculated booking items.",
         "Pending paid bookings do not reserve seats.",
@@ -799,6 +855,34 @@
       ],
       "behaviorNotes": [
         "Used by frontend to poll booking status after Stripe redirect."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bookings/:id/tickets",
+      "authRequired": true,
+      "allowedRoles": ["attendee_owner", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Tickets retrieved successfully",
+          "data": "bookingTicketsResult"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. You can only view your own tickets" },
+        { "status": 404, "message": "Booking not found" },
+        { "status": 409, "message": "Tickets are available only for confirmed bookings" },
+        { "status": 500, "message": "Server error while fetching tickets" }
+      ],
+      "behaviorNotes": [
+        "Tickets are generated only for confirmed bookings.",
+        "Each ticket represents one purchased ticket quantity from a booking item.",
+        "qr_value equals ticket_code.",
+        "Frontend generates visible QR images from qr_value."
       ]
     },
     {
@@ -855,6 +939,64 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/api/tickets/:ticket_code",
+      "authRequired": true,
+      "allowedRoles": ["organizer_owner", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Ticket retrieved successfully",
+          "data": "ticket"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
+        { "status": 403, "message": "Access denied. You can only validate tickets for your own events" },
+        { "status": 404, "message": "Ticket not found" },
+        { "status": 500, "message": "Server error while fetching ticket" }
+      ],
+      "behaviorNotes": [
+        "Read-only validation endpoint for organizer scanner/manual check-in UI.",
+        "Does not modify ticket status."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/tickets/:ticket_code/check-in",
+      "authRequired": true,
+      "allowedRoles": ["organizer_owner", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Ticket checked in successfully",
+          "data": {
+            "ticket_code": "string",
+            "status": "used",
+            "checked_in_at": "string(datetime)"
+          }
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
+        { "status": 403, "message": "Access denied. You can only check in tickets for your own events" },
+        { "status": 404, "message": "Ticket not found" },
+        { "status": 400, "message": "Cancelled tickets cannot be checked in" },
+        { "status": 409, "message": "Ticket has already been checked in" },
+        { "status": 500, "message": "Server error while checking in ticket" }
+      ],
+      "behaviorNotes": [
+        "Only valid tickets can be checked in.",
+        "Already used tickets return 409 and are not updated again."
+      ]
+    },
+    {
       "method": "POST",
       "path": "/api/payments/stripe/webhook",
       "authRequired": false,
@@ -876,6 +1018,7 @@
         "Verifies Stripe-Signature with STRIPE_WEBHOOK_SECRET.",
         "Uses Checkout metadata booking_id, user_id, and event_id.",
         "checkout.session.completed validates metadata, amount, currency, and capacity before confirming.",
+        "checkout.session.completed generates tickets before sending confirmation emails.",
         "checkout.session.expired marks pending bookings cancelled with payment_status expired.",
         "Duplicate or already-confirmed webhook events are logged and ignored safely."
       ]
@@ -885,6 +1028,6 @@
     "Feedback endpoints",
     "Admin-specific supervision endpoints",
     "Event filtering and pagination",
-    "Organizer attendee list and reporting endpoints"
+    "PDF ticket generation and attachments"
   ]
 }

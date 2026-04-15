@@ -1,6 +1,6 @@
 # Backend Status
 
-Last updated: 2026-04-13
+Last updated: 2026-04-14
 
 ## Current State
 
@@ -16,6 +16,7 @@ Last updated: 2026-04-13
 - Event locations use structured address, city, latitude, and longitude fields
 - Optional event cover images use Supabase Storage
 - Events support multi-tier ticketing with booking line items
+- Confirmed bookings generate QR-code-ready ticket records
 - Supabase Storage requires a public `event-images` bucket and service role credentials in backend env
 
 ## Implemented Features
@@ -33,6 +34,7 @@ Last updated: 2026-04-13
 - `npm run db:payment-schema` applies the booking payment columns/check constraints to Supabase
 - `npm run storage:setup` creates or updates the public Supabase `event-images` bucket
 - `npm run db:ticket-tier-schema` applies ticket tier and booking item tables, then backfills existing data
+- `npm run db:ticket-schema` applies the ticket table and backfills confirmed booking tickets
 - `npm run test` runs critical backend tests with mocked external services
 - `npm run test:watch` runs the same tests in watch mode
 - `npm run test:coverage` runs critical backend tests with a V8 coverage report
@@ -88,12 +90,15 @@ Last updated: 2026-04-13
 - Capacity check before booking
 - Authenticated booking list
 - Authenticated booking detail for payment status polling
+- Confirmed booking ticket retrieval through `GET /api/bookings/:id/tickets`
+- Organizer/admin ticket validation and check-in through `/api/tickets/:ticket_code`
 - Payment retry endpoint creates a fresh Stripe Checkout Session for pending bookings
 - Booking cancellation
 - Stripe webhook handles completed and expired Checkout Sessions
 - Webhook processing validates metadata, amount, currency, capacity, and duplicate Stripe events
 - Stripe Checkout line items are generated from backend-calculated booking item prices
 - Resend emails are sent for booking confirmations, paid confirmations, payment failures/expirations, booking cancellations, event updates, and event deletions
+- Booking confirmation emails include ticket page links and may include inline ticket QR codes
 - Password reset emails are sent through Resend and expire after 60 minutes
 - Critical booking and Stripe webhook tests use mocked model/payment/email boundaries
 
@@ -104,6 +109,7 @@ Last updated: 2026-04-13
 - Event filtering, search, and pagination
 - Attendee export/download support
 - Advanced ticket rules such as deadline-based Early Bird tiers
+- PDF ticket generation and attachments
 - Refund handling and advanced payment operations
 - Fully consistent success response shape across all endpoints
 
@@ -128,6 +134,10 @@ Last updated: 2026-04-13
 - `POST /api/auth/register` only honors `attendee` and `organizer`; any other role becomes `attendee`
 - Only attendees can create bookings and view their own booking list
 - Pending paid bookings do not reserve seats; only confirmed booking items count against capacity
+- Tickets are generated only for confirmed bookings
+- Ticket QR values use public `ticket_code` values, not sensitive attendee or payment data
+- Cancelled bookings mark related valid tickets as `cancelled`
+- Already used tickets return `409` on check-in and are not updated again
 - Stripe success redirect is not payment confirmation; only the webhook confirms paid bookings
 - Email delivery is best-effort and does not change API success/failure results
 - Forgot password responses do not reveal whether an email exists
@@ -144,6 +154,8 @@ Last updated: 2026-04-13
 - Public events list and event detail
 - Organizer event create, update, and delete
 - Organizer/admin event attendee list
+- Attendee ticket display/download pages
+- Organizer/admin ticket scanner/check-in pages
 - Organizer/admin event cover image upload and removal
 - Attendee booking create, cancel, payment retry, payment redirect, status polling, and my-bookings view
 - Event tier editor and tier-aware booking UI can be integrated from the documented API contract

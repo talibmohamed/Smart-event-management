@@ -1,4 +1,5 @@
 import Booking from "../models/Booking.js";
+import Ticket from "../models/Ticket.js";
 import { sendEmailBestEffort } from "../utils/emailService.js";
 import {
   bookingConfirmedEmail,
@@ -6,6 +7,7 @@ import {
   paymentExpiredEmail,
   paymentFailedEmail
 } from "../utils/emailTemplates.js";
+import { buildEmailTickets, getTicketUrl } from "../utils/ticketEmail.js";
 import {
   constructStripeWebhookEvent,
   getExpectedAmountInCents,
@@ -31,11 +33,16 @@ const sendPaidBookingConfirmedEmails = async (bookingId) => {
     return;
   }
 
+  const tickets = await Ticket.getTicketsForBooking(bookingId);
+  const emailTickets = await buildEmailTickets(tickets);
+
   sendEmailBestEffort(
     bookingConfirmedEmail({
       attendee: booking.user,
       event: booking.event,
-      booking
+      booking,
+      ticketUrl: getTicketUrl(booking.id),
+      tickets: emailTickets
     })
   );
   sendEmailBestEffort(
@@ -96,6 +103,9 @@ const handleCheckoutCompleted = async (event) => {
   }
 
   if (booking.stripe_event_id === event.id) {
+    if (booking.status === "confirmed") {
+      await Ticket.generateTicketsForBooking(booking.id);
+    }
     logWebhook({ event, bookingId: booking.id, action: "ignored_duplicate" });
     return;
   }
@@ -116,6 +126,7 @@ const handleCheckoutCompleted = async (event) => {
   }
 
   if (booking.status === "confirmed") {
+    await Ticket.generateTicketsForBooking(booking.id);
     await Booking.markStripeEventProcessed(booking.id, event.id);
     logWebhook({ event, bookingId: booking.id, action: "ignored_confirmed" });
     return;
@@ -170,6 +181,7 @@ const handleCheckoutCompleted = async (event) => {
     amount_paid: paidAmount / 100,
     currency: paidCurrency
   });
+  await Ticket.generateTicketsForBooking(booking.id);
   await sendPaidBookingConfirmedEmails(booking.id);
   logWebhook({ event, bookingId: booking.id, action: "confirmed" });
 };

@@ -1,6 +1,6 @@
 # Smart Event Management API Spec
 
-Last updated: 2026-04-13
+Last updated: 2026-04-14
 
 ## Global Rules
 
@@ -17,6 +17,7 @@ Last updated: 2026-04-13
 - Local booking payment schema command: `npm run db:payment-schema`
 - Local password reset schema command: `npm run db:password-reset-schema`
 - Local ticket tier schema command: `npm run db:ticket-tier-schema`
+- Local ticket schema command: `npm run db:ticket-schema` applies ticket tables and backfills confirmed booking tickets
 - Local storage setup command: `npm run storage:setup`
 - Seeded sample password for all seed users: `Password123!`
 - Event geocoding uses Nominatim from the backend only; frontend must never call Nominatim directly
@@ -30,6 +31,7 @@ Last updated: 2026-04-13
 - Transactional emails are best-effort and never determine API success/failure
 - Password reset links are emailed with Resend, expire after 60 minutes, and use `FRONTEND_URL/reset-password?token=...`
 - Events use ticket tiers for pricing and availability; `Event.price` remains the minimum active tier price for old frontend compatibility
+- Confirmed bookings generate backend-issued tickets with QR values based on `ticket_code`
 
 ## Endpoints
 
@@ -639,7 +641,7 @@ Last updated: 2026-04-13
   - Stripe Checkout line items are generated from backend-calculated booking items
   - Pending paid bookings do not reserve seats
   - Stripe success redirects are not payment confirmation
-  - Free confirmed bookings trigger best-effort attendee and organizer emails
+  - Free confirmed bookings generate tickets immediately and trigger best-effort attendee and organizer emails
   - If a cancelled booking exists for the same user and event, backend reactivates it using the current event price rule and still returns `201`
 - Success:
 
@@ -736,6 +738,64 @@ Last updated: 2026-04-13
   - `404 { "success": false, "message": "Booking not found" }`
   - `500 { "success": false, "message": "Server error while fetching booking", "error": "..." }`
 
+### `GET /api/bookings/:id/tickets`
+
+- Auth: yes
+- Allowed roles: booking owner with `attendee` role, or `admin`
+- Request body: none
+- Notes:
+  - Tickets are generated only for confirmed bookings
+  - Each ticket represents one purchased ticket quantity from a booking item
+  - `qr_value` equals `ticket_code`
+  - Frontend should generate QR images from `qr_value`
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Tickets retrieved successfully",
+  "data": {
+    "booking": {
+      "id": "uuid",
+      "status": "confirmed",
+      "payment_status": "paid"
+    },
+    "event": {
+      "id": "uuid",
+      "title": "Tech Conference",
+      "event_date": "2026-04-13T10:00:00.000Z",
+      "address": "10 Rue Example",
+      "city": "Paris"
+    },
+    "tickets": [
+      {
+        "id": "uuid",
+        "ticket_code": "SEM-ABC123",
+        "status": "valid",
+        "qr_value": "SEM-ABC123",
+        "checked_in_at": null,
+        "ticket_tier": {
+          "id": "uuid",
+          "name": "VIP"
+        },
+        "attendee": {
+          "first_name": "John",
+          "last_name": "Doe",
+          "email": "john@example.com"
+        }
+      }
+    ]
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. You can only view your own tickets" }`
+  - `404 { "success": false, "message": "Booking not found" }`
+  - `409 { "success": false, "message": "Tickets are available only for confirmed bookings" }`
+  - `500 { "success": false, "message": "Server error while fetching tickets", "error": "..." }`
+
 ### `POST /api/bookings/:id/retry-payment`
 
 - Auth: yes
@@ -789,6 +849,7 @@ Last updated: 2026-04-13
 - Notes:
   - Users can cancel their own bookings
   - Admins can cancel any booking
+  - Related valid tickets are marked `cancelled`
 - Success:
 
 ```json
@@ -813,6 +874,91 @@ Last updated: 2026-04-13
   - `400 { "success": false, "message": "Booking is already cancelled" }`
   - `500 { "success": false, "message": "Server error while cancelling booking", "error": "..." }`
 
+### `GET /api/tickets/:ticket_code`
+
+- Auth: yes
+- Allowed roles: `organizer`, `admin`
+- Request body: none
+- Notes:
+  - Read-only ticket validation endpoint for scanner/manual check-in screens
+  - Organizer can validate only tickets for their own events
+  - Admin can validate any ticket
+  - Does not modify ticket status
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Ticket retrieved successfully",
+  "data": {
+    "id": "uuid",
+    "ticket_code": "SEM-ABC123",
+    "qr_value": "SEM-ABC123",
+    "status": "valid",
+    "checked_in_at": null,
+    "event": {
+      "id": "uuid",
+      "title": "Tech Conference",
+      "event_date": "2026-04-13T10:00:00.000Z",
+      "address": "10 Rue Example",
+      "city": "Paris",
+      "organizer_id": "uuid"
+    },
+    "attendee": {
+      "id": "uuid",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com"
+    },
+    "ticket_tier": {
+      "id": "uuid",
+      "name": "VIP",
+      "price": "25.00"
+    }
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Insufficient permissions" }`
+  - `403 { "success": false, "message": "Access denied. You can only validate tickets for your own events" }`
+  - `404 { "success": false, "message": "Ticket not found" }`
+  - `500 { "success": false, "message": "Server error while fetching ticket", "error": "..." }`
+
+### `POST /api/tickets/:ticket_code/check-in`
+
+- Auth: yes
+- Allowed roles: `organizer`, `admin`
+- Request body: none
+- Notes:
+  - Organizer can check in only tickets for their own events
+  - Admin can check in any ticket
+  - Valid tickets move from `valid` to `used`
+  - Already used tickets return `409` and are not updated again
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Ticket checked in successfully",
+  "data": {
+    "ticket_code": "SEM-ABC123",
+    "status": "used",
+    "checked_in_at": "2026-04-14T10:30:00.000Z"
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Insufficient permissions" }`
+  - `403 { "success": false, "message": "Access denied. You can only check in tickets for your own events" }`
+  - `404 { "success": false, "message": "Ticket not found" }`
+  - `400 { "success": false, "message": "Cancelled tickets cannot be checked in" }`
+  - `409 { "success": false, "message": "Ticket has already been checked in" }`
+  - `500 { "success": false, "message": "Server error while checking in ticket", "error": "..." }`
+
 ### `POST /api/payments/stripe/webhook`
 
 - Auth: no; Stripe signature required
@@ -826,7 +972,7 @@ Last updated: 2026-04-13
   - Validates amount and currency before confirming
   - If event is full at webhook time, booking becomes `cancelled` and `payment_status` becomes `failed`
   - If amount/currency validation fails, booking becomes `cancelled` and `payment_status` becomes `failed`
-  - Successful paid confirmation triggers best-effort attendee and organizer emails
+  - Successful paid confirmation generates tickets and triggers best-effort attendee and organizer emails
   - Failed or expired payments trigger best-effort attendee emails
   - Duplicate/already-confirmed webhook events are logged and ignored safely
 - Success:
