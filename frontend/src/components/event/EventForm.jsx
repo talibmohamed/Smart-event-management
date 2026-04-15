@@ -105,8 +105,8 @@ function validateEventForm(values, isCitySelected) {
     }
   }
 
-  if (calculateTicketTierTotal(ticketTiers) > capacity) {
-    return "Ticket tier capacities cannot exceed event capacity";
+  if (calculateTicketTierTotal(ticketTiers) !== capacity) {
+    return "Ticket tier capacities must equal event capacity";
   }
 
   return "";
@@ -281,8 +281,8 @@ export default function EventForm({
   const ticketTiers = normalizeTicketTiers(values.ticket_tiers);
   const ticketTierCapacityTotal = calculateTicketTierTotal(ticketTiers);
   const eventCapacity = Number(values.capacity);
-  const isTierCapacityOverLimit =
-    Number.isFinite(eventCapacity) && eventCapacity > 0 && ticketTierCapacityTotal > eventCapacity;
+  const isTierCapacityInvalid =
+    Number.isFinite(eventCapacity) && eventCapacity > 0 && ticketTierCapacityTotal !== eventCapacity;
   const categoryOptions = useMemo(() => {
     const options = new Set(EVENT_CATEGORY_OPTIONS);
 
@@ -510,11 +510,11 @@ export default function EventForm({
               Ticket tiers
             </h2>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Add 1 to 10 custom tiers. Total tier capacity must stay within event capacity.
+              Add 1 to 10 custom tiers. Total tier capacity must equal event capacity.
             </p>
             <p
               className={`mt-2 text-xs font-semibold ${
-                isTierCapacityOverLimit
+                isTierCapacityInvalid
                   ? "text-red-600 dark:text-red-300"
                   : "text-zinc-500 dark:text-zinc-400"
               }`}

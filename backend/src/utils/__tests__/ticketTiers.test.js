@@ -31,7 +31,7 @@ describe("ticket tier utilities", () => {
         name: "VIP",
         description: "Front-row access",
         price: "50",
-        capacity: "20",
+        capacity: "100",
         is_active: "true",
       },
     ];
@@ -42,7 +42,7 @@ describe("ticket tier utilities", () => {
         fallbackPrice: 10,
         eventCapacity: 100,
       })
-    ).toMatchObject([{ name: "VIP", price: 50, capacity: 20 }]);
+    ).toMatchObject([{ name: "VIP", price: 50, capacity: 100 }]);
 
     expect(
       parseEventTicketTiers({
@@ -50,7 +50,7 @@ describe("ticket tier utilities", () => {
         fallbackPrice: 10,
         eventCapacity: 100,
       })
-    ).toMatchObject([{ name: "VIP", price: 50, capacity: 20 }]);
+    ).toMatchObject([{ name: "VIP", price: 50, capacity: 100 }]);
   });
 
   it("rejects invalid ticket_tiers JSON", () => {
@@ -99,7 +99,18 @@ describe("ticket tier utilities", () => {
     }
   });
 
-  it("rejects tier capacity greater than event capacity", () => {
+  it("rejects tier capacity totals that do not equal event capacity", () => {
+    expect(() =>
+      parseEventTicketTiers({
+        rawTicketTiers: [
+          { name: "Standard", price: 10, capacity: 100 },
+          { name: "VIP", price: 50, capacity: 5 },
+        ],
+        fallbackPrice: 10,
+        eventCapacity: 110,
+      })
+    ).toThrow("Ticket tier capacities must equal event capacity");
+
     expect(() =>
       parseEventTicketTiers({
         rawTicketTiers: [
@@ -109,7 +120,7 @@ describe("ticket tier utilities", () => {
         fallbackPrice: 10,
         eventCapacity: 100,
       })
-    ).toThrow("Ticket tier capacities cannot exceed event capacity");
+    ).toThrow("Ticket tier capacities must equal event capacity");
   });
 
   it("parses booking items and rejects invalid quantities", () => {

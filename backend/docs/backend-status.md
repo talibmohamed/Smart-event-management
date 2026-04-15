@@ -128,7 +128,7 @@ Last updated: 2026-04-14
 - Invalid event images return `400` with `Event image must be a JPEG, PNG, or WebP file under 5MB`
 - Event `price` is serialized as a string in JSON responses
 - Event `price` now means minimum active ticket tier price for compatibility
-- Ticket tier capacities must sum to less than or equal to event capacity
+- Ticket tier capacities must sum exactly to event capacity
 - Confirmed booking item quantities count toward event and tier availability
 - Pending paid bookings do not reserve event or tier seats
 - Organizers/admins cannot delete sold tiers or reduce tier capacity below confirmed sold quantity; omitted unsold tiers are disabled

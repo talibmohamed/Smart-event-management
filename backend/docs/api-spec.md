@@ -451,7 +451,7 @@ Last updated: 2026-04-14
   - `cover_image` is optional and must be JPEG, PNG, or WebP under 5MB
   - Backend stores `image_url` and `image_path`, but only exposes `image_url`
   - `ticket_tiers` is optional for old frontend compatibility; when omitted, backend creates one active `Standard` tier from `price` and `capacity`
-  - When sent, `ticket_tiers` must contain 1-10 tiers and total tier capacity must be less than or equal to event capacity
+  - When sent, `ticket_tiers` must contain 1-10 tiers and total tier capacity must equal event capacity
   - `Event.price` is stored and returned as the minimum active tier price
   - Confirmed attendees receive best-effort emails if key event details later change
 - Success:
@@ -489,7 +489,7 @@ Last updated: 2026-04-14
   - `400 { "success": false, "message": "Address could not be located" }`
   - `400 { "success": false, "message": "Event must have between 1 and 10 ticket tiers" }`
   - `400 { "success": false, "message": "Each ticket tier requires name, price >= 0, and capacity > 0" }`
-  - `400 { "success": false, "message": "Ticket tier capacities cannot exceed event capacity" }`
+  - `400 { "success": false, "message": "Ticket tier capacities must equal event capacity" }`
   - `400 { "success": false, "message": "Event image must be a JPEG, PNG, or WebP file under 5MB" }`
   - `500 { "success": false, "message": "Server error while creating event", "error": "..." }`
 

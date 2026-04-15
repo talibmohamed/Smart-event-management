@@ -638,7 +638,7 @@
         { "status": 400, "message": "Address could not be located" },
         { "status": 400, "message": "Event must have between 1 and 10 ticket tiers" },
         { "status": 400, "message": "Each ticket tier requires name, price >= 0, and capacity > 0" },
-        { "status": 400, "message": "Ticket tier capacities cannot exceed event capacity" },
+        { "status": 400, "message": "Ticket tier capacities must equal event capacity" },
         { "status": 400, "message": "Event image must be a JPEG, PNG, or WebP file under 5MB" },
         { "status": 500, "message": "Server error while creating event" }
       ],
@@ -719,7 +719,7 @@
         { "status": 400, "message": "Address could not be located" },
         { "status": 400, "message": "Event must have between 1 and 10 ticket tiers" },
         { "status": 400, "message": "Each ticket tier requires name, price >= 0, and capacity > 0" },
-        { "status": 400, "message": "Ticket tier capacities cannot exceed event capacity" },
+        { "status": 400, "message": "Ticket tier capacities must equal event capacity" },
         { "status": 400, "message": "Ticket tier capacity cannot be lower than sold quantity" },
         { "status": 400, "message": "Sold ticket tiers cannot be deleted" },
         { "status": 400, "message": "Event image must be a JPEG, PNG, or WebP file under 5MB" },

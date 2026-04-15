@@ -366,10 +366,10 @@ const updateEvent = async (req, res) => {
       0
     );
 
-    if (ticketTierCapacityTotal > numericCapacity) {
+    if (ticketTierCapacityTotal !== numericCapacity) {
       return res.status(400).json({
         success: false,
-        message: "Ticket tier capacities cannot exceed event capacity"
+        message: "Ticket tier capacities must equal event capacity"
       });
     }
 

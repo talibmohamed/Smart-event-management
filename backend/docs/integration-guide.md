@@ -180,7 +180,7 @@ POST /api/auth/reset-password
 - `ticket_tiers` can be sent as an array in JSON requests or as a JSON string in multipart requests
 - Each ticket tier needs `name`, `price >= 0`, and `capacity > 0`
 - Event must have 1-10 ticket tiers when `ticket_tiers` is provided
-- Sum of tier capacities must be less than or equal to event `capacity`
+- Sum of tier capacities must equal event `capacity`
 - If `ticket_tiers` is omitted on create, backend creates one `Standard` tier from `price` and `capacity`
 - If `ticket_tiers` is omitted on update, backend preserves existing tiers
 - Sold tiers cannot be deleted, and tier capacity cannot be reduced below confirmed sold quantity

@@ -64,8 +64,8 @@ export const parseEventTicketTiers = ({
 
   const tierCapacityTotal = normalizedTiers.reduce((sum, tier) => sum + tier.capacity, 0);
 
-  if (tierCapacityTotal > eventCapacity) {
-    const error = new Error("Ticket tier capacities cannot exceed event capacity");
+  if (tierCapacityTotal !== Number(eventCapacity)) {
+    const error = new Error("Ticket tier capacities must equal event capacity");
     error.statusCode = 400;
     throw error;
   }
