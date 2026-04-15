@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-14
+Last updated: 2026-04-15
 
 ## Base Setup
 
@@ -36,6 +36,8 @@ Authorization: Bearer <jwt>
   - `EMAIL_FROM`
   - `EMAIL_REPLY_TO` optional
   - `EMAIL_ENABLED=true`
+- Styled email preview command:
+  - `npm run email:preview -- --to email@example.com`
 - Seeded sample password for all seed users: `Password123!`
 - Seeded sample emails:
   - `admin@smartevent.test`
@@ -385,6 +387,7 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
 
 - Backend sends best-effort emails with Resend
 - Email failures are logged but do not fail API requests or webhooks
+- Emails use styled HTML with status badges, detail cards, CTA buttons, and plain text fallback
 - Emails are sent for free booking confirmation, paid booking confirmation, payment failure, payment expiration, booking cancellation, event updates, and event deletion
 - Forgot password emails are also sent through Resend
 - Booking confirmation emails include a ticket page link
@@ -394,6 +397,7 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
 - If inline QR generation fails, the email still sends with the ticket link
 - No email is sent for duplicate booking errors, failed validation requests, pending payment retry creation, or frontend Stripe success redirects
 - Set `EMAIL_ENABLED=false` to disable email sending locally
+- Use `npm run email:preview -- --to email@example.com` to send all templates to one inbox for visual inspection; this does not test booking/payment/event business functionality
 
 ## Response Notes
 

@@ -1,6 +1,6 @@
 # Backend Status
 
-Last updated: 2026-04-14
+Last updated: 2026-04-15
 
 ## Current State
 
@@ -9,7 +9,7 @@ Last updated: 2026-04-14
 - Authentication is implemented with JWT
 - Core auth, event, and booking flows are available
 - Paid bookings use Stripe Checkout and webhook confirmation
-- Transactional emails use Resend with best-effort delivery
+- Transactional emails use styled HTML templates through Resend with plain text fallback and best-effort delivery
 - `backend/docs` is the current frontend source of truth
 - Local development seeding is available through Prisma
 - Critical backend tests are available with Vitest
@@ -43,6 +43,7 @@ Last updated: 2026-04-14
 - Event image upload requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_EVENT_IMAGES_BUCKET`
 - Stripe Checkout requires `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CURRENCY`, and `FRONTEND_URL`
 - Transactional emails require `RESEND_API_KEY`, `EMAIL_FROM`, and optional `EMAIL_REPLY_TO`
+- `npm run email:preview -- --to email@example.com` sends all styled email templates to one recipient for visual inspection
 - Forgot password requires the password reset database fields from `npm run db:password-reset-schema`
 
 ### Authentication
@@ -98,6 +99,7 @@ Last updated: 2026-04-14
 - Webhook processing validates metadata, amount, currency, capacity, and duplicate Stripe events
 - Stripe Checkout line items are generated from backend-calculated booking item prices
 - Resend emails are sent for booking confirmations, paid confirmations, payment failures/expirations, booking cancellations, event updates, and event deletions
+- Resend emails use a shared styled HTML layout with status badges, detail cards, CTA buttons, and text fallback
 - Booking confirmation emails include ticket page links and may include inline ticket QR codes
 - Booking confirmation emails include a generated ticket PDF attachment when PDF generation succeeds
 - Password reset emails are sent through Resend and expire after 60 minutes

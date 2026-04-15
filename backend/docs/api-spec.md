@@ -1,6 +1,6 @@
 # Smart Event Management API Spec
 
-Last updated: 2026-04-14
+Last updated: 2026-04-15
 
 ## Global Rules
 
@@ -28,11 +28,12 @@ Last updated: 2026-04-14
 - Paid bookings use Stripe Checkout and are confirmed only by verified Stripe webhooks
 - Required Stripe env variables: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CURRENCY`, `FRONTEND_URL`
 - Required Resend env variables: `RESEND_API_KEY`, `EMAIL_FROM`, optional `EMAIL_REPLY_TO`, `EMAIL_ENABLED`
-- Transactional emails are best-effort and never determine API success/failure
+- Transactional emails are styled HTML emails with plain text fallback; delivery is best-effort and never determines API success/failure
 - Password reset links are emailed with Resend, expire after 60 minutes, and use `FRONTEND_URL/reset-password?token=...`
 - Events use ticket tiers for pricing and availability; `Event.price` remains the minimum active tier price for old frontend compatibility
 - Confirmed bookings generate backend-issued tickets with QR values based on `ticket_code`
 - Confirmed booking emails include a ticket PDF attachment when PDF generation succeeds
+- Email previews can be sent with `npm run email:preview -- --to email@example.com`; this tests rendering/delivery only, not business flows
 
 ## Endpoints
 
