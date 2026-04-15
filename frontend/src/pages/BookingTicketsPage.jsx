@@ -8,12 +8,12 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Spinner,
 } from "@heroui/react";
 import { ArrowLeft, CalendarDays, Download, Mail, MapPin, QrCode, Ticket } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
+import { TicketPageSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import ticketService from "../services/ticketService";
@@ -155,12 +155,7 @@ export default function BookingTicketsPage() {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-        <Card className="border border-zinc-200/80 bg-white/88 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-          <CardBody className="flex min-h-64 flex-row items-center justify-center gap-3 text-zinc-600 dark:text-zinc-400">
-            <Spinner size="sm" color="default" />
-            <span className="text-sm">Loading tickets...</span>
-          </CardBody>
-        </Card>
+        <TicketPageSkeleton />
       </div>
     );
   }

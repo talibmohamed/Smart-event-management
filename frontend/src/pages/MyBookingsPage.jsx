@@ -9,12 +9,12 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Spinner,
 } from "@heroui/react";
 import { ArrowRight, CalendarClock, CreditCard, MapPin, QrCode, Ticket, WalletCards, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
+import { BookingCardSkeleton, StatCardsSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
@@ -447,6 +447,11 @@ export default function MyBookingsPage() {
               </div>
             </div>
 
+            {isLoading ? (
+              <div className="min-w-0 flex-1 lg:max-w-xl">
+                <StatCardsSkeleton />
+              </div>
+            ) : (
             <div className="grid gap-3 sm:grid-cols-3">
               <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/[0.05]">
                 <CardBody className="gap-2 px-4 py-4">
@@ -481,6 +486,7 @@ export default function MyBookingsPage() {
                 </CardBody>
               </Card>
             </div>
+            )}
           </div>
         </section>
 
@@ -491,12 +497,7 @@ export default function MyBookingsPage() {
         {errorMessage ? <BookingFlash message={errorMessage} tone="error" /> : null}
 
         {isLoading ? (
-          <Card className="border border-zinc-200/80 bg-white/88 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-            <CardBody className="flex flex-row items-center justify-center gap-3 px-6 py-14 text-zinc-600 dark:text-zinc-400">
-              <Spinner size="sm" color="default" />
-              <span className="text-sm">Loading bookings...</span>
-            </CardBody>
-          </Card>
+          <BookingCardSkeleton count={2} />
         ) : bookings.length === 0 ? (
           <Card className="border border-dashed border-zinc-300 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
             <CardBody className="gap-4 px-6 py-12 text-center">

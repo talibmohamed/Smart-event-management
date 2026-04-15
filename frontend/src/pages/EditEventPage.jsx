@@ -1,7 +1,8 @@
-import { Card, CardBody, Spinner } from "@heroui/react";
+import { Card, CardBody } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import EventForm from "../components/event/EventForm";
+import { EventFormSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
@@ -133,10 +134,7 @@ export default function EditEventPage() {
       <Card className="border border-zinc-200/80 bg-white/88 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
         <CardBody className="p-6 md:p-8">
           {isLoading ? (
-            <div className="flex min-h-64 flex-row items-center justify-center gap-3 text-zinc-600 dark:text-zinc-400">
-              <Spinner size="sm" color="default" />
-              <span className="text-sm">Loading event details...</span>
-            </div>
+            <EventFormSkeleton />
           ) : (
             <EventForm
               initialValues={eventRecord}

@@ -9,12 +9,12 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Spinner,
 } from "@heroui/react";
 import { CalendarDays, ClipboardCheck, PencilLine, Plus, Trash2, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
+import { DashboardEventSkeleton, StatCardsSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
@@ -262,20 +262,19 @@ export default function DashboardPage() {
 
         {errorMessage ? <FlashBanner message={errorMessage} tone="error" /> : null}
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <StatCard label="Total events" value={managedEvents.length} />
-          <StatCard label="Upcoming" value={upcomingEventsCount} />
-          <StatCard label="Past" value={pastEventsCount} />
-        </section>
+        {isLoading ? (
+          <StatCardsSkeleton />
+        ) : (
+          <section className="grid gap-4 md:grid-cols-3">
+            <StatCard label="Total events" value={managedEvents.length} />
+            <StatCard label="Upcoming" value={upcomingEventsCount} />
+            <StatCard label="Past" value={pastEventsCount} />
+          </section>
+        )}
 
         <section>
           {isLoading ? (
-            <Card className="border border-zinc-200/80 bg-white/88 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-              <CardBody className="flex flex-row items-center justify-center gap-3 px-6 py-12 text-zinc-600 dark:text-zinc-400">
-                <Spinner size="sm" color="default" />
-                <span className="text-sm">Loading events...</span>
-              </CardBody>
-            </Card>
+            <DashboardEventSkeleton count={2} />
           ) : managedEvents.length === 0 ? (
             <Card className="border border-dashed border-zinc-300 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
               <CardBody className="gap-4 px-6 py-10 text-center">

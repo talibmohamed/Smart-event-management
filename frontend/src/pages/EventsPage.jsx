@@ -1,10 +1,11 @@
-import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
+import { Button, Card, CardBody, Chip } from "@heroui/react";
 import { CalendarDays, MapPin, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import EventCard from "../components/event/EventCard";
 import EventFilters from "../components/event/EventFilters";
 import EventMap from "../components/event/EventMap";
+import { EventGridSkeleton, MapPanelSkeleton } from "../components/ui/LoadingSkeletons";
 import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
 import {
@@ -336,12 +337,12 @@ export default function EventsPage() {
         ) : null}
 
         {isLoading ? (
-          <Card className="border border-zinc-200/80 bg-white/84 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-            <CardBody className="flex flex-row items-center justify-center gap-3 px-6 py-14 text-zinc-600 dark:text-zinc-400">
-              <Spinner size="sm" color="default" />
-              <span className="text-sm">Loading events...</span>
-            </CardBody>
-          </Card>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
+            <EventGridSkeleton count={4} />
+            <aside className="hidden lg:block lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
+              <MapPanelSkeleton />
+            </aside>
+          </div>
         ) : errorMessage ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
             {errorMessage}

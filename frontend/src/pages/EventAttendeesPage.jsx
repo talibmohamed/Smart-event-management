@@ -1,8 +1,9 @@
-import { Button, Card, CardBody, CardHeader, Chip, Select, SelectItem, Spinner } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Chip, Select, SelectItem } from "@heroui/react";
 import { ArrowLeft, CalendarDays, Mail, Ticket, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { AttendeesSkeleton, StatCardsSkeleton } from "../components/ui/LoadingSkeletons";
 import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
 import { formatBookingAmount } from "../utils/bookingUtils";
@@ -321,19 +322,18 @@ export default function EventAttendeesPage() {
           </div>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <StatCard label="Bookings" value={attendeeStats.totalBookings} />
-          <StatCard label="Tickets" value={attendeeStats.totalTickets} />
-          <StatCard label="Total value" value={formatBookingAmount(attendeeStats.totalRevenue, "eur")} />
-        </section>
+        {isLoading ? (
+          <StatCardsSkeleton />
+        ) : (
+          <section className="grid gap-4 md:grid-cols-3">
+            <StatCard label="Bookings" value={attendeeStats.totalBookings} />
+            <StatCard label="Tickets" value={attendeeStats.totalTickets} />
+            <StatCard label="Total value" value={formatBookingAmount(attendeeStats.totalRevenue, "eur")} />
+          </section>
+        )}
 
         {isLoading ? (
-          <Card className="border border-zinc-200/80 bg-white/88 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-            <CardBody className="flex flex-row items-center justify-center gap-3 px-6 py-14 text-zinc-600 dark:text-zinc-400">
-              <Spinner size="sm" color="default" />
-              <span className="text-sm">Loading attendees...</span>
-            </CardBody>
-          </Card>
+          <AttendeesSkeleton count={4} />
         ) : attendees.length === 0 ? (
           <Card className="border border-dashed border-zinc-300 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
             <CardBody className="gap-4 px-6 py-12 text-center">

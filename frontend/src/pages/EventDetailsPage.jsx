@@ -1,8 +1,9 @@
-import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
+import { Button, Card, CardBody, Chip } from "@heroui/react";
 import { CalendarDays, MapPin, Minus, PencilLine, Plus, Ticket, Users, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
+import { DetailPageSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
@@ -286,10 +287,7 @@ export default function EventDetailsPage() {
       <Card className="overflow-hidden border border-zinc-200/80 bg-white/88 shadow-[0_24px_70px_rgba(148,163,184,0.12)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)]">
         <CardBody className="gap-6 p-6 md:p-8">
           {isLoading ? (
-            <div className="flex min-h-64 flex-row items-center justify-center gap-3 text-zinc-600 dark:text-zinc-400">
-              <Spinner size="sm" color="default" />
-              <span className="text-sm">Loading event details...</span>
-            </div>
+            <DetailPageSkeleton />
           ) : errorMessage ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
               {errorMessage}
