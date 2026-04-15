@@ -13,8 +13,10 @@ import DashboardPage from "../pages/DashboardPage"
 import CreateEventPage from "../pages/CreateEventPage"
 import EditEventPage from "../pages/EditEventPage"
 import EventAttendeesPage from "../pages/EventAttendeesPage"
+import EventCheckInPage from "../pages/EventCheckInPage"
 import MyBookingsPage from "../pages/MyBookingsPage"
 import BookingStatusPage from "../pages/BookingStatusPage"
+import BookingTicketsPage from "../pages/BookingTicketsPage"
 import ProtectedRoute from "./ProtectedRoute"
 
 export default function AppRouter() {
@@ -35,6 +37,7 @@ export default function AppRouter() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/bookings/:id/payment-success" element={<BookingStatusPage />} />
           <Route path="/bookings/:id/payment-cancelled" element={<BookingStatusPage />} />
+          <Route path="/bookings/:id/tickets" element={<BookingTicketsPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["attendee"]} />}>
@@ -45,6 +48,7 @@ export default function AppRouter() {
           <Route path="/create-event" element={<CreateEventPage />} />
           <Route path="/events/:id/edit" element={<EditEventPage />} />
           <Route path="/events/:id/attendees" element={<EventAttendeesPage />} />
+          <Route path="/events/:id/check-in" element={<EventCheckInPage />} />
         </Route>
       </Route>
     </Routes>

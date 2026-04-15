@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, CardFooter, CardHeader, Chip, Spinner } from "@heroui/react";
-import { CalendarDays, CreditCard, MapPin, Ticket, WalletCards, XCircle } from "lucide-react";
+import { CalendarDays, CreditCard, MapPin, QrCode, Ticket, WalletCards, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
@@ -468,6 +468,18 @@ export default function MyBookingsPage() {
                     >
                       View event
                     </Button>
+
+                    {isConfirmed ? (
+                      <Button
+                        as={RouterLink}
+                        to={`/bookings/${booking.id}/tickets`}
+                        radius="full"
+                        startContent={<QrCode size={15} />}
+                        className="w-full bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950 sm:w-auto"
+                      >
+                        View tickets
+                      </Button>
+                    ) : null}
 
                     {isPendingPayment ? (
                       <Button

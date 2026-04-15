@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, Chip, Spinner } from "@heroui/react";
-import { AlertTriangle, CheckCircle2, Clock3, CreditCard, Ticket, WalletCards, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, CreditCard, QrCode, Ticket, WalletCards, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
@@ -300,6 +300,17 @@ export default function BookingStatusPage() {
                 >
                   Go to My Bookings
                 </Button>
+                {booking?.status === "confirmed" ? (
+                  <Button
+                    as={RouterLink}
+                    to={`/bookings/${booking.id}/tickets`}
+                    radius="full"
+                    startContent={<QrCode size={15} />}
+                    className="bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+                  >
+                    View tickets
+                  </Button>
+                ) : null}
                 {canRetryPayment ? (
                   <Button
                     radius="full"
