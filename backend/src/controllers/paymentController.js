@@ -35,12 +35,16 @@ const sendPaidBookingConfirmedEmails = async (bookingId) => {
   }
 
   const tickets = await Ticket.getTicketsForBooking(bookingId);
-  const emailTickets = await buildEmailTickets(tickets);
+  const emailTicketData = await buildEmailTickets(tickets);
   const ticketPdfAttachment = await buildTicketPdfAttachment({
     booking,
     event: tickets[0]?.event || booking.event,
     tickets,
   });
+  const attachments = [
+    ...emailTicketData.attachments,
+    ...(ticketPdfAttachment ? [ticketPdfAttachment] : []),
+  ];
 
   sendEmailBestEffort(
     bookingConfirmedEmail({
@@ -48,8 +52,8 @@ const sendPaidBookingConfirmedEmails = async (bookingId) => {
       event: booking.event,
       booking,
       ticketUrl: getTicketUrl(booking.id),
-      tickets: emailTickets,
-      attachments: ticketPdfAttachment ? [ticketPdfAttachment] : undefined
+      tickets: emailTicketData.tickets,
+      attachments: attachments.length ? attachments : undefined
     })
   );
   sendEmailBestEffort(

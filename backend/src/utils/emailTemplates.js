@@ -65,7 +65,7 @@ const ticketHtml = (tickets = []) => {
         <div style="margin: 16px 0; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px;">
           <p><strong>${escapeHtml(ticket.ticket_tier_name || "Ticket")}</strong></p>
           <p>Code: ${escapeHtml(ticket.ticket_code)}</p>
-          ${ticket.qr_data_url ? `<img alt="Ticket QR code" width="160" height="160" src="${ticket.qr_data_url}" />` : ""}
+          ${ticket.qr_src ? `<img alt="Ticket QR code" width="160" height="160" src="${ticket.qr_src}" />` : ""}
         </div>
       `).join("")}
     </div>
