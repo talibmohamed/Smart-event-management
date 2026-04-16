@@ -41,7 +41,7 @@ const ticketService = {
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `smart-event-tickets-${bookingId}.pdf`;
+    link.download = `quickseat-tickets-${bookingId}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();

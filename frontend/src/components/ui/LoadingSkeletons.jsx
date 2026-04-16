@@ -48,13 +48,9 @@ export function EventGridSkeleton({ count = 4 }) {
 
 export function MapPanelSkeleton() {
   return (
-    <Card className="h-[72vh] border border-zinc-200/80 bg-white/84 shadow-sm dark:border-white/10 dark:bg-white/[0.04] lg:h-full">
-      <CardBody className="gap-4 p-4">
-        <SkeletonBox className="h-full min-h-80 w-full rounded-[1.5rem]" />
-        <div className="flex flex-wrap gap-2">
-          <SkeletonLine className="h-8 w-24" />
-          <SkeletonLine className="h-8 w-32" />
-        </div>
+    <Card className="h-full min-h-0 w-full rounded-none border-0 bg-white/84 shadow-none dark:bg-white/[0.04]">
+      <CardBody className="h-full min-h-0 w-full p-4">
+        <SkeletonBox className="h-full min-h-0 w-full rounded-[1.5rem]" />
       </CardBody>
     </Card>
   );

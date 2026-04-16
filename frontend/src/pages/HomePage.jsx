@@ -361,11 +361,11 @@ export default function HomePage() {
                   variant="flat"
                   className="border border-zinc-200 bg-white/85 text-zinc-700 dark:border-white/10 dark:bg-white/8 dark:text-zinc-200"
                 >
-                  SmartEvent platform
+                  Quickseat platform
                 </Chip>
                 <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-white/10 dark:bg-white/6 dark:text-zinc-400">
                   <Sparkles size={13} />
-                  Premium event operations
+                  YOUR SEAT, FASTER THAN EVER
                 </div>
               </motion.div>
 
@@ -374,7 +374,7 @@ export default function HomePage() {
                   The calmer way to discover, book, and run events.
                 </h1>
                 <p className="max-w-2xl text-base leading-8 text-zinc-600 dark:text-zinc-400 sm:text-lg">
-                  SmartEvent blends a public event marketplace with organizer controls, secure bookings,
+                  Quickseat blends a public event marketplace with organizer controls, secure bookings,
                   payments, map discovery, and admin visibility in one polished workspace.
                 </p>
               </motion.div>
@@ -607,7 +607,7 @@ export default function HomePage() {
                   variant="bordered"
                   className="border-zinc-200 bg-white/70 px-7 text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
                 >
-                  Join SmartEvent
+                  Join Quickseat
                 </Button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, Link as RouterLink } from "react-router-dom";
 import { Input, Button, Link } from "@heroui/react";
+import logoUrl from "../../logo.svg";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import { getPostAuthPath } from "../services/authService";
@@ -77,10 +78,10 @@ export default function LoginPage() {
       <div className="relative z-10 hidden w-1/2 overflow-hidden p-12 lg:flex lg:p-24">
         <div className="relative z-20 flex max-w-lg flex-col justify-center">
           <Link as={RouterLink} to="/" className="mb-16 flex items-center gap-2 text-2xl font-bold tracking-tighter text-zinc-950 dark:text-white">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 shadow-[0_0_15px_rgba(139,92,246,0.35)] dark:shadow-[0_0_15px_rgba(139,92,246,0.5)]">
-              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white p-1 shadow-[0_0_15px_rgba(35,21,56,0.18)]">
+              <img src={logoUrl} alt="Quickseat logo" className="h-full w-full object-contain" />
             </div>
-            SmartEvent.
+            Quickseat.
           </Link>
 
           <h1 className="mb-6 text-5xl font-extrabold leading-[1.1] tracking-tight text-zinc-950 dark:text-white lg:text-6xl">
@@ -133,10 +134,10 @@ export default function LoginPage() {
 
           <div className="relative z-10">
             <div className="mb-10 flex items-center gap-2 lg:hidden">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 shadow-[0_0_15px_rgba(139,92,246,0.35)] dark:shadow-[0_0_15px_rgba(139,92,246,0.5)]">
-                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white p-1 shadow-[0_0_15px_rgba(35,21,56,0.18)]">
+                <img src={logoUrl} alt="Quickseat logo" className="h-full w-full object-contain" />
               </div>
-              <span className="text-xl font-bold tracking-tighter text-zinc-950 dark:text-white">SmartEvent.</span>
+              <span className="text-xl font-bold tracking-tighter text-zinc-950 dark:text-white">Quickseat.</span>
             </div>
 
             <div className="mb-8 space-y-1.5">

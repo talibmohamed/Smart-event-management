@@ -1,4 +1,4 @@
-const SESSION_STORAGE_KEY = "smart-event-session"
+const SESSION_STORAGE_KEY = "quickseat-session"
 
 function emptySession() {
   return { user: null, token: "" }

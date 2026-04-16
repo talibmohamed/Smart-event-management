@@ -1,5 +1,6 @@
 import { Link } from "@heroui/react";
 import { Link as RouterLink } from "react-router-dom";
+import wordmarkUrl from "../../../logo + slogen.svg";
 
 const footerSections = [
   {
@@ -32,8 +33,15 @@ export default function AppFooter() {
     <footer className="border-t border-zinc-900/8 bg-white/48 backdrop-blur-xl dark:border-white/8 dark:bg-[#09090C]/48">
       <div className="mx-auto max-w-7xl px-6 py-8">
         <div className="max-w-md">
+          <div className="mb-4 flex w-fit items-center">
+            <img
+              src={wordmarkUrl}
+              alt="Quickseat"
+              className="h-16 w-auto max-w-[340px] object-contain sm:h-20 sm:max-w-[420px]"
+            />
+          </div>
           <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
-            SmartEvent helps teams run events with less friction and clearer operations.
+            Quickseat helps teams run events with less friction and faster seat access.
           </p>
         </div>
 
@@ -61,8 +69,8 @@ export default function AppFooter() {
         </div>
 
         <div className="mt-8 flex flex-col gap-2 border-t border-zinc-900/8 pt-4 text-xs text-zinc-500 dark:border-white/8 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 SmartEvent</p>
-          <p>Built for seamless event operations</p>
+          <p>{"\u00A9"} 2026 Quickseat</p>
+          <p>YOUR SEAT, FASTER THAN EVER</p>
         </div>
       </div>
     </footer>

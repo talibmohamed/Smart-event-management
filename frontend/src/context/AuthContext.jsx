@@ -71,7 +71,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     function handleStorageChange(event) {
-      if (event.key !== "smart-event-session") {
+      if (event.key !== "quickseat-session") {
         return
       }
 

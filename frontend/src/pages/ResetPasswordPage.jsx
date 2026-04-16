@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Input, Link } from "@heroui/react";
+import logoUrl from "../../logo.svg";
 import authService from "../services/authService";
 import { extractApiErrorMessage } from "../services/api";
 
@@ -63,12 +64,10 @@ export default function ResetPasswordPage() {
 
           <div className="relative z-10">
             <Link as={RouterLink} to="/" className="mb-10 flex items-center gap-2 text-xl font-bold tracking-tighter text-zinc-950 dark:text-white">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 shadow-[0_0_15px_rgba(139,92,246,0.35)] dark:shadow-[0_0_15px_rgba(139,92,246,0.5)]">
-                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white p-1 shadow-[0_0_15px_rgba(35,21,56,0.18)]">
+                <img src={logoUrl} alt="Quickseat logo" className="h-full w-full object-contain" />
               </div>
-              SmartEvent.
+              Quickseat.
             </Link>
 
             <div className="mb-8 space-y-2">

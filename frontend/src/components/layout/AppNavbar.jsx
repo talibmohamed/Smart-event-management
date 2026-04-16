@@ -10,9 +10,10 @@ import {
   NavbarMenuItem,
   NavbarMenuToggle,
 } from "@heroui/react";
-import { CalendarDays, LogOut, Plus } from "lucide-react";
+import { LogOut, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import logoUrl from "../../../logo.svg";
 import { useAuth } from "../../context/AuthContext";
 import { isOrganizerRole } from "../../services/authService";
 import ThemeSwitcher from "../ui/ThemeSwitcher";
@@ -93,15 +94,19 @@ export default function AppNavbar() {
           to="/"
           className="flex items-center gap-3 rounded-full outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-sky-500/50"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/60 bg-white/75 text-zinc-950 shadow-sm shadow-zinc-950/5 ring-1 ring-zinc-900/5 dark:border-white/10 dark:bg-white/10 dark:text-white dark:shadow-black/20 dark:ring-white/10">
-            <CalendarDays className="h-4.5 w-4.5 text-sky-600 dark:text-sky-300" strokeWidth={2.2} />
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-white p-1.5 shadow-sm shadow-zinc-950/5 ring-1 ring-zinc-900/5 dark:border-white/10 dark:bg-white dark:shadow-black/20 dark:ring-white/10">
+            <img
+              src={logoUrl}
+              alt="Quickseat logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           <div className="flex flex-col">
-            <span className="text-[1rem] font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
-              SmartEvent
+            <span className="text-[1rem] font-semibold tracking-[-0.03em] text-[#231538] dark:text-[#231538]">
+              Quickseat
             </span>
             <span className="hidden text-[0.68rem] font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 sm:block">
-              Event platform
+              YOUR SEAT, FASTER THAN EVER
             </span>
           </div>
         </Link>

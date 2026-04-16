@@ -5,7 +5,7 @@ const termsSections = [
   {
     title: "Use Of The Platform",
     content:
-      "SmartEvent provides tools for browsing, booking, creating, and managing events. Users agree to provide accurate information and use the platform only for lawful event-related activity.",
+      "Quickseat provides tools for browsing, booking, creating, and managing events. Users agree to provide accurate information and use the platform only for lawful event-related activity.",
   },
   {
     title: "Accounts And Roles",
@@ -15,7 +15,7 @@ const termsSections = [
   {
     title: "Event Management",
     content:
-      "Organizers are responsible for the accuracy of event titles, descriptions, addresses, dates, prices, capacity, and images. SmartEvent may restrict or remove content that is incorrect, unsafe, or inappropriate.",
+      "Organizers are responsible for the accuracy of event titles, descriptions, addresses, dates, prices, capacity, and images. Quickseat may restrict or remove content that is incorrect, unsafe, or inappropriate.",
   },
   {
     title: "Bookings And Payments",
@@ -30,7 +30,7 @@ const termsSections = [
   {
     title: "Limitations",
     content:
-      "SmartEvent is a university engineering project. It should not be treated as a fully audited commercial service without additional legal, security, privacy, and operational review.",
+      "Quickseat is a university engineering project. It should not be treated as a fully audited commercial service without additional legal, security, privacy, and operational review.",
   },
 ];
 
@@ -54,7 +54,7 @@ export default function TermsOfServicePage() {
               Terms of Service
             </h1>
             <p className="mt-5 text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base md:leading-8">
-              These terms describe the expected use of SmartEvent by attendees, organizers, and
+              These terms describe the expected use of Quickseat by attendees, organizers, and
               admins. They are suitable for the project interface and should be reviewed before a
               production launch.
             </p>

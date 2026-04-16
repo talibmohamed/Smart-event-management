@@ -5,6 +5,27 @@ import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import { formatEventPriceRange } from "../../utils/eventUtils";
 import { FRANCE_MAP_CENTER, getMappableEvents } from "../../utils/mapHelpers";
 
+function isValidLatLng(latitude, longitude) {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180
+  );
+}
+
+function getSafeZoom(map, minimumZoom = 13) {
+  const currentZoom = Number(map.getZoom());
+
+  if (!Number.isFinite(currentZoom)) {
+    return minimumZoom;
+  }
+
+  return Math.max(currentZoom, minimumZoom);
+}
+
 function createMarkerIcon(isSelected) {
   return L.divIcon({
     className: "",
@@ -23,36 +44,58 @@ function createMarkerIcon(isSelected) {
   });
 }
 
-function MapController({ mappableEvents, selectedEventId }) {
+function MapController({ mappableEvents, focusEventId }) {
   const map = useMap();
 
   useEffect(() => {
-    map.invalidateSize();
+    window.requestAnimationFrame(() => {
+      try {
+        map.invalidateSize();
+      } catch {
+        // Ignore transient Leaflet state while responsive containers are changing size.
+      }
+    });
   }, [map, mappableEvents.length]);
 
   useEffect(() => {
-    const selectedMarker = mappableEvents.find(({ event }) => event.id === selectedEventId);
+    const selectedMarker = mappableEvents.find(
+      ({ event, latitude, longitude }) =>
+        String(event.id) === String(focusEventId) && isValidLatLng(latitude, longitude),
+    );
 
-    if (selectedMarker) {
-      map.flyTo([selectedMarker.latitude, selectedMarker.longitude], Math.max(map.getZoom(), 13), {
-        duration: 0.45,
-      });
-      return;
-    }
+    try {
+      if (selectedMarker) {
+        map.setView([selectedMarker.latitude, selectedMarker.longitude], getSafeZoom(map, 13), {
+          animate: false,
+        });
+        return;
+      }
 
-    if (mappableEvents.length === 1) {
-      const [marker] = mappableEvents;
-      map.setView([marker.latitude, marker.longitude], 12);
-      return;
-    }
+      if (mappableEvents.length === 1) {
+        const [marker] = mappableEvents;
+        if (isValidLatLng(marker.latitude, marker.longitude)) {
+          map.setView([marker.latitude, marker.longitude], 12);
+        }
+        return;
+      }
 
-    if (mappableEvents.length > 1) {
-      const bounds = L.latLngBounds(
-        mappableEvents.map(({ latitude, longitude }) => [latitude, longitude]),
+      const validMarkers = mappableEvents.filter(({ latitude, longitude }) =>
+        isValidLatLng(latitude, longitude),
       );
-      map.fitBounds(bounds, { padding: [36, 36], maxZoom: 12 });
+
+      if (validMarkers.length > 1) {
+        const bounds = L.latLngBounds(
+          validMarkers.map(({ latitude, longitude }) => [latitude, longitude]),
+        );
+
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [36, 36], maxZoom: 12 });
+        }
+      }
+    } catch {
+      // Leaflet can briefly report invalid internal map state during responsive layout changes.
     }
-  }, [map, mappableEvents, selectedEventId]);
+  }, [map, mappableEvents, focusEventId]);
 
   return null;
 }
@@ -81,7 +124,10 @@ function MapViewportReporter({ mappableEvents, onViewportEventIdsChange }) {
 
       const bounds = map.getBounds();
       const visibleEventIds = mappableEvents
-        .filter(({ latitude, longitude }) => bounds.contains([latitude, longitude]))
+        .filter(
+          ({ latitude, longitude }) =>
+            isValidLatLng(latitude, longitude) && bounds.contains([latitude, longitude]),
+        )
         .map(({ event }) => String(event.id));
 
       onViewportEventIdsChange(visibleEventIds);
@@ -91,7 +137,6 @@ function MapViewportReporter({ mappableEvents, onViewportEventIdsChange }) {
     map.on("zoomstart", markUserInteraction);
     map.on("moveend", reportVisibleEvents);
     map.on("zoomend", reportVisibleEvents);
-    mapContainer.addEventListener("wheel", markUserInteraction, { passive: true });
     mapContainer.addEventListener("mousedown", markUserInteraction);
     mapContainer.addEventListener("touchstart", markUserInteraction, { passive: true });
 
@@ -100,7 +145,6 @@ function MapViewportReporter({ mappableEvents, onViewportEventIdsChange }) {
       map.off("zoomstart", markUserInteraction);
       map.off("moveend", reportVisibleEvents);
       map.off("zoomend", reportVisibleEvents);
-      mapContainer.removeEventListener("wheel", markUserInteraction);
       mapContainer.removeEventListener("mousedown", markUserInteraction);
       mapContainer.removeEventListener("touchstart", markUserInteraction);
     };
@@ -112,6 +156,7 @@ function MapViewportReporter({ mappableEvents, onViewportEventIdsChange }) {
 export default function EventMap({
   events,
   selectedEventId,
+  focusEventId = "",
   onSelectEvent,
   onViewportEventIdsChange,
   className = "",
@@ -121,7 +166,7 @@ export default function EventMap({
   if (events.length > 0 && mappableEvents.length === 0) {
     return (
       <div
-        className={`flex items-center justify-center rounded-[1.75rem] border border-dashed border-zinc-300 bg-white/82 p-6 text-center dark:border-white/10 dark:bg-white/[0.04] ${className}`}
+        className={`flex h-full min-h-0 w-full items-center justify-center rounded-[1.75rem] border border-dashed border-zinc-300 bg-white/82 p-6 text-center dark:border-white/10 dark:bg-white/[0.04] ${className}`}
       >
         <div>
           <p className="text-lg font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
@@ -137,56 +182,62 @@ export default function EventMap({
 
   return (
     <div
-      className={`overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.04] ${className}`}
+      className={`relative h-full min-h-0 w-full overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.04] ${className}`}
     >
-      <MapContainer
-        center={FRANCE_MAP_CENTER}
-        zoom={6}
-        scrollWheelZoom
-        className="h-full min-h-[24rem] w-full"
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+      <div className="h-full min-h-0 w-full">
+        <MapContainer
+          center={FRANCE_MAP_CENTER}
+          zoom={6}
+          scrollWheelZoom={false}
+          className="h-full min-h-0 w-full"
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
 
-        <MapController mappableEvents={mappableEvents} selectedEventId={selectedEventId} />
-        <MapViewportReporter
-          mappableEvents={mappableEvents}
-          onViewportEventIdsChange={onViewportEventIdsChange}
-        />
+          <MapController mappableEvents={mappableEvents} focusEventId={focusEventId} />
+          <MapViewportReporter
+            mappableEvents={mappableEvents}
+            onViewportEventIdsChange={onViewportEventIdsChange}
+          />
 
-        {mappableEvents.map(({ event, latitude, longitude }) => {
-          const isSelected = event.id === selectedEventId;
+          {mappableEvents.map(({ event, latitude, longitude }) => {
+            if (!isValidLatLng(latitude, longitude)) {
+              return null;
+            }
 
-          return (
-            <Marker
-              key={event.id}
-              position={[latitude, longitude]}
-              icon={createMarkerIcon(isSelected)}
-              eventHandlers={{
-                click: () => onSelectEvent(event.id),
-              }}
-            >
-              <Popup>
-                <div className="min-w-44 space-y-2">
-                  <p className="text-sm font-semibold text-zinc-950">{event.title}</p>
-                  <p className="text-xs text-zinc-600">{event.city || "City not available"}</p>
-                  <p className="text-xs font-medium text-zinc-900">
-                    {formatEventPriceRange(event)}
-                  </p>
-                  <RouterLink
-                    to={`/events/${event.id}`}
-                    className="inline-flex text-xs font-semibold text-sky-700 hover:text-sky-900"
-                  >
-                    View details
-                  </RouterLink>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+            const isSelected = String(event.id) === String(selectedEventId);
+
+            return (
+              <Marker
+                key={event.id}
+                position={[latitude, longitude]}
+                icon={createMarkerIcon(isSelected)}
+                eventHandlers={{
+                  click: () => onSelectEvent(event.id),
+                }}
+              >
+                <Popup>
+                  <div className="min-w-44 space-y-2">
+                    <p className="text-sm font-semibold text-zinc-950">{event.title}</p>
+                    <p className="text-xs text-zinc-600">{event.city || "City not available"}</p>
+                    <p className="text-xs font-medium text-zinc-900">
+                      {formatEventPriceRange(event)}
+                    </p>
+                    <RouterLink
+                      to={`/events/${event.id}`}
+                      className="inline-flex text-xs font-semibold text-sky-700 hover:text-sky-900"
+                    >
+                      View details
+                    </RouterLink>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MapContainer>
+      </div>
     </div>
   );
 }

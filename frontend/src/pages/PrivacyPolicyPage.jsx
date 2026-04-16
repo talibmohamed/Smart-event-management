@@ -5,7 +5,7 @@ const privacySections = [
   {
     title: "Information We Collect",
     content:
-      "SmartEvent collects the account details needed to use the platform, such as name, email address, role, event bookings, and event management activity. Organizers may also provide event information such as title, description, address, city, date, price, capacity, and cover image.",
+      "Quickseat collects the account details needed to use the platform, such as name, email address, role, event bookings, and event management activity. Organizers may also provide event information such as title, description, address, city, date, price, capacity, and cover image.",
   },
   {
     title: "How We Use Information",
@@ -15,7 +15,7 @@ const privacySections = [
   {
     title: "Payments",
     content:
-      "Paid booking checkout is handled through Stripe. SmartEvent does not store full card numbers or sensitive payment credentials. Payment status is stored so bookings can be confirmed, cancelled, or retried.",
+      "Paid booking checkout is handled through Stripe. Quickseat does not store full card numbers or sensitive payment credentials. Payment status is stored so bookings can be confirmed, cancelled, or retried.",
   },
   {
     title: "Access And Security",
@@ -54,7 +54,7 @@ export default function PrivacyPolicyPage() {
               Privacy Policy
             </h1>
             <p className="mt-5 text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base md:leading-8">
-              This policy explains how SmartEvent handles user and event data for the event
+              This policy explains how Quickseat handles user and event data for the event
               management platform. It is written for product clarity and should be reviewed before
               any real public deployment.
             </p>
