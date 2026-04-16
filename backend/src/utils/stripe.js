@@ -39,7 +39,7 @@ export async function createBookingCheckoutSession({ booking, event, user }) {
           unit_amount: getExpectedAmountInCents(item.unit_price),
           product_data: {
             name: `${event.title} - ${item.ticket_tier?.name || "Ticket"}`,
-            description: item.ticket_tier?.description || event.category || "Smart Event Management event"
+            description: item.ticket_tier?.description || event.category || "Quickseat event"
           }
         }
       }))
@@ -51,7 +51,7 @@ export async function createBookingCheckoutSession({ booking, event, user }) {
             unit_amount: getExpectedAmountInCents(event.price),
             product_data: {
               name: event.title,
-              description: event.category || "Smart Event Management event"
+              description: event.category || "Quickseat event"
             }
           }
         }

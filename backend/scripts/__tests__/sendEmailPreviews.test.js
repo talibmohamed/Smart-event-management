@@ -4,13 +4,34 @@ import { parsePreviewArgs } from "../sendEmailPreviews.js";
 describe("sendEmailPreviews script", () => {
   it("rejects missing recipient", () => {
     expect(() => parsePreviewArgs([])).toThrow(
-      "Usage: npm run email:preview -- --to email@example.com"
+      "Usage: npm run email:preview -- --to email@example.com [--template templateName]"
     );
   });
 
   it("parses recipient from --to", () => {
     expect(parsePreviewArgs(["--to", "test@example.com"])).toEqual({
       to: "test@example.com",
+      template: "all",
     });
+  });
+
+  it("parses optional template filter", () => {
+    expect(
+      parsePreviewArgs([
+        "--to",
+        "test@example.com",
+        "--template",
+        "bookingConfirmedEmail",
+      ])
+    ).toEqual({
+      to: "test@example.com",
+      template: "bookingConfirmedEmail",
+    });
+  });
+
+  it("rejects missing template value", () => {
+    expect(() =>
+      parsePreviewArgs(["--to", "test@example.com", "--template"])
+    ).toThrow("Missing value for --template");
   });
 });

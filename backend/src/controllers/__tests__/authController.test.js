@@ -62,7 +62,7 @@ describe("auth controller password reset", () => {
     expect(sendEmailBestEffort).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "test@example.com",
-        subject: "Reset your Smart Event Management password",
+        subject: "Reset your Quickseat password",
       })
     );
     expect(res.status).toHaveBeenCalledWith(200);

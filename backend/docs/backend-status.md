@@ -1,6 +1,6 @@
 # Backend Status
 
-Last updated: 2026-04-15
+Last updated: 2026-04-16
 
 ## Current State
 
@@ -44,6 +44,7 @@ Last updated: 2026-04-15
 - Stripe Checkout requires `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CURRENCY`, and `FRONTEND_URL`
 - Transactional emails require `RESEND_API_KEY`, `EMAIL_FROM`, and optional `EMAIL_REPLY_TO`
 - `npm run email:preview -- --to email@example.com` sends all styled email templates to one recipient for visual inspection
+- `npm run email:preview -- --to email@example.com --template bookingConfirmedEmail` sends only the booking confirmation preview with ticket PDF attachment
 - Forgot password requires the password reset database fields from `npm run db:password-reset-schema`
 
 ### Authentication
@@ -101,7 +102,7 @@ Last updated: 2026-04-15
 - Resend emails are sent for booking confirmations, paid confirmations, payment failures/expirations, booking cancellations, event updates, and event deletions
 - Resend emails use a shared styled HTML layout with status badges, detail cards, CTA buttons, and text fallback
 - Booking confirmation emails include ticket page links and may include inline ticket QR codes
-- Booking confirmation emails include a generated ticket PDF attachment when PDF generation succeeds
+- Booking confirmation emails include a branded generated ticket PDF attachment when PDF generation succeeds
 - Password reset emails are sent through Resend and expire after 60 minutes
 - Critical booking and Stripe webhook tests use mocked model/payment/email boundaries
 
@@ -142,6 +143,7 @@ Last updated: 2026-04-15
 - Cancelled bookings mark related valid tickets as `cancelled`
 - Already used tickets return `409` on check-in and are not updated again
 - Stripe success redirect is not payment confirmation; only the webhook confirms paid bookings
+- Ticket PDFs render the frontend SVG logo as vector and strip embedded raster nodes to avoid black background artifacts
 - Email delivery is best-effort and does not change API success/failure results
 - Forgot password responses do not reveal whether an email exists
 - Duplicate pending paid bookings return `409`

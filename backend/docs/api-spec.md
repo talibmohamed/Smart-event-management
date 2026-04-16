@@ -1,6 +1,6 @@
-# Smart Event Management API Spec
+# Quickseat API Spec
 
-Last updated: 2026-04-15
+Last updated: 2026-04-16
 
 ## Global Rules
 
@@ -32,8 +32,9 @@ Last updated: 2026-04-15
 - Password reset links are emailed with Resend, expire after 60 minutes, and use `FRONTEND_URL/reset-password?token=...`
 - Events use ticket tiers for pricing and availability; `Event.price` remains the minimum active tier price for old frontend compatibility
 - Confirmed bookings generate backend-issued tickets with QR values based on `ticket_code`
-- Confirmed booking emails include a ticket PDF attachment when PDF generation succeeds
-- Email previews can be sent with `npm run email:preview -- --to email@example.com`; this tests rendering/delivery only, not business flows
+- Confirmed booking emails include a branded ticket PDF attachment when PDF generation succeeds
+- Ticket PDFs render the frontend SVG logo as vector and strip embedded raster nodes to avoid black background artifacts
+- Email previews can be sent with `npm run email:preview -- --to email@example.com`; pass `--template bookingConfirmedEmail` to send only the booking confirmation preview with ticket PDF
 
 ## Endpoints
 
@@ -42,7 +43,7 @@ Last updated: 2026-04-15
 - Auth: no
 - Allowed roles: all
 - Request body: none
-- Success: `200 { "success": true, "message": "Smart Event Management API is running" }`
+- Success: `200 { "success": true, "message": "Quickseat API is running" }`
 - Common errors: none
 
 ### `GET /api/test/db`

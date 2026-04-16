@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-15
+Last updated: 2026-04-16
 
 ## Base Setup
 
@@ -38,6 +38,7 @@ Authorization: Bearer <jwt>
   - `EMAIL_ENABLED=true`
 - Styled email preview command:
   - `npm run email:preview -- --to email@example.com`
+  - `npm run email:preview -- --to email@example.com --template bookingConfirmedEmail` sends only the booking confirmation preview with ticket PDF
 - Seeded sample password for all seed users: `Password123!`
 - Seeded sample emails:
   - `admin@smartevent.test`
@@ -393,11 +394,13 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
 - Booking confirmation emails include a ticket page link
 - Confirmation emails may include inline QR images for each generated ticket
 - Confirmation emails include a ticket PDF attachment when PDF generation succeeds
+- Ticket PDFs render the frontend SVG logo as vector and strip embedded raster nodes to avoid black background artifacts
 - Inline email QR codes are convenience only; backend ticket validation remains the source of truth
 - If inline QR generation fails, the email still sends with the ticket link
 - No email is sent for duplicate booking errors, failed validation requests, pending payment retry creation, or frontend Stripe success redirects
 - Set `EMAIL_ENABLED=false` to disable email sending locally
 - Use `npm run email:preview -- --to email@example.com` to send all templates to one inbox for visual inspection; this does not test booking/payment/event business functionality
+- Use `npm run email:preview -- --to email@example.com --template bookingConfirmedEmail` to send only the ticket email preview with the PDF attachment
 
 ## Response Notes
 

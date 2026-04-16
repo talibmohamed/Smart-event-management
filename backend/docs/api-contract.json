@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "name": "Smart Event Management Backend API",
+    "name": "Quickseat Backend API",
     "version": "1.0.0",
-    "lastUpdated": "2026-04-15",
+    "lastUpdated": "2026-04-16",
     "baseUrl": "http://localhost:5000"
   },
   "development": {
@@ -13,7 +13,8 @@
     "ticketSchemaCommand": "npm run db:ticket-schema",
     "ticketSchemaCommandBehavior": "Applies ticket table and backfills tickets for existing confirmed bookings",
     "emailPreviewCommand": "npm run email:preview -- --to email@example.com",
-    "emailPreviewBehavior": "Sends all styled email templates to one recipient for rendering/delivery inspection only; does not test business flows",
+    "emailPreviewSingleTemplateCommand": "npm run email:preview -- --to email@example.com --template bookingConfirmedEmail",
+    "emailPreviewBehavior": "Sends all styled email templates to one recipient for rendering/delivery inspection only; --template sends one named template and does not test business flows",
     "storageSetupCommand": "npm run storage:setup",
     "seedPassword": "Password123!",
     "seedUsers": [
@@ -71,7 +72,7 @@
     "transactionalEmail": "Resend emails use styled HTML templates with plain text fallback, status badges, detail cards, CTA buttons, and best-effort delivery. They never determine API success or failure.",
     "passwordReset": "Forgot password responses do not reveal whether an email exists. Reset tokens are emailed, stored hashed, and expire after 60 minutes.",
     "ticketTiers": "Events use ticket_tiers for pricing and availability. Event.price remains as the minimum active tier price for compatibility.",
-    "tickets": "Confirmed bookings generate one Ticket row per purchased ticket quantity. QR values use ticket_code. Ticket PDFs are generated on demand for email attachments and frontend downloads.",
+    "tickets": "Confirmed bookings generate one Ticket row per purchased ticket quantity. QR values use ticket_code. Branded ticket PDFs are generated on demand for email attachments and frontend downloads by rendering the frontend SVG logo as vector and stripping embedded raster nodes to avoid black background artifacts.",
     "responseException": "GET /api/auth/me returns success and data without message on success"
   },
   "schemas": {
@@ -306,7 +307,7 @@
         "status": 200,
         "body": {
           "success": true,
-          "message": "Smart Event Management API is running"
+          "message": "Quickseat API is running"
         }
       },
       "commonErrors": []
@@ -908,7 +909,7 @@
         { "status": 500, "message": "Server error while downloading tickets" }
       ],
       "behaviorNotes": [
-        "Returns the same backend-generated ticket PDF used for email attachments.",
+        "Returns the same branded backend-generated ticket PDF used for email attachments.",
         "Frontend must handle this endpoint as binary PDF, not JSON."
       ]
     },
@@ -1054,7 +1055,6 @@
   "pendingFeatures": [
     "Feedback endpoints",
     "Admin-specific supervision endpoints",
-    "Event filtering and pagination",
-    "PDF ticket generation and attachments"
+    "Event filtering and pagination"
   ]
 }

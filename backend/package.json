@@ -33,7 +33,8 @@
     "prisma": "6.19.2",
     "qrcode": "^1.5.4",
     "resend": "^6.10.0",
-    "stripe": "^22.0.1"
+    "stripe": "^22.0.1",
+    "svg-to-pdfkit": "^0.1.8"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.4",

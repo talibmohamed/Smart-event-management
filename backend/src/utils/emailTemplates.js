@@ -1,4 +1,5 @@
-const appName = "Smart Event Management";
+const appName = "Quickseat";
+const appSlogan = "YOUR SEAT, FASTER THAN EVER";
 
 const colors = {
   background: "#f4f7fb",
@@ -99,7 +100,7 @@ const baseHtml = ({
       <div style="max-width: 680px; margin: 0 auto; padding: 32px 16px; font-family: Arial, Helvetica, sans-serif;">
         <div style="padding: 0 4px 18px;">
           <div style="font-size: 20px; font-weight: 800; color: ${colors.primary};">${appName}</div>
-          <div style="font-size: 13px; color: ${colors.muted}; margin-top: 3px;">Events, bookings, tickets, and updates</div>
+          <div style="font-size: 13px; color: ${colors.muted}; margin-top: 3px;">${appSlogan}</div>
         </div>
 
         <div style="background: ${colors.card}; border: 1px solid ${colors.border}; border-radius: 22px; padding: 32px; box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);">
@@ -346,7 +347,7 @@ export const eventDeletedEmail = ({ attendee, event }) =>
 export const passwordResetEmail = ({ user, resetUrl, expiresInMinutes }) =>
   createEmail({
     to: user.email,
-    subject: "Reset your Smart Event Management password",
+    subject: "Reset your Quickseat password",
     title: "Reset your password",
     status: "info",
     statusLabel: "Password reset",

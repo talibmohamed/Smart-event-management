@@ -18,12 +18,20 @@ import { buildTicketPdfAttachment } from "../src/utils/ticketPdf.js";
 export function parsePreviewArgs(args) {
   const toIndex = args.indexOf("--to");
   const to = toIndex >= 0 ? args[toIndex + 1] : null;
+  const templateIndex = args.indexOf("--template");
+  const template = templateIndex >= 0 ? args[templateIndex + 1] : "all";
 
   if (!to) {
-    throw new Error("Usage: npm run email:preview -- --to email@example.com");
+    throw new Error(
+      "Usage: npm run email:preview -- --to email@example.com [--template templateName]"
+    );
   }
 
-  return { to };
+  if (!template) {
+    throw new Error("Missing value for --template");
+  }
+
+  return { to, template };
 }
 
 const previewUser = (email) => ({
@@ -188,10 +196,19 @@ export async function buildPreviewEmails(to) {
 }
 
 async function main() {
-  const { to } = parsePreviewArgs(process.argv.slice(2));
+  const { to, template } = parsePreviewArgs(process.argv.slice(2));
   const emails = await buildPreviewEmails(to);
+  const selectedEmails = template === "all"
+    ? emails
+    : emails.filter((email) => email.name === template);
 
-  for (const email of emails) {
+  if (!selectedEmails.length) {
+    throw new Error(
+      `Unknown template "${template}". Available templates: ${emails.map((email) => email.name).join(", ")}`
+    );
+  }
+
+  for (const email of selectedEmails) {
     await sendPreview(email);
   }
 }
