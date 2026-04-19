@@ -11,7 +11,7 @@ import {
   NavbarMenuToggle,
 } from "@heroui/react";
 import { LogOut, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import logoUrl from "../../../logo.svg";
 import { useAuth } from "../../context/AuthContext";
