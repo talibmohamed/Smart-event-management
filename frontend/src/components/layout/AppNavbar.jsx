@@ -17,6 +17,8 @@ import logoUrl from "../../../logo.svg";
 import { useAuth } from "../../context/AuthContext";
 import { isOrganizerRole } from "../../services/authService";
 import ThemeSwitcher from "../ui/ThemeSwitcher";
+import NotificationBell from "./NotificationBell";
+import {supabase} from "../../services/supabaseClient";
 
 const BASE_LINK_CLASS =
   "rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50";
@@ -32,6 +34,47 @@ export default function AppNavbar() {
   const canCreateEvents = isOrganizerRole(user?.role);
   const canViewBookings = user?.role === "attendee";
 
+const [notifications, setNotifications] = useState([]);
+
+ useEffect(() => {
+    // On vérifie qu'on est connecté et que supabase est là
+    if (!supabase || !user) return;
+
+    const channel = supabase
+      .channel('realtime-bookings')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bookings' },
+        async (payload) => {
+          // 1. On va chercher les détails de l'événement
+          const { data: eventData, error } = await supabase
+            .from('events')
+            .select('id, title, event_date, organizer_id') // On récupère l'id de l'organisateur
+            .eq('id', payload.new.event_id)
+            .single();
+
+          if (!error && eventData) {
+            // 2. CONDITION CRUCIALE : 
+            // On n'ajoute la notif QUE SI l'organisateur de l'événement est l'utilisateur actuel
+            if (eventData.organizer_id === user.id) {
+              const newNotif = {
+                id: payload.new.id,
+                eventId: eventData.id,
+                title: eventData.title,
+                date: eventData.event_date,
+              };
+
+              setNotifications((prev) => [newNotif, ...prev]);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]); // On ajoute [user] ici pour que ça s'actualise si on change de compte
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/events", label: "Events" },
@@ -155,6 +198,9 @@ export default function AppNavbar() {
           </>
         ) : (
           <>
+          <NavbarItem>
+  <NotificationBell notifications={notifications} />
+</NavbarItem>
             <NavbarItem className="hidden md:flex">
               <div className="flex items-center gap-3 rounded-full border border-zinc-900/8 bg-white/70 py-1.5 pl-1.5 pr-3 dark:border-white/8 dark:bg-white/5">
                 <Avatar
