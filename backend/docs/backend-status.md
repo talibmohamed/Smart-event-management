@@ -19,6 +19,7 @@ Last updated: 2026-04-20
 - Confirmed bookings generate QR-code-ready ticket records
 - Persistent realtime notifications are available through REST plus Socket.IO
 - Structured event agendas and event-level reminder delivery are available
+- Redis/BullMQ can be enabled for queue-backed reminder delivery, Socket.IO fan-out, and auth rate limiting
 - Supabase Storage requires a public `event-images` bucket and service role credentials in backend env
 
 ## Implemented Features
@@ -42,6 +43,9 @@ Last updated: 2026-04-20
 - `npm run test` runs critical backend tests with mocked external services
 - `npm run test:watch` runs the same tests in watch mode
 - `npm run test:coverage` runs critical backend tests with a V8 coverage report
+- `npm run worker:reminders` starts the reminder scanner and reminder email queue worker
+- `npm run worker:notifications` starts the notification delivery queue worker with Socket.IO Redis fan-out
+- `npm run workers` starts reminder scanning, reminder email processing, and notification processing in one local process
 - Seeded events cover multiple French cities for list/map UI development
 - Seeded sample login password: `Password123!`
 - Event image upload requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_EVENT_IMAGES_BUCKET`
@@ -50,6 +54,7 @@ Last updated: 2026-04-20
 - `npm run email:preview -- --to email@example.com` sends all styled email templates to one recipient for visual inspection
 - `npm run email:preview -- --to email@example.com --template bookingConfirmedEmail` sends only the booking confirmation preview with ticket PDF attachment
 - Forgot password requires the password reset database fields from `npm run db:password-reset-schema`
+- Redis/BullMQ requires `REDIS_ENABLED=true`, `REDIS_URL`, and optional queue/rate-limit env flags
 
 ### Authentication
 
@@ -110,7 +115,9 @@ Last updated: 2026-04-20
 - Backend creates persisted notifications for booking confirmations, payment failures/expirations, booking cancellations, event updates/deletions, and ticket check-ins
 - Backend creates persisted event reminder notifications 24h and 1h before event start for confirmed attendees
 - Reminder worker uses a scan window, PostgreSQL advisory lock, delivery dedupe, retry state, and structured logs
+- When Redis is enabled, reminder emails and realtime notification emits are queued through BullMQ after database persistence
 - Notification delivery uses Socket.IO for live updates and REST for initial load/refresh recovery
+- Socket.IO can use the Redis adapter for multi-instance realtime fan-out
 - Notification creation is centralized and deduped for webhook/retry-prone events
 - Booking confirmation emails include ticket page links and may include inline ticket QR codes
 - Booking confirmation emails include a branded generated ticket PDF attachment when PDF generation succeeds
@@ -124,7 +131,6 @@ Last updated: 2026-04-20
 - Event filtering, search, and pagination
 - Attendee export/download support
 - Advanced ticket rules such as deadline-based Early Bird tiers
-- Redis/BullMQ queue execution for reminder jobs
 - Persisted PDF files in storage; PDFs are generated on demand
 - Refund handling and advanced payment operations
 - Fully consistent success response shape across all endpoints
@@ -162,6 +168,9 @@ Last updated: 2026-04-20
 - Email delivery is best-effort and does not change API success/failure results
 - Realtime notification delivery is best-effort; persisted notifications remain the source of truth
 - Reminder email delivery and Socket.IO emission are best-effort; reminder delivery and notification persistence remain the source of truth
+- Redis is infrastructure only; PostgreSQL remains the source of truth for reminders, notifications, bookings, and tickets
+- If `REDIS_ENABLED=true` without `REDIS_URL`, backend startup fails with a clear configuration error
+- Auth rate limiting can be enabled with `AUTH_RATE_LIMIT_ENABLED=true`; limits apply to login, register, forgot password, and reset password
 - Notifications are ordered by `created_at DESC`
 - Duplicate webhook events do not create duplicate notifications
 - Frontend must not subscribe directly to Supabase tables for notifications

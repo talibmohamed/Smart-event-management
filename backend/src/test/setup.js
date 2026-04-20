@@ -4,6 +4,9 @@ process.env.JWT_SECRET = "test-jwt-secret";
 process.env.FRONTEND_URL = "http://localhost:5173";
 process.env.STRIPE_CURRENCY = "eur";
 process.env.EMAIL_ENABLED = "false";
+process.env.REDIS_ENABLED = "false";
+process.env.AUTH_RATE_LIMIT_ENABLED = "false";
+process.env.QUEUE_WORKER_ENABLED = "false";
 process.env.STRIPE_SECRET_KEY = "sk_test_mock";
 process.env.STRIPE_WEBHOOK_SECRET = "whsec_mock";
 

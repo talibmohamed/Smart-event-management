@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { createSocketRedisClients, isRedisEnabled } from "../config/redis.js";
 
 let io;
 
@@ -31,6 +33,11 @@ export const initializeSocketServer = (httpServer) => {
       credentials: true,
     },
   });
+
+  if (isRedisEnabled()) {
+    const { pubClient, subClient } = createSocketRedisClients();
+    io.adapter(createAdapter(pubClient, subClient));
+  }
 
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;

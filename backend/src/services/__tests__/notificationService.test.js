@@ -7,12 +7,12 @@ vi.mock("../../models/Notification.js", () => ({
   },
 }));
 
-vi.mock("../../utils/socket.js", () => ({
-  emitNotificationToUser: vi.fn(),
+vi.mock("../../queues/notificationQueue.js", () => ({
+  enqueueNotificationJob: vi.fn(),
 }));
 
 const { default: Notification } = await import("../../models/Notification.js");
-const { emitNotificationToUser } = await import("../../utils/socket.js");
+const { enqueueNotificationJob } = await import("../../queues/notificationQueue.js");
 const notificationService = (await import("../notificationService.js")).default;
 
 const mockNotification = (userId) => ({
@@ -37,7 +37,7 @@ describe("notification service", () => {
     Notification.getAdminUserIds.mockResolvedValue(["admin-1"]);
   });
 
-  it("deduplicates recipients and emits only newly created notifications", async () => {
+  it("deduplicates recipients and queues only newly created notifications", async () => {
     await notificationService.createForRecipients({
       recipientIds: ["user-1", "user-1", "admin-1"],
       type: "booking_confirmed",
@@ -48,7 +48,7 @@ describe("notification service", () => {
     });
 
     expect(Notification.createNotification).toHaveBeenCalledTimes(2);
-    expect(emitNotificationToUser).toHaveBeenCalledTimes(2);
+    expect(enqueueNotificationJob).toHaveBeenCalledTimes(2);
     expect(Notification.createNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         user_id: "user-1",
@@ -57,7 +57,7 @@ describe("notification service", () => {
     );
   });
 
-  it("does not emit when a duplicate notification is skipped", async () => {
+  it("does not queue when a duplicate notification is skipped", async () => {
     Notification.createNotification.mockResolvedValue({
       created: false,
       notification: mockNotification("user-1"),
@@ -72,7 +72,7 @@ describe("notification service", () => {
       dedupeKey: "booking:booking-1:confirmed",
     });
 
-    expect(emitNotificationToUser).not.toHaveBeenCalled();
+    expect(enqueueNotificationJob).not.toHaveBeenCalled();
   });
 
   it("creates booking confirmed notifications for attendee, organizer, and admins", async () => {

@@ -20,6 +20,10 @@ Authorization: Bearer <jwt>
 - Local ticket schema command: `npm run db:ticket-schema` applies ticket tables and backfills confirmed booking tickets
 - Local notification schema command: `npm run db:notification-schema`
 - Local scheduling/reminder schema command: `npm run db:scheduling-schema`
+- Local worker commands:
+  - `npm run worker:reminders`
+  - `npm run worker:notifications`
+  - `npm run workers`
 - Local storage setup command: `npm run storage:setup`
 - Backend runtime normalizes Supabase pooler connections for Prisma
 - Backend uploads event cover images to the public Supabase Storage bucket `event-images`
@@ -38,6 +42,13 @@ Authorization: Bearer <jwt>
   - `EMAIL_FROM`
   - `EMAIL_REPLY_TO` optional
   - `EMAIL_ENABLED=true`
+- Optional backend env variables for Redis/BullMQ scaling:
+  - `REDIS_ENABLED=true`
+  - `REDIS_URL`
+  - `QUEUE_WORKER_ENABLED=true`
+  - `REMINDER_QUEUE_NAME=reminder-delivery`
+  - `NOTIFICATION_QUEUE_NAME=notification-delivery`
+  - `AUTH_RATE_LIMIT_ENABLED=true`
 - Styled email preview command:
   - `npm run email:preview -- --to email@example.com`
   - `npm run email:preview -- --to email@example.com --template bookingConfirmedEmail` sends only the booking confirmation preview with ticket PDF
@@ -68,6 +79,15 @@ Authorization: Bearer <jwt>
 - On app startup, if a token exists, call `GET /api/auth/me`
 - On `401`, clear the token and redirect to login
 - On `403`, keep the session and show a permission error
+- On `429`, show the backend message and ask the user to try again later
+
+## Redis/Worker Notes
+
+- Redis is not part of the frontend API contract.
+- PostgreSQL remains the source of truth for reminders and notifications.
+- The frontend still loads notifications with `GET /api/notifications` and receives `notification:new` through Socket.IO.
+- When Redis is enabled, the backend may deliver realtime notifications from another backend instance through the Socket.IO Redis adapter.
+- Password reset, login, register, and forgot-password can return `429` if auth rate limiting is enabled.
 
 ## Page To Endpoint Mapping
 

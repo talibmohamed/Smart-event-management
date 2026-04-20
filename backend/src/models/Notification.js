@@ -83,6 +83,14 @@ const getNotificationsForUser = async ({ user_id, status = "all", limit = 20 }) 
   return notifications.map(formatNotification);
 };
 
+const getNotificationById = async (id) => {
+  const notification = await prisma.notification.findUnique({
+    where: { id },
+  });
+
+  return notification ? formatNotification(notification) : null;
+};
+
 const countUnreadForUser = async (user_id) => {
   return prisma.notification.count({
     where: {
@@ -143,6 +151,7 @@ const getAdminUserIds = async () => {
 
 export default {
   createNotification,
+  getNotificationById,
   getNotificationsForUser,
   countUnreadForUser,
   markNotificationRead,

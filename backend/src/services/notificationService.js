@@ -1,5 +1,5 @@
 import Notification from "../models/Notification.js";
-import { emitNotificationToUser } from "../utils/socket.js";
+import { enqueueNotificationJob } from "../queues/notificationQueue.js";
 
 const uniqueIds = (ids) => [...new Set(ids.filter(Boolean))];
 
@@ -18,7 +18,7 @@ const createForRecipients = async ({ recipientIds, type, title, message, data, d
       });
 
       if (result.created && result.notification) {
-        emitNotificationToUser(userId, result.notification);
+        await enqueueNotificationJob({ notification: result.notification });
       }
 
       if (result.notification) {

@@ -14,6 +14,9 @@
     "ticketSchemaCommandBehavior": "Applies ticket table and backfills tickets for existing confirmed bookings",
     "notificationSchemaCommand": "npm run db:notification-schema",
     "schedulingSchemaCommand": "npm run db:scheduling-schema",
+    "reminderWorkerCommand": "npm run worker:reminders",
+    "notificationWorkerCommand": "npm run worker:notifications",
+    "combinedWorkersCommand": "npm run workers",
     "emailPreviewCommand": "npm run email:preview -- --to email@example.com",
     "emailPreviewSingleTemplateCommand": "npm run email:preview -- --to email@example.com --template bookingConfirmedEmail",
     "emailPreviewBehavior": "Sends all styled email templates to one recipient for rendering/delivery inspection only; --template sends one named template and does not test business flows",
@@ -61,6 +64,14 @@
       "REMINDER_SCAN_INTERVAL_MS": "Defaults to 300000.",
       "REMINDER_SCAN_SAFETY_BUFFER_MS": "Defaults to 60000.",
       "REMINDER_EMAIL_MAX_RETRIES": "Defaults to 3."
+    },
+    "redis": {
+      "REDIS_ENABLED": "Set true to enable Redis-backed queues, Socket.IO fan-out, and Redis-backed rate limiting.",
+      "REDIS_URL": "Required when REDIS_ENABLED=true.",
+      "QUEUE_WORKER_ENABLED": "Defaults to enabled. Set false to disable BullMQ worker processors.",
+      "REMINDER_QUEUE_NAME": "Reminder email queue name, default reminder-delivery.",
+      "NOTIFICATION_QUEUE_NAME": "Notification delivery queue name, default notification-delivery.",
+      "AUTH_RATE_LIMIT_ENABLED": "Set true to enable auth rate limiting."
     }
   },
   "authentication": {
@@ -84,6 +95,7 @@
     "notifications": "Notifications are persisted in PostgreSQL, ordered by created_at DESC, delivered in realtime with Socket.IO notification:new, and deduped for webhook/retry-prone events. Frontend must not subscribe directly to Supabase tables.",
     "scheduling": "Events can include event_end_date, timezone, and agenda_tracks. Session ordering is starts_at ASC then sort_order ASC. Same-track overlap is rejected; cross-track overlap is allowed.",
     "reminders": "Event reminders are sent 24h and 1h before event_date to confirmed attendees only. Delivery and notification persistence happen before best-effort Socket.IO emit and email sending.",
+    "redis": "Redis is optional queue/realtime/rate-limit infrastructure. PostgreSQL remains the source of truth for reminders, notifications, bookings, and tickets. If REDIS_ENABLED=true without REDIS_URL, backend startup fails with a clear config error.",
     "responseException": "GET /api/auth/me returns success and data without message on success"
   },
   "schemas": {

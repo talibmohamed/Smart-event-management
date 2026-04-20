@@ -7,13 +7,19 @@ import {
   getMe
 } from "../controllers/authController.js";
 import { protect } from "../middlewares/authMiddleware.js";
+import {
+  forgotPasswordRateLimit,
+  loginRateLimit,
+  registerRateLimit,
+  resetPasswordRateLimit,
+} from "../middlewares/rateLimitMiddleware.js";
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+router.post("/register", registerRateLimit, register);
+router.post("/login", loginRateLimit, login);
+router.post("/forgot-password", forgotPasswordRateLimit, forgotPassword);
+router.post("/reset-password", resetPasswordRateLimit, resetPassword);
 router.get("/me", protect, getMe);
 
 export default router;

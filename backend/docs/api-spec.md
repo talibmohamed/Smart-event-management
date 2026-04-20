@@ -20,6 +20,7 @@ Last updated: 2026-04-20
 - Local ticket schema command: `npm run db:ticket-schema` applies ticket tables and backfills confirmed booking tickets
 - Local notification schema command: `npm run db:notification-schema`
 - Local scheduling/reminder schema command: `npm run db:scheduling-schema`
+- Local worker commands: `npm run worker:reminders`, `npm run worker:notifications`, or `npm run workers`
 - Local storage setup command: `npm run storage:setup`
 - Seeded sample password for all seed users: `Password123!`
 - Event geocoding uses Nominatim from the backend only; frontend must never call Nominatim directly
@@ -42,6 +43,34 @@ Last updated: 2026-04-20
 - Events can include `event_end_date`, `timezone`, and structured `agenda_tracks`
 - Event reminders are event-level only in v1: confirmed attendees receive 24h and 1h in-app/email reminders
 - Reminder emails and Socket.IO emissions are best-effort; persisted notifications and `event_reminder_deliveries` are the source of truth
+- Optional Redis/BullMQ scaling uses `REDIS_ENABLED=true` and `REDIS_URL`; PostgreSQL remains the source of truth
+- Auth rate limiting can be enabled with `AUTH_RATE_LIMIT_ENABLED=true`
+
+## Redis And Worker Runtime
+
+- Redis is optional infrastructure for queues, realtime fan-out, and auth rate limiting.
+- Required Redis env when enabled:
+  - `REDIS_ENABLED=true`
+  - `REDIS_URL=redis://...`
+  - `QUEUE_WORKER_ENABLED=true`
+  - `REMINDER_QUEUE_NAME=reminder-delivery`
+  - `NOTIFICATION_QUEUE_NAME=notification-delivery`
+  - `AUTH_RATE_LIMIT_ENABLED=true`
+- `server.js` starts only the HTTP API and Socket.IO server.
+- `npm run worker:reminders` starts reminder scanning plus reminder email queue processing.
+- `npm run worker:notifications` starts notification queue processing for Socket.IO fan-out.
+- `npm run workers` starts all worker responsibilities in one local process.
+- Reminder delivery rows and notification rows are created before any Redis job is queued.
+- BullMQ job ids are deterministic to prevent duplicate queued jobs.
+- Redis loss must not delete the source-of-truth reminder or notification records.
+- Auth rate limit errors return:
+
+```json
+{
+  "success": false,
+  "message": "Too many attempts. Please try again later."
+}
+```
 
 ## Endpoints
 

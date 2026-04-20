@@ -1,7 +1,9 @@
 import prisma from "../config/prisma.js";
+import { isRedisEnabled } from "../config/redis.js";
+import { enqueueNotificationJob } from "../queues/notificationQueue.js";
+import { enqueueReminderEmailJob } from "../queues/reminderQueue.js";
 import { sendEmail } from "../utils/emailService.js";
 import { eventReminderEmail } from "../utils/emailTemplates.js";
-import { emitNotificationToUser } from "../utils/socket.js";
 
 const REMINDER_LOCK_ID = 918273645;
 const REMINDER_CONFIGS = [
@@ -164,7 +166,7 @@ export async function processReminderDelivery(candidate, tx = prisma) {
   }
 }
 
-async function attemptReminderEmail({
+export async function attemptReminderEmail({
   deliveryId,
   attendee,
   event,
@@ -207,6 +209,60 @@ async function attemptReminderEmail({
   }
 }
 
+export async function sendReminderEmailForDelivery(deliveryId) {
+  const delivery = await prisma.eventReminderDelivery.findUnique({
+    where: { id: deliveryId },
+    include: {
+      event: true,
+      user: {
+        select: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!delivery) {
+    return {
+      sent: false,
+      reason: "delivery_not_found",
+    };
+  }
+
+  if (delivery.email_sent) {
+    return {
+      sent: true,
+      reason: "already_sent",
+    };
+  }
+
+  if (delivery.retry_count >= maxEmailRetries()) {
+    return {
+      sent: false,
+      reason: "max_retries_reached",
+    };
+  }
+
+  const config = getReminderConfig(delivery.reminder_key);
+
+  if (!config) {
+    return {
+      sent: false,
+      reason: "unknown_reminder_key",
+    };
+  }
+
+  return attemptReminderEmail({
+    deliveryId: delivery.id,
+    attendee: delivery.user,
+    event: delivery.event,
+    reminderLabel: config.label,
+  });
+}
+
 async function retryFailedReminderEmails() {
   const retryCutoff = new Date(Date.now() - scanIntervalMs());
   const deliveries = await prisma.eventReminderDelivery.findMany({
@@ -243,20 +299,11 @@ async function retryFailedReminderEmails() {
   let emailFailures = 0;
 
   for (const delivery of deliveries) {
-    const config = getReminderConfig(delivery.reminder_key);
+    const result = isRedisEnabled()
+      ? await enqueueReminderEmailJob({ deliveryId: delivery.id })
+      : await sendReminderEmailForDelivery(delivery.id);
 
-    if (!config) {
-      continue;
-    }
-
-    const result = await attemptReminderEmail({
-      deliveryId: delivery.id,
-      attendee: delivery.user,
-      event: delivery.event,
-      reminderLabel: config.label,
-    });
-
-    if (!result.sent) {
+    if (result.sent === false) {
       emailFailures += 1;
     }
   }
@@ -348,17 +395,19 @@ async function runReminderScan({ previousScanAt = null } = {}) {
 
   for (const notification of scanResult.emitPayloads) {
     try {
-      emitNotificationToUser(notification.user_id, notification);
+      await enqueueNotificationJob({ notification });
     } catch (error) {
       emitFailures += 1;
-      console.error("Reminder socket emit failed:", error);
+      console.error("Reminder notification delivery enqueue failed:", error);
     }
   }
 
   for (const emailContext of scanResult.emailContexts) {
-    const result = await attemptReminderEmail(emailContext);
+    const result = isRedisEnabled()
+      ? await enqueueReminderEmailJob({ deliveryId: emailContext.deliveryId })
+      : await attemptReminderEmail(emailContext);
 
-    if (!result.sent) {
+    if (result.sent === false) {
       emailFailures += 1;
     }
   }
@@ -426,5 +475,6 @@ export function startReminderWorker() {
 export default {
   findDueReminderCandidates,
   processReminderDelivery,
+  sendReminderEmailForDelivery,
   startReminderWorker,
 };
