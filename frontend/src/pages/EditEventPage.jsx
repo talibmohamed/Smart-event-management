@@ -2,7 +2,6 @@ import { Card, CardBody } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import EventForm from "../components/event/EventForm";
-import EventFeedbackStats from "../components/event/EventFeedbackStats"; // 👈 L'import de ton nouveau composant
 import { EventFormSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
@@ -132,32 +131,23 @@ export default function EditEventPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 md:py-16">
-      <div className="flex flex-col gap-8">
-        <Card className="border border-zinc-200/80 bg-white/88 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-          <CardBody className="p-6 md:p-8">
-            {isLoading ? (
-              <EventFormSkeleton />
-            ) : (
-              <EventForm
-                initialValues={eventRecord}
-                title="Edit event"
-                description="Update the event details below. Full event data is required by the current backend update flow."
-                submitLabel="Save changes"
-                isSubmitting={isSubmitting}
-                errorMessage={errorMessage}
-                onSubmit={handleSubmit}
-              />
-            )}
-          </CardBody>
-        </Card>
-
-        {/* ========================================== */}
-        {/* LE DASHBOARD DES AVIS EST AJOUTÉ ICI       */}
-        {/* ========================================== */}
-        {!isLoading && !errorMessage && eventRecord && (
-          <EventFeedbackStats eventId={id} />
-        )}
-      </div>
+      <Card className="border border-zinc-200/80 bg-white/88 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+        <CardBody className="p-6 md:p-8">
+          {isLoading ? (
+            <EventFormSkeleton />
+          ) : (
+            <EventForm
+              initialValues={eventRecord}
+              title="Edit event"
+              description="Update the event details below. Full event data is required by the current backend update flow."
+              submitLabel="Save changes"
+              isSubmitting={isSubmitting}
+              errorMessage={errorMessage}
+              onSubmit={handleSubmit}
+            />
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 }

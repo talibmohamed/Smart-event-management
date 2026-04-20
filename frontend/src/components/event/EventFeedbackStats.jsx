@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardBody, CardHeader, Divider, Progress, User, Spinner } from "@heroui/react";
 import { Star, MessageSquareOff } from "lucide-react";
+import eventService from "../../services/eventService";
+import { extractApiErrorMessage } from "../../services/api";
 
 export default function EventFeedbackStats({ eventId }) {
   const [stats, setStats] = useState({ averageRating: 0, totalReviews: 0, feedbacks: [] });
@@ -13,25 +15,19 @@ export default function EventFeedbackStats({ eventId }) {
     async function fetchStats() {
       try {
         setIsLoading(true);
-        const token = localStorage.getItem('token');
+        setError(null);
         
-        const response = await fetch(`/api/events/${eventId}/feedback`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to load feedback.");
-        }
+        // On utilise ton service préconfiguré ! (Fini les erreurs HTML)
+        const response = await eventService.getEventFeedbackStats(eventId);
 
         if (!ignore) {
-          setStats(data);
+          // Ton backend renvoie directement l'objet { averageRating, totalReviews, feedbacks }
+          setStats(response.data);
         }
       } catch (err) {
-        if (!ignore) setError(err.message);
+        if (!ignore) {
+          setError(extractApiErrorMessage(err, "Failed to load feedback."));
+        }
       } finally {
         if (!ignore) setIsLoading(false);
       }
@@ -42,16 +38,18 @@ export default function EventFeedbackStats({ eventId }) {
     return () => { ignore = true; };
   }, [eventId]);
 
-  // Calculer la répartition des notes (combien de 5 étoiles, 4 étoiles, etc.)
   const ratingDistribution = useMemo(() => {
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    stats.feedbacks.forEach((feedback) => {
-      distribution[feedback.rating] += 1;
-    });
+    if (stats.feedbacks && stats.feedbacks.length > 0) {
+      stats.feedbacks.forEach((feedback) => {
+        if (distribution[feedback.rating] !== undefined) {
+          distribution[feedback.rating] += 1;
+        }
+      });
+    }
     return distribution;
   }, [stats.feedbacks]);
 
-  // Fonction pour afficher des étoiles
   const renderStars = (rating) => {
     return (
       <div className="flex gap-1">
@@ -106,10 +104,8 @@ export default function EventFeedbackStats({ eventId }) {
           </div>
         ) : (
           <div className="flex flex-col">
-            {/* RÉSUMÉ GLOBAL & BARRES DE PROGRESSION */}
             <div className="flex flex-col sm:flex-row gap-8 p-6 bg-zinc-50/50 dark:bg-white/[0.02]">
               
-              {/* Moyenne */}
               <div className="flex flex-col items-center justify-center sm:w-1/3">
                 <div className="text-5xl font-bold text-zinc-950 dark:text-white flex items-baseline gap-1">
                   {stats.averageRating}
@@ -122,7 +118,6 @@ export default function EventFeedbackStats({ eventId }) {
                 </p>
               </div>
 
-              {/* Barres HeroUI */}
               <div className="flex flex-col gap-2 flex-1 justify-center">
                 {[5, 4, 3, 2, 1].map((star) => (
                   <div key={star} className="flex items-center gap-3">
@@ -148,17 +143,16 @@ export default function EventFeedbackStats({ eventId }) {
 
             <Divider className="opacity-50" />
 
-            {/* LISTE DES COMMENTAIRES AVEC LE COMPOSANT <User> */}
             <div className="flex flex-col divide-y divide-zinc-200/50 dark:divide-white/10">
               {stats.feedbacks.map((feedback) => (
                 <div key={feedback.id} className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <User   
-                      name={`${feedback.user?.first_name} ${feedback.user?.last_name}`}
+                      name={`${feedback.user?.first_name || 'Anonymous'} ${feedback.user?.last_name || ''}`}
                       description={new Date(feedback.created_at).toLocaleDateString()}
                       avatarProps={{
-                        src: feedback.user?.avatar_url, // S'affichera si l'utilisateur a une photo
-                        name: feedback.user?.first_name?.charAt(0),
+                        src: feedback.user?.avatar_url,
+                        name: feedback.user?.first_name?.charAt(0) || 'A',
                         className: "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 font-semibold"
                       }}
                       classNames={{
