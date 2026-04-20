@@ -7,6 +7,7 @@ import { DetailPageSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
+import EventFeedbackForm from "../components/event/EventFeedbackForm";
 import eventService from "../services/eventService";
 import {
   formatEventAvailability,
@@ -549,6 +550,16 @@ export default function EventDetailsPage() {
                   </p>
                 </div>
               </div>
+
+              {/* ========================================== */}
+              {/* LE FORMULAIRE D'AVIS EST AJOUTÉ ICI        */}
+              {/* ========================================== */}
+              {isAuthenticated && isAttendee && new Date(eventRecord.event_date) < new Date() && (
+                <div className="mt-8 pt-6 border-t border-zinc-200/70 dark:border-white/10 flex justify-center">
+                  <EventFeedbackForm eventId={eventRecord.id} />
+                </div>
+              )}
+
             </>
           )}
         </CardBody>
