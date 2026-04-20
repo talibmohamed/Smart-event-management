@@ -57,6 +57,36 @@ export function formatEventDate(dateValue, options = {}) {
   }).format(parsedDate);
 }
 
+export function formatEventDateInTimezone(dateValue, timezone = "Europe/Paris", options = {}) {
+  return formatEventDate(dateValue, {
+    timeZone: timezone || "Europe/Paris",
+    ...options,
+  });
+}
+
+export function formatEventTimeRange(startsAt, endsAt, timezone = "Europe/Paris") {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return "Time not available";
+  }
+
+  const sameDay = start.toLocaleDateString("en-GB", { timeZone: timezone }) ===
+    end.toLocaleDateString("en-GB", { timeZone: timezone });
+  const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: timezone,
+  });
+
+  if (sameDay) {
+    return `${timeFormatter.format(start)} - ${timeFormatter.format(end)}`;
+  }
+
+  return `${formatEventDateInTimezone(startsAt, timezone)} - ${formatEventDateInTimezone(endsAt, timezone)}`;
+}
+
 export function formatEventVenue(event = {}) {
   const address = event.address?.trim?.() || "";
   const city = event.city?.trim?.() || "";
@@ -132,6 +162,20 @@ export function toDateTimeLocalValue(dateValue) {
 
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
+
+export const DEFAULT_EVENT_TIMEZONE = "Europe/Paris";
+export const EVENT_TIMEZONE_OPTIONS = [
+  "Europe/Paris",
+  "Europe/London",
+  "Europe/Madrid",
+  "Europe/Berlin",
+  "Europe/Rome",
+  "Europe/Brussels",
+  "Europe/Amsterdam",
+  "America/New_York",
+  "America/Los_Angeles",
+  "Asia/Dubai",
+];
 
 export const DEFAULT_TICKET_TIERS = [
   {
@@ -218,6 +262,41 @@ export function calculateTicketTierTotal(ticketTiers = []) {
   return ticketTiers.reduce((total, tier) => total + Number(tier.capacity || 0), 0);
 }
 
+export function normalizeAgendaTracks(agendaTracks = []) {
+  if (!Array.isArray(agendaTracks)) {
+    return [];
+  }
+
+  return agendaTracks
+    .slice()
+    .sort((firstTrack, secondTrack) => Number(firstTrack.sort_order ?? 0) - Number(secondTrack.sort_order ?? 0))
+    .map((track, trackIndex) => ({
+      id: track.id,
+      name: track.name || "",
+      description: track.description || "",
+      sort_order: Number.isFinite(Number(track.sort_order)) ? Number(track.sort_order) : trackIndex,
+      sessions: Array.isArray(track.sessions)
+        ? track.sessions
+            .slice()
+            .sort((firstSession, secondSession) => {
+              const firstTime = new Date(firstSession.starts_at).getTime();
+              const secondTime = new Date(secondSession.starts_at).getTime();
+              return firstTime - secondTime || Number(firstSession.sort_order ?? 0) - Number(secondSession.sort_order ?? 0);
+            })
+            .map((session, sessionIndex) => ({
+              id: session.id,
+              title: session.title || "",
+              description: session.description || "",
+              speaker_name: session.speaker_name || "",
+              location: session.location || "",
+              starts_at: toDateTimeLocalValue(session.starts_at),
+              ends_at: toDateTimeLocalValue(session.ends_at),
+              sort_order: Number.isFinite(Number(session.sort_order)) ? Number(session.sort_order) : sessionIndex,
+            }))
+        : [],
+    }));
+}
+
 export function toEventFormValues(event = {}) {
   return {
     title: event.title || "",
@@ -226,9 +305,12 @@ export function toEventFormValues(event = {}) {
     address: event.address || "",
     city: event.city || "",
     event_date: toDateTimeLocalValue(event.event_date),
+    event_end_date: toDateTimeLocalValue(event.event_end_date),
+    timezone: event.timezone || DEFAULT_EVENT_TIMEZONE,
     capacity: event.capacity?.toString() || "",
     price: event.min_price?.toString?.() || event.price?.toString?.() || "0",
     ticket_tiers: normalizeTicketTiers(event.ticket_tiers),
+    agenda_tracks: normalizeAgendaTracks(event.agenda_tracks),
   };
 }
 
@@ -274,9 +356,34 @@ export function buildEventPayload(values, imageOptions = {}) {
   payload.append("address", values.address.trim());
   payload.append("city", values.city.trim());
   payload.append("event_date", new Date(values.event_date).toISOString());
+  if (values.event_end_date) {
+    payload.append("event_end_date", new Date(values.event_end_date).toISOString());
+  }
+  payload.append("timezone", values.timezone || DEFAULT_EVENT_TIMEZONE);
   payload.append("capacity", String(Number(values.capacity)));
   payload.append("price", String(compatibilityPrice));
   payload.append("ticket_tiers", JSON.stringify(ticketTiers));
+  payload.append(
+    "agenda_tracks",
+    JSON.stringify(
+      normalizeAgendaTracks(values.agenda_tracks).map((track, trackIndex) => ({
+        ...(track.id ? { id: track.id } : {}),
+        name: track.name.trim(),
+        description: track.description.trim(),
+        sort_order: trackIndex,
+        sessions: track.sessions.map((session, sessionIndex) => ({
+          ...(session.id ? { id: session.id } : {}),
+          title: session.title.trim(),
+          description: session.description.trim(),
+          speaker_name: session.speaker_name.trim(),
+          location: session.location.trim(),
+          starts_at: new Date(session.starts_at).toISOString(),
+          ends_at: new Date(session.ends_at).toISOString(),
+          sort_order: sessionIndex,
+        })),
+      }))
+    )
+  );
 
   if (imageOptions.coverImageFile) {
     payload.append("cover_image", imageOptions.coverImageFile);

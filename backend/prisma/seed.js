@@ -67,6 +67,8 @@ async function upsertEvent({
   latitude,
   longitude,
   event_date,
+  event_end_date = null,
+  timezone = "Europe/Paris",
   capacity,
   price,
   organizer_id,
@@ -89,6 +91,8 @@ async function upsertEvent({
         latitude,
         longitude,
         event_date,
+        event_end_date,
+        timezone,
         capacity,
         price,
       },
@@ -105,11 +109,46 @@ async function upsertEvent({
       latitude,
       longitude,
       event_date,
+      event_end_date,
+      timezone,
       capacity,
       price,
       organizer_id,
     },
   });
+}
+
+async function replaceAgenda(event_id, agendaTracks) {
+  await prisma.eventTrack.deleteMany({
+    where: { event_id },
+  });
+
+  for (const [trackIndex, track] of agendaTracks.entries()) {
+    const createdTrack = await prisma.eventTrack.create({
+      data: {
+        event_id,
+        name: track.name,
+        description: track.description || null,
+        sort_order: trackIndex,
+      },
+    });
+
+    for (const [sessionIndex, session] of track.sessions.entries()) {
+      await prisma.eventSession.create({
+        data: {
+          event_id,
+          track_id: createdTrack.id,
+          title: session.title,
+          description: session.description || null,
+          speaker_name: session.speaker_name || null,
+          location: session.location || null,
+          starts_at: new Date(session.starts_at),
+          ends_at: new Date(session.ends_at),
+          sort_order: sessionIndex,
+        },
+      });
+    }
+  }
 }
 
 async function upsertBooking({ user_id, event_id, status = "confirmed" }) {
@@ -213,6 +252,7 @@ async function main() {
     latitude: 48.841966,
     longitude: 2.329536,
     event_date: new Date("2026-05-14T09:30:00.000Z"),
+    event_end_date: new Date("2026-05-14T16:30:00.000Z"),
     capacity: 80,
     price: 15,
     organizer_id: organizerOne.id,
@@ -228,6 +268,7 @@ async function main() {
     latitude: 48.864662,
     longitude: 2.367464,
     event_date: new Date("2026-05-22T18:00:00.000Z"),
+    event_end_date: new Date("2026-05-22T21:30:00.000Z"),
     capacity: 120,
     price: 0,
     organizer_id: organizerOne.id,
@@ -243,6 +284,7 @@ async function main() {
     latitude: 48.824129,
     longitude: 2.273625,
     event_date: new Date("2026-06-02T13:00:00.000Z"),
+    event_end_date: new Date("2026-06-02T18:00:00.000Z"),
     capacity: 45,
     price: 10,
     organizer_id: organizerTwo.id,
@@ -258,10 +300,141 @@ async function main() {
     latitude: 48.837256,
     longitude: 2.435517,
     event_date: new Date("2026-06-15T15:00:00.000Z"),
+    event_end_date: new Date("2026-06-15T22:00:00.000Z"),
     capacity: 300,
     price: 25,
     organizer_id: organizerTwo.id,
   });
+
+  await replaceAgenda(aiWorkshop.id, [
+    {
+      name: "Main Workshop",
+      description: "Hands-on product sessions focused on practical AI feature delivery.",
+      sessions: [
+        {
+          title: "Welcome and AI Product Framing",
+          description: "Define the product problem, success metrics, and safe AI use cases.",
+          speaker_name: "Lina Martin",
+          location: "Room A",
+          starts_at: "2026-05-14T09:30:00.000Z",
+          ends_at: "2026-05-14T10:15:00.000Z",
+        },
+        {
+          title: "Prototype Lab",
+          description: "Build a small AI-assisted workflow and test it with realistic user scenarios.",
+          speaker_name: "Amina Bennett",
+          location: "Room A",
+          starts_at: "2026-05-14T10:30:00.000Z",
+          ends_at: "2026-05-14T12:00:00.000Z",
+        },
+        {
+          title: "Demo Reviews",
+          description: "Teams present prototypes and receive structured product feedback.",
+          speaker_name: "Lina Martin",
+          location: "Room A",
+          starts_at: "2026-05-14T14:00:00.000Z",
+          ends_at: "2026-05-14T16:00:00.000Z",
+        },
+      ],
+    },
+  ]);
+
+  await replaceAgenda(startupNight.id, [
+    {
+      name: "Networking Floor",
+      description: "Short founder talks followed by structured networking rounds.",
+      sessions: [
+        {
+          title: "Founder Lightning Talks",
+          description: "Five early-stage founders share lessons from their first year.",
+          speaker_name: "Guest founders",
+          location: "Main Hall",
+          starts_at: "2026-05-22T18:00:00.000Z",
+          ends_at: "2026-05-22T18:45:00.000Z",
+        },
+        {
+          title: "Mentor Matchmaking",
+          description: "Meet mentors by topic: funding, product, hiring, and legal basics.",
+          speaker_name: "Startup mentors",
+          location: "Main Hall",
+          starts_at: "2026-05-22T19:00:00.000Z",
+          ends_at: "2026-05-22T20:15:00.000Z",
+        },
+      ],
+    },
+  ]);
+
+  await replaceAgenda(designSprint.id, [
+    {
+      name: "Sprint Room",
+      description: "A guided sprint from problem framing to final pitch.",
+      sessions: [
+        {
+          title: "Problem Framing",
+          description: "Turn vague campus problems into clear design challenges.",
+          speaker_name: "Youssef Rahimi",
+          location: "Studio 2",
+          starts_at: "2026-06-02T13:00:00.000Z",
+          ends_at: "2026-06-02T14:00:00.000Z",
+        },
+        {
+          title: "Prototype and Test",
+          description: "Sketch, prototype, and run quick validation with peers.",
+          speaker_name: "Design mentors",
+          location: "Studio 2",
+          starts_at: "2026-06-02T14:15:00.000Z",
+          ends_at: "2026-06-02T16:30:00.000Z",
+        },
+        {
+          title: "Final Pitches",
+          description: "Each team presents its prototype and next-step plan.",
+          speaker_name: "Student teams",
+          location: "Auditorium",
+          starts_at: "2026-06-02T17:00:00.000Z",
+          ends_at: "2026-06-02T18:00:00.000Z",
+        },
+      ],
+    },
+  ]);
+
+  await replaceAgenda(musicFestival.id, [
+    {
+      name: "Main Stage",
+      description: "Live student bands and headline performances.",
+      sessions: [
+        {
+          title: "Opening DJ Set",
+          description: "Warm-up set and festival opening.",
+          speaker_name: "Campus DJ Collective",
+          location: "Main Stage",
+          starts_at: "2026-06-15T15:00:00.000Z",
+          ends_at: "2026-06-15T16:00:00.000Z",
+        },
+        {
+          title: "Student Bands Showcase",
+          description: "Three student bands perform original sets.",
+          speaker_name: "Student bands",
+          location: "Main Stage",
+          starts_at: "2026-06-15T17:00:00.000Z",
+          ends_at: "2026-06-15T19:00:00.000Z",
+        },
+      ],
+    },
+    {
+      name: "Community Zone",
+      description: "Food stalls, partner stands, and relaxed activities.",
+      sessions: [
+        {
+          title: "Food Market Opening",
+          description: "Campus partners open food and drink stands.",
+          speaker_name: "Community partners",
+          location: "Food Court",
+          starts_at: "2026-06-15T16:00:00.000Z",
+          ends_at: "2026-06-15T18:30:00.000Z",
+        },
+      ],
+    },
+  ]);
 
   await upsertEvent({
     title: "Cybersecurity Capture The Flag",

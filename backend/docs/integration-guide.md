@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-19
+Last updated: 2026-04-20
 
 ## Base Setup
 
@@ -19,6 +19,7 @@ Authorization: Bearer <jwt>
 - Local ticket tier schema command: `npm run db:ticket-tier-schema`
 - Local ticket schema command: `npm run db:ticket-schema` applies ticket tables and backfills confirmed booking tickets
 - Local notification schema command: `npm run db:notification-schema`
+- Local scheduling/reminder schema command: `npm run db:scheduling-schema`
 - Local storage setup command: `npm run storage:setup`
 - Backend runtime normalizes Supabase pooler connections for Prisma
 - Backend uploads event cover images to the public Supabase Storage bucket `event-images`
@@ -186,6 +187,9 @@ POST /api/auth/reset-password
 - Optional image upload uses multipart file field `cover_image`
 - Optional image removal on update uses `remove_image=true`
 - `ticket_tiers` can be sent as an array in JSON requests or as a JSON string in multipart requests
+- Optional `event_end_date` can be sent as an ISO datetime and must be after `event_date`
+- Optional `timezone` should be an IANA timezone string; default is `Europe/Paris`
+- Optional `agenda_tracks` can be sent as an array in JSON requests or a JSON string in multipart requests
 - Each ticket tier needs `name`, `price >= 0`, and `capacity > 0`
 - Event must have 1-10 ticket tiers when `ticket_tiers` is provided
 - Sum of tier capacities must equal event `capacity`
@@ -196,6 +200,10 @@ POST /api/auth/reset-password
 - `price` in event responses is the minimum active tier price for old frontend compatibility
 - `capacity` must be greater than `0`
 - `price` must be greater than or equal to `0`
+- Agenda supports up to 10 tracks and 50 sessions
+- Sessions are displayed ordered by `starts_at ASC`, then `sort_order ASC`
+- Sessions can overlap across different tracks, but same-track overlap is rejected by the backend
+- If `agenda_tracks` is omitted on update, existing agenda is preserved; if sent, the agenda is replaced transactionally
 
 Example `ticket_tiers`:
 
@@ -224,6 +232,29 @@ Example `ticket_tiers`:
     "capacity": 20,
     "is_active": true,
     "sort_order": 2
+  }
+]
+```
+
+Example `agenda_tracks`:
+
+```json
+[
+  {
+    "name": "Main Stage",
+    "description": "Primary event track",
+    "sort_order": 0,
+    "sessions": [
+      {
+        "title": "Opening keynote",
+        "description": "Welcome session",
+        "speaker_name": "Jane Doe",
+        "location": "Room A",
+        "starts_at": "2026-05-01T09:30:00.000Z",
+        "ends_at": "2026-05-01T10:30:00.000Z",
+        "sort_order": 0
+      }
+    ]
   }
 ]
 ```
@@ -438,8 +469,19 @@ notification:new
 - Use `PATCH /api/notifications/:id/read` when opening one notification.
 - Use `PATCH /api/notifications/read-all` for “mark all as read”.
 - Backend creates notifications for booking confirmations, payment failures/expirations, booking cancellations, event updates/deletions, and ticket check-ins.
+- Backend also creates `event_reminder_24h` and `event_reminder_1h` notifications for confirmed attendees.
 - Admins receive global platform notifications.
 - Stripe/webhook notifications are deduped, so retries should not create repeated notifications.
+
+### Event Reminders
+
+- Reminders are event-level only in v1, not session-level.
+- Confirmed attendees receive reminders 24 hours and 1 hour before `event_date`.
+- Pending payment and cancelled bookings do not receive reminders.
+- Reminder notifications are persisted before realtime delivery.
+- Socket.IO delivery and reminder emails are best-effort.
+- Frontend does not need a special reminder endpoint; reminders arrive through `GET /api/notifications` and `notification:new`.
+- Frontend should display event and agenda times using the event `timezone` field and show the timezone label when relevant.
 
 ## Response Notes
 

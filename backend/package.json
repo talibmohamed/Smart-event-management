@@ -12,6 +12,7 @@
     "db:password-reset-schema": "node scripts/applyPasswordResetSchema.js",
     "db:ticket-tier-schema": "node scripts/applyTicketTierSchema.js",
     "db:notification-schema": "node scripts/applyNotificationSchema.js",
+    "db:scheduling-schema": "node scripts/applySchedulingSchema.js",
     "db:ticket-schema": "node scripts/applyTicketSchema.js",
     "email:preview": "node scripts/sendEmailPreviews.js",
     "postinstall": "npm run prisma:generate",

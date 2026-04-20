@@ -2,7 +2,7 @@
   "metadata": {
     "name": "Quickseat Backend API",
     "version": "1.0.0",
-    "lastUpdated": "2026-04-19",
+    "lastUpdated": "2026-04-20",
     "baseUrl": "http://localhost:5000"
   },
   "development": {
@@ -13,6 +13,7 @@
     "ticketSchemaCommand": "npm run db:ticket-schema",
     "ticketSchemaCommandBehavior": "Applies ticket table and backfills tickets for existing confirmed bookings",
     "notificationSchemaCommand": "npm run db:notification-schema",
+    "schedulingSchemaCommand": "npm run db:scheduling-schema",
     "emailPreviewCommand": "npm run email:preview -- --to email@example.com",
     "emailPreviewSingleTemplateCommand": "npm run email:preview -- --to email@example.com --template bookingConfirmedEmail",
     "emailPreviewBehavior": "Sends all styled email templates to one recipient for rendering/delivery inspection only; --template sends one named template and does not test business flows",
@@ -54,6 +55,12 @@
       "EMAIL_FROM": "Required sender address",
       "EMAIL_REPLY_TO": "Optional reply-to address",
       "EMAIL_ENABLED": "Set to false to disable email sending"
+    },
+    "reminders": {
+      "REMINDER_WORKER_ENABLED": "Defaults to true. Set false to disable scheduled reminder worker.",
+      "REMINDER_SCAN_INTERVAL_MS": "Defaults to 300000.",
+      "REMINDER_SCAN_SAFETY_BUFFER_MS": "Defaults to 60000.",
+      "REMINDER_EMAIL_MAX_RETRIES": "Defaults to 3."
     }
   },
   "authentication": {
@@ -75,6 +82,8 @@
     "ticketTiers": "Events use ticket_tiers for pricing and availability. Event.price remains as the minimum active tier price for compatibility.",
     "tickets": "Confirmed bookings generate one Ticket row per purchased ticket quantity. QR values use ticket_code. Branded ticket PDFs are generated on demand for email attachments and frontend downloads by rendering the frontend SVG logo as vector and stripping embedded raster nodes to avoid black background artifacts.",
     "notifications": "Notifications are persisted in PostgreSQL, ordered by created_at DESC, delivered in realtime with Socket.IO notification:new, and deduped for webhook/retry-prone events. Frontend must not subscribe directly to Supabase tables.",
+    "scheduling": "Events can include event_end_date, timezone, and agenda_tracks. Session ordering is starts_at ASC then sort_order ASC. Same-track overlap is rejected; cross-track overlap is allowed.",
+    "reminders": "Event reminders are sent 24h and 1h before event_date to confirmed attendees only. Delivery and notification persistence happen before best-effort Socket.IO emit and email sending.",
     "responseException": "GET /api/auth/me returns success and data without message on success"
   },
   "schemas": {
@@ -109,6 +118,8 @@
       "longitude": "string(decimal)|null",
       "image_url": "string(url)|null",
       "event_date": "string(datetime)",
+      "event_end_date": "string(datetime)|null",
+      "timezone": "string(IANA timezone)",
       "capacity": "number",
       "price": "string(decimal)",
       "organizer_id": "string(uuid)",
@@ -119,6 +130,8 @@
       "min_price": "string(decimal)",
       "max_price": "string(decimal)",
       "ticket_tiers": ["ticketTier"],
+      "agenda_session_count": "number optional on list responses",
+      "agenda_tracks": ["agendaTrack optional on detail/write responses"],
       "first_name": "string",
       "last_name": "string",
       "organizer_email": "string"
@@ -134,6 +147,8 @@
       "longitude": "string(decimal)|null",
       "image_url": "string(url)|null",
       "event_date": "string(datetime)",
+      "event_end_date": "string(datetime)|null",
+      "timezone": "string(IANA timezone)",
       "capacity": "number",
       "price": "string(decimal)",
       "organizer_id": "string(uuid)",
@@ -143,7 +158,30 @@
       "confirmed_bookings": "number",
       "remaining_seats": "number",
       "is_full": "boolean",
-      "ticket_tiers": ["ticketTier"]
+      "ticket_tiers": ["ticketTier"],
+      "agenda_tracks": ["agendaTrack"]
+    },
+    "agendaTrack": {
+      "id": "string(uuid)",
+      "event_id": "string(uuid)",
+      "name": "string",
+      "description": "string|null",
+      "sort_order": "number",
+      "created_at": "string(datetime)",
+      "sessions": ["agendaSession"]
+    },
+    "agendaSession": {
+      "id": "string(uuid)",
+      "event_id": "string(uuid)",
+      "track_id": "string(uuid)",
+      "title": "string",
+      "description": "string|null",
+      "speaker_name": "string|null",
+      "location": "string|null",
+      "starts_at": "string(datetime)",
+      "ends_at": "string(datetime)",
+      "sort_order": "number",
+      "created_at": "string(datetime)"
     },
     "ticketTier": {
       "id": "string(uuid)",

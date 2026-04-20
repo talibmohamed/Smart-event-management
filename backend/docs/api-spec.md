@@ -1,6 +1,6 @@
 # Quickseat API Spec
 
-Last updated: 2026-04-19
+Last updated: 2026-04-20
 
 ## Global Rules
 
@@ -19,6 +19,7 @@ Last updated: 2026-04-19
 - Local ticket tier schema command: `npm run db:ticket-tier-schema`
 - Local ticket schema command: `npm run db:ticket-schema` applies ticket tables and backfills confirmed booking tickets
 - Local notification schema command: `npm run db:notification-schema`
+- Local scheduling/reminder schema command: `npm run db:scheduling-schema`
 - Local storage setup command: `npm run storage:setup`
 - Seeded sample password for all seed users: `Password123!`
 - Event geocoding uses Nominatim from the backend only; frontend must never call Nominatim directly
@@ -38,6 +39,9 @@ Last updated: 2026-04-19
 - Ticket PDFs render the frontend SVG logo as vector and strip embedded raster nodes to avoid black background artifacts
 - Email previews can be sent with `npm run email:preview -- --to email@example.com`; pass `--template bookingConfirmedEmail` to send only the booking confirmation preview with ticket PDF
 - Frontend must not subscribe directly to Supabase tables for notifications
+- Events can include `event_end_date`, `timezone`, and structured `agenda_tracks`
+- Event reminders are event-level only in v1: confirmed attendees receive 24h and 1h in-app/email reminders
+- Reminder emails and Socket.IO emissions are best-effort; persisted notifications and `event_reminder_deliveries` are the source of truth
 
 ## Endpoints
 
@@ -289,6 +293,8 @@ Last updated: 2026-04-19
       "longitude": "2.3295360",
       "image_url": "https://example.supabase.co/storage/v1/object/public/event-images/events/user-id/image.webp",
       "event_date": "2026-05-01T09:00:00.000Z",
+      "event_end_date": "2026-05-01T17:00:00.000Z",
+      "timezone": "Europe/Paris",
       "capacity": 100,
       "price": "10.00",
       "organizer_id": "uuid",
@@ -310,6 +316,7 @@ Last updated: 2026-04-19
           "is_active": true
         }
       ],
+      "agenda_session_count": 3,
       "first_name": "Jane",
       "last_name": "Smith",
       "organizer_email": "jane@example.com"
@@ -327,6 +334,7 @@ Last updated: 2026-04-19
 - Allowed roles: all
 - Request body: none
 - Success: same event object shape as `GET /api/events`
+- `GET /api/events/:id` also includes `agenda_tracks` grouped by track with sessions ordered by `starts_at ASC`, then `sort_order ASC`
 - Common errors:
   - `404 { "success": false, "message": "Event not found" }`
   - `500 { "success": false, "message": "Server error while fetching event", "error": "..." }`
@@ -411,6 +419,8 @@ Last updated: 2026-04-19
   "address": "28 Rue Notre Dame des Champs",
   "city": "Paris",
   "event_date": "2026-05-01T09:00:00.000Z",
+  "event_end_date": "2026-05-01T17:00:00.000Z",
+  "timezone": "Europe/Paris",
   "capacity": 100,
   "price": 10,
   "ticket_tiers": [
@@ -438,6 +448,24 @@ Last updated: 2026-04-19
       "is_active": true,
       "sort_order": 2
     }
+  ],
+  "agenda_tracks": [
+    {
+      "name": "Main Stage",
+      "description": "Primary event track",
+      "sort_order": 0,
+      "sessions": [
+        {
+          "title": "Opening keynote",
+          "description": "Welcome session",
+          "speaker_name": "Jane Doe",
+          "location": "Room A",
+          "starts_at": "2026-05-01T09:30:00.000Z",
+          "ends_at": "2026-05-01T10:30:00.000Z",
+          "sort_order": 0
+        }
+      ]
+    }
   ]
 }
 ```
@@ -445,6 +473,7 @@ Last updated: 2026-04-19
 - Multipart fields:
   - Same event fields as above
   - Optional `ticket_tiers` JSON string
+  - Optional `agenda_tracks` JSON string
   - Optional file field: `cover_image`
 
 - Notes:
@@ -458,6 +487,11 @@ Last updated: 2026-04-19
   - `ticket_tiers` is optional for old frontend compatibility; when omitted, backend creates one active `Standard` tier from `price` and `capacity`
   - When sent, `ticket_tiers` must contain 1-10 tiers and total tier capacity must equal event capacity
   - `Event.price` is stored and returned as the minimum active tier price
+  - `timezone` is optional and defaults to `Europe/Paris`
+  - `event_end_date` is optional but must be after `event_date` when sent
+  - `agenda_tracks` is optional and supports up to 10 tracks and 50 sessions
+  - Sessions must start on or after `event_date`; when `event_end_date` exists, sessions must end before or at it
+  - Sessions can overlap across different tracks, but same-track overlap returns `400`
   - Confirmed attendees receive best-effort emails if key event details later change
 - Success:
 
@@ -476,6 +510,8 @@ Last updated: 2026-04-19
     "longitude": "2.3295360",
     "image_url": "https://example.supabase.co/storage/v1/object/public/event-images/events/user-id/image.webp",
     "event_date": "2026-05-01T09:00:00.000Z",
+    "event_end_date": "2026-05-01T17:00:00.000Z",
+    "timezone": "Europe/Paris",
     "capacity": 100,
     "price": "10.00",
     "organizer_id": "uuid",
@@ -495,6 +531,8 @@ Last updated: 2026-04-19
   - `400 { "success": false, "message": "Event must have between 1 and 10 ticket tiers" }`
   - `400 { "success": false, "message": "Each ticket tier requires name, price >= 0, and capacity > 0" }`
   - `400 { "success": false, "message": "Ticket tier capacities must equal event capacity" }`
+  - `400 { "success": false, "message": "Timezone must be a valid IANA timezone" }`
+  - `400 { "success": false, "message": "Sessions in the same track cannot overlap" }`
   - `400 { "success": false, "message": "Event image must be a JPEG, PNG, or WebP file under 5MB" }`
   - `500 { "success": false, "message": "Server error while creating event", "error": "..." }`
 
@@ -509,6 +547,7 @@ Last updated: 2026-04-19
 - Multipart fields:
   - Same event fields as `POST /api/events`
   - Optional `ticket_tiers` JSON string
+  - Optional `agenda_tracks` JSON string
   - Optional file field: `cover_image`
   - Optional field: `remove_image=true`
 - Notes:
@@ -521,6 +560,8 @@ Last updated: 2026-04-19
   - New `cover_image` replaces the old image and old storage cleanup is best-effort
   - `remove_image=true` removes the old image best-effort and sets `image_url` to `null`
   - If `ticket_tiers` is omitted, backend preserves existing tiers
+  - If `agenda_tracks` is omitted, backend preserves existing agenda
+  - If `agenda_tracks` is sent, backend replaces the full agenda transactionally
   - Sold ticket tiers cannot be deleted
   - Unsold tiers omitted from the update payload are disabled instead of hard-deleted
   - Tier capacity cannot be reduced below confirmed sold quantity
@@ -1095,6 +1136,21 @@ Last updated: 2026-04-19
   - Admins receive global platform notifications
   - Organizers receive relevant event/booking notifications
   - Attendees receive their own booking/payment/ticket/event notifications
+
+### Scheduling And Reminders
+
+- Agenda data is part of event create/update/detail payloads, not a separate endpoint in v1.
+- `timezone` uses IANA names such as `Europe/Paris`.
+- Frontend should display event and session times using the event timezone and show the timezone label near agenda/date UI.
+- Reminder worker:
+  - Started from `server.js`
+  - Controlled by `REMINDER_WORKER_ENABLED`, `REMINDER_SCAN_INTERVAL_MS`, `REMINDER_SCAN_SAFETY_BUFFER_MS`, and `REMINDER_EMAIL_MAX_RETRIES`
+  - Uses PostgreSQL advisory lock before each scan cycle
+  - Scans only relevant 24h and 1h reminder windows
+  - Sends reminders only to confirmed attendee bookings
+  - Creates `event_reminder_24h` and `event_reminder_1h` notifications
+  - Persists reminder delivery and notification before Socket.IO emit
+  - Treats Socket.IO and email as best-effort side effects
 
 ### `POST /api/payments/stripe/webhook`
 

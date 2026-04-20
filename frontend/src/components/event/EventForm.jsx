@@ -6,8 +6,11 @@ import { Link as RouterLink } from "react-router-dom";
 import {
   buildEventPayload,
   calculateTicketTierTotal,
+  DEFAULT_EVENT_TIMEZONE,
   EVENT_IMAGE_ACCEPT,
   EVENT_IMAGE_ERROR_MESSAGE,
+  EVENT_TIMEZONE_OPTIONS,
+  normalizeAgendaTracks,
   normalizeTicketTiers,
   toEventFormValues,
   validateEventImageFile,
@@ -67,10 +70,16 @@ function validateEventForm(values, isCitySelected) {
 
   const capacity = Number(values.capacity);
   const parsedDate = new Date(values.event_date);
+  const parsedEndDate = values.event_end_date ? new Date(values.event_end_date) : null;
   const ticketTiers = normalizeTicketTiers(values.ticket_tiers);
+  const agendaTracks = normalizeAgendaTracks(values.agenda_tracks);
 
   if (Number.isNaN(parsedDate.getTime())) {
     return "Please provide a valid event date and time";
+  }
+
+  if (parsedEndDate && (Number.isNaN(parsedEndDate.getTime()) || parsedEndDate <= parsedDate)) {
+    return "Event end date must be after event start date";
   }
 
   if (Number.isNaN(capacity) || capacity <= 0) {
@@ -107,6 +116,54 @@ function validateEventForm(values, isCitySelected) {
 
   if (calculateTicketTierTotal(ticketTiers) !== capacity) {
     return "Ticket tier capacities must equal event capacity";
+  }
+
+  if (agendaTracks.length > 10) {
+    return "Event agenda can have a maximum of 10 tracks";
+  }
+
+  const sessionCount = agendaTracks.reduce((total, track) => total + track.sessions.length, 0);
+
+  if (sessionCount > 50) {
+    return "Event agenda can have a maximum of 50 sessions";
+  }
+
+  for (const track of agendaTracks) {
+    if (!track.name.trim()) {
+      return "Agenda track name is required";
+    }
+
+    const sortedSessions = track.sessions
+      .slice()
+      .sort((first, second) => new Date(first.starts_at).getTime() - new Date(second.starts_at).getTime());
+
+    for (let index = 0; index < sortedSessions.length; index += 1) {
+      const session = sortedSessions[index];
+      const startsAt = new Date(session.starts_at);
+      const endsAt = new Date(session.ends_at);
+
+      if (!session.title.trim() || !session.starts_at || !session.ends_at) {
+        return "Session title, start time, and end time are required";
+      }
+
+      if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
+        return "Session end time must be after start time";
+      }
+
+      if (startsAt < parsedDate) {
+        return "Sessions must start on or after the event start date";
+      }
+
+      if (parsedEndDate && endsAt > parsedEndDate) {
+        return "Sessions must end on or before the event end date";
+      }
+
+      const previousSession = sortedSessions[index - 1];
+
+      if (previousSession && startsAt < new Date(previousSession.ends_at)) {
+        return "Sessions in the same track cannot overlap";
+      }
+    }
   }
 
   return "";
@@ -170,6 +227,13 @@ export default function EventForm({
     }));
   }
 
+  function handleEndDateChange(nextDate) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      event_end_date: nextDate ? nextDate.toString() : "",
+    }));
+  }
+
   function handleCategoryChange(keys) {
     const selectedCategory = Array.from(keys)[0];
 
@@ -177,6 +241,17 @@ export default function EventForm({
       setValues((currentValues) => ({
         ...currentValues,
         category: selectedCategory,
+      }));
+    }
+  }
+
+  function handleTimezoneChange(keys) {
+    const selectedTimezone = Array.from(keys)[0];
+
+    if (selectedTimezone) {
+      setValues((currentValues) => ({
+        ...currentValues,
+        timezone: selectedTimezone,
       }));
     }
   }
@@ -216,6 +291,106 @@ export default function EventForm({
     setValues((currentValues) => ({
       ...currentValues,
       ticket_tiers: normalizeTicketTiers(currentValues.ticket_tiers).filter((_, tierIndex) => tierIndex !== index),
+    }));
+  }
+
+  function handleAddAgendaTrack() {
+    setValues((currentValues) => {
+      const agendaTracks = normalizeAgendaTracks(currentValues.agenda_tracks);
+
+      return {
+        ...currentValues,
+        agenda_tracks: [
+          ...agendaTracks,
+          {
+            name: "",
+            description: "",
+            sort_order: agendaTracks.length,
+            sessions: [],
+          },
+        ],
+      };
+    });
+  }
+
+  function handleAgendaTrackChange(trackIndex, field, nextValue) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      agenda_tracks: normalizeAgendaTracks(currentValues.agenda_tracks).map((track, index) =>
+        index === trackIndex
+          ? {
+              ...track,
+              [field]: nextValue,
+            }
+          : track,
+      ),
+    }));
+  }
+
+  function handleRemoveAgendaTrack(trackIndex) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      agenda_tracks: normalizeAgendaTracks(currentValues.agenda_tracks).filter((_, index) => index !== trackIndex),
+    }));
+  }
+
+  function handleAddAgendaSession(trackIndex) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      agenda_tracks: normalizeAgendaTracks(currentValues.agenda_tracks).map((track, index) =>
+        index === trackIndex
+          ? {
+              ...track,
+              sessions: [
+                ...track.sessions,
+                {
+                  title: "",
+                  description: "",
+                  speaker_name: "",
+                  location: "",
+                  starts_at: values.event_date || "",
+                  ends_at: values.event_end_date || values.event_date || "",
+                  sort_order: track.sessions.length,
+                },
+              ],
+            }
+          : track,
+      ),
+    }));
+  }
+
+  function handleAgendaSessionChange(trackIndex, sessionIndex, field, nextValue) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      agenda_tracks: normalizeAgendaTracks(currentValues.agenda_tracks).map((track, index) =>
+        index === trackIndex
+          ? {
+              ...track,
+              sessions: track.sessions.map((session, sessionItemIndex) =>
+                sessionItemIndex === sessionIndex
+                  ? {
+                      ...session,
+                      [field]: nextValue,
+                    }
+                  : session,
+              ),
+            }
+          : track,
+      ),
+    }));
+  }
+
+  function handleRemoveAgendaSession(trackIndex, sessionIndex) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      agenda_tracks: normalizeAgendaTracks(currentValues.agenda_tracks).map((track, index) =>
+        index === trackIndex
+          ? {
+              ...track,
+              sessions: track.sessions.filter((_, sessionItemIndex) => sessionItemIndex !== sessionIndex),
+            }
+          : track,
+      ),
     }));
   }
 
@@ -279,6 +454,7 @@ export default function EventForm({
   const displayError = validationMessage || errorMessage;
   const hasCoverImage = Boolean(coverImagePreviewUrl);
   const ticketTiers = normalizeTicketTiers(values.ticket_tiers);
+  const agendaTracks = normalizeAgendaTracks(values.agenda_tracks);
   const ticketTierCapacityTotal = calculateTicketTierTotal(ticketTiers);
   const eventCapacity = Number(values.capacity);
   const isTierCapacityInvalid =
@@ -472,6 +648,60 @@ export default function EventForm({
           }}
         />
 
+        <DatePicker
+          label="End Date and Time"
+          labelPlacement="outside"
+          value={getDatePickerValue(values.event_end_date)}
+          onChange={handleEndDateChange}
+          granularity="minute"
+          hourCycle={24}
+          showMonthAndYearPickers
+          radius="lg"
+          variant="bordered"
+          classNames={{
+            inputWrapper:
+              "h-10 border border-zinc-200 bg-white/80 shadow-none data-[hover=true]:bg-white dark:border-white/10 dark:bg-white/5 dark:data-[hover=true]:bg-white/[0.08]",
+            label: "font-medium !text-zinc-700 dark:!text-zinc-300",
+            input: "!text-zinc-900 dark:!text-white",
+            segment:
+              "text-zinc-900 data-[editable=true]:hover:bg-zinc-100 dark:text-white dark:data-[editable=true]:hover:bg-white/10",
+            selectorButton: "text-zinc-500 dark:text-zinc-400",
+            popoverContent:
+              "rounded-2xl border border-zinc-200 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/95 dark:shadow-black/30",
+            calendar: "bg-transparent",
+            calendarContent: "bg-transparent",
+          }}
+        />
+
+        <Select
+          label="Timezone"
+          labelPlacement="outside"
+          selectedKeys={[values.timezone || DEFAULT_EVENT_TIMEZONE]}
+          onSelectionChange={handleTimezoneChange}
+          radius="lg"
+          variant="bordered"
+          classNames={{
+            trigger:
+              "h-10 border border-zinc-200 bg-white/80 shadow-none data-[hover=true]:bg-white dark:border-white/10 dark:bg-white/5 dark:data-[hover=true]:bg-white/[0.08]",
+            label: "font-medium !text-zinc-700 dark:!text-zinc-300",
+            value: "text-zinc-900 dark:text-white",
+            selectorIcon: "text-zinc-500 dark:text-zinc-400",
+            popoverContent:
+              "rounded-2xl border border-zinc-200 bg-white/95 p-1 shadow-xl shadow-slate-200/70 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/95 dark:shadow-black/30",
+            listbox: "gap-1",
+          }}
+        >
+          {EVENT_TIMEZONE_OPTIONS.map((timezone) => (
+            <SelectItem
+              key={timezone}
+              textValue={timezone}
+              className="rounded-xl text-zinc-800 data-[hover=true]:bg-zinc-100 data-[selectable=true]:focus:bg-zinc-100 data-[selected=true]:bg-zinc-950 data-[selected=true]:text-white dark:text-zinc-100 dark:data-[hover=true]:bg-white/10 dark:data-[selectable=true]:focus:bg-white/10 dark:data-[selected=true]:bg-white dark:data-[selected=true]:text-zinc-950"
+            >
+              {timezone}
+            </SelectItem>
+          ))}
+        </Select>
+
         <Input
           label="Capacity"
           labelPlacement="outside"
@@ -647,6 +877,211 @@ export default function EventForm({
             );
           })}
         </div>
+      </div>
+
+      <div className="space-y-4 rounded-[1.5rem] border border-zinc-200/80 bg-white/60 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div>
+            <h2 className="text-lg font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
+              Agenda tracks
+            </h2>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+              Optional. Add up to 10 tracks and 50 sessions. Same-track sessions cannot overlap.
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            radius="full"
+            variant="bordered"
+            startContent={<Plus size={15} />}
+            onPress={handleAddAgendaTrack}
+            isDisabled={agendaTracks.length >= 10}
+            className="border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+          >
+            Add track
+          </Button>
+        </div>
+
+        {agendaTracks.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-zinc-300 bg-white/50 px-4 py-6 text-center text-sm text-zinc-500 dark:border-white/15 dark:bg-white/[0.02] dark:text-zinc-400">
+            No agenda added yet.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {agendaTracks.map((track, trackIndex) => (
+              <div
+                key={track.id || `agenda-track-${trackIndex}`}
+                className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-white/10 dark:bg-white/[0.04]"
+              >
+                <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                  <Input
+                    label="Track name"
+                    labelPlacement="outside"
+                    placeholder="Main Stage"
+                    value={track.name}
+                    onChange={(event) => handleAgendaTrackChange(trackIndex, "name", event.target.value)}
+                    radius="lg"
+                    classNames={{
+                      inputWrapper:
+                        "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                    }}
+                  />
+                  <Input
+                    label="Track description"
+                    labelPlacement="outside"
+                    placeholder="Primary conference track"
+                    value={track.description}
+                    onChange={(event) => handleAgendaTrackChange(trackIndex, "description", event.target.value)}
+                    radius="lg"
+                    classNames={{
+                      inputWrapper:
+                        "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    radius="full"
+                    color="danger"
+                    variant="flat"
+                    startContent={<Trash2 size={15} />}
+                    onPress={() => handleRemoveAgendaTrack(trackIndex)}
+                    className="bg-red-50 font-medium text-red-600 dark:bg-red-500/10 dark:text-red-300"
+                  >
+                    Remove track
+                  </Button>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {track.sessions.map((session, sessionIndex) => (
+                    <div
+                      key={session.id || `agenda-session-${trackIndex}-${sessionIndex}`}
+                      className="rounded-2xl border border-zinc-200/80 bg-zinc-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]"
+                    >
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Input
+                          label="Session title"
+                          labelPlacement="outside"
+                          placeholder="Opening keynote"
+                          value={session.title}
+                          onChange={(event) =>
+                            handleAgendaSessionChange(trackIndex, sessionIndex, "title", event.target.value)
+                          }
+                          radius="lg"
+                          classNames={{
+                            inputWrapper:
+                              "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                          }}
+                        />
+                        <Input
+                          label="Speaker"
+                          labelPlacement="outside"
+                          placeholder="Jane Doe"
+                          value={session.speaker_name}
+                          onChange={(event) =>
+                            handleAgendaSessionChange(trackIndex, sessionIndex, "speaker_name", event.target.value)
+                          }
+                          radius="lg"
+                          classNames={{
+                            inputWrapper:
+                              "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                          }}
+                        />
+                        <DatePicker
+                          label="Starts at"
+                          labelPlacement="outside"
+                          value={getDatePickerValue(session.starts_at)}
+                          onChange={(nextDate) =>
+                            handleAgendaSessionChange(
+                              trackIndex,
+                              sessionIndex,
+                              "starts_at",
+                              nextDate ? nextDate.toString() : "",
+                            )
+                          }
+                          granularity="minute"
+                          hourCycle={24}
+                          radius="lg"
+                          variant="bordered"
+                        />
+                        <DatePicker
+                          label="Ends at"
+                          labelPlacement="outside"
+                          value={getDatePickerValue(session.ends_at)}
+                          onChange={(nextDate) =>
+                            handleAgendaSessionChange(
+                              trackIndex,
+                              sessionIndex,
+                              "ends_at",
+                              nextDate ? nextDate.toString() : "",
+                            )
+                          }
+                          granularity="minute"
+                          hourCycle={24}
+                          radius="lg"
+                          variant="bordered"
+                        />
+                        <Input
+                          label="Session location"
+                          labelPlacement="outside"
+                          placeholder="Room A"
+                          value={session.location}
+                          onChange={(event) =>
+                            handleAgendaSessionChange(trackIndex, sessionIndex, "location", event.target.value)
+                          }
+                          radius="lg"
+                          classNames={{
+                            inputWrapper:
+                              "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                          }}
+                        />
+                        <Textarea
+                          label="Session description"
+                          labelPlacement="outside"
+                          minRows={2}
+                          value={session.description}
+                          onChange={(event) =>
+                            handleAgendaSessionChange(trackIndex, sessionIndex, "description", event.target.value)
+                          }
+                          radius="lg"
+                          classNames={{
+                            inputWrapper:
+                              "bg-white/80 dark:bg-white/5 border border-zinc-200 dark:border-white/10 shadow-none",
+                          }}
+                        />
+                      </div>
+
+                      <div className="mt-3 flex justify-end">
+                        <Button
+                          type="button"
+                          radius="full"
+                          color="danger"
+                          variant="flat"
+                          startContent={<Trash2 size={15} />}
+                          onPress={() => handleRemoveAgendaSession(trackIndex, sessionIndex)}
+                          className="bg-red-50 font-medium text-red-600 dark:bg-red-500/10 dark:text-red-300"
+                        >
+                          Remove session
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <Button
+                    type="button"
+                    radius="full"
+                    variant="bordered"
+                    startContent={<Plus size={15} />}
+                    onPress={() => handleAddAgendaSession(trackIndex)}
+                    className="border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  >
+                    Add session
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

@@ -1,5 +1,16 @@
 import { Button, Card, CardBody, Chip } from "@heroui/react";
-import { CalendarDays, MapPin, Minus, PencilLine, Plus, Ticket, Users, WalletCards } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  MapPin,
+  Mic2,
+  Minus,
+  PencilLine,
+  Plus,
+  Ticket,
+  Users,
+  WalletCards,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
@@ -10,9 +21,10 @@ import bookingService from "../services/bookingService";
 import eventService from "../services/eventService";
 import {
   formatEventAvailability,
-  formatEventDate,
+  formatEventDateInTimezone,
   formatEventPrice,
   formatEventPriceRange,
+  formatEventTimeRange,
   formatEventVenue,
   getActiveTicketTiers,
   getEventAvailability,
@@ -94,6 +106,15 @@ export default function EventDetailsPage() {
       : "";
   const availability = useMemo(() => getEventAvailability(eventRecord || {}), [eventRecord]);
   const activeTicketTiers = useMemo(() => getActiveTicketTiers(eventRecord || {}), [eventRecord]);
+  const eventTimezone = eventRecord?.timezone || "Europe/Paris";
+  const agendaTracks = useMemo(
+    () => Array.isArray(eventRecord?.agenda_tracks) ? eventRecord.agenda_tracks : [],
+    [eventRecord],
+  );
+  const agendaSessionCount = useMemo(
+    () => agendaTracks.reduce((total, track) => total + (track.sessions?.length || 0), 0),
+    [agendaTracks],
+  );
   const selectedTicketItems = useMemo(
     () =>
       activeTicketTiers
@@ -323,6 +344,12 @@ export default function EventDetailsPage() {
                       >
                         {formatEventPriceRange(eventRecord)}
                       </Chip>
+                      <Chip
+                        variant="flat"
+                        className="border border-zinc-200 bg-white/90 text-zinc-700 dark:border-white/10 dark:bg-white/10 dark:text-zinc-200"
+                      >
+                        {eventTimezone}
+                      </Chip>
                     </div>
 
                     <div>
@@ -414,6 +441,122 @@ export default function EventDetailsPage() {
               <p className="text-sm leading-7 text-zinc-700 dark:text-zinc-300">
                 {eventRecord.description}
               </p>
+
+              {agendaTracks.length > 0 ? (
+                <div className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white/80 shadow-sm shadow-zinc-200/50 dark:border-white/10 dark:bg-white/[0.035] dark:shadow-black/20">
+                  <div className="border-b border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-white to-sky-50/70 px-5 py-5 dark:border-white/10 dark:from-white/[0.08] dark:via-white/[0.03] dark:to-sky-400/10">
+                    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300">
+                          Event schedule
+                        </p>
+                        <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-zinc-950 dark:text-white">
+                          Agenda
+                        </h2>
+                        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                          Sessions are grouped by track and shown in {eventTimezone}.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Chip
+                          variant="flat"
+                          className="border border-zinc-200 bg-white/85 text-zinc-700 dark:border-white/10 dark:bg-white/10 dark:text-zinc-200"
+                        >
+                          {agendaTracks.length} track{agendaTracks.length === 1 ? "" : "s"}
+                        </Chip>
+                        <Chip
+                          variant="flat"
+                          className="border border-zinc-200 bg-white/85 text-zinc-700 dark:border-white/10 dark:bg-white/10 dark:text-zinc-200"
+                        >
+                          {agendaSessionCount} session{agendaSessionCount === 1 ? "" : "s"}
+                        </Chip>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 p-5">
+                    {agendaTracks.map((track, trackIndex) => (
+                      <section key={track.id || track.name || `track-${trackIndex}`} className="space-y-4">
+                        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-950 text-xs font-bold text-white dark:bg-white dark:text-zinc-950">
+                                {trackIndex + 1}
+                              </span>
+                              <h3 className="text-lg font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
+                                {track.name}
+                              </h3>
+                            </div>
+                            {track.description ? (
+                              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                                {track.description}
+                              </p>
+                            ) : null}
+                          </div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                            {(track.sessions || []).length} session{(track.sessions || []).length === 1 ? "" : "s"}
+                          </p>
+                        </div>
+
+                        <div className="relative space-y-3 pl-5 before:absolute before:left-[0.55rem] before:top-2 before:h-[calc(100%-1rem)] before:w-px before:bg-zinc-200 dark:before:bg-white/10">
+                          {(track.sessions || []).map((session, sessionIndex) => (
+                            <article
+                              key={session.id || `${trackIndex}-${sessionIndex}`}
+                              className="relative rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-sm shadow-zinc-100/80 transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-white/10 dark:bg-zinc-950/60 dark:shadow-black/20 dark:hover:border-white/20"
+                            >
+                              <span className="absolute -left-[1.05rem] top-5 h-3 w-3 rounded-full border-2 border-white bg-sky-500 shadow-sm dark:border-zinc-950" />
+                              <div className="grid gap-4 lg:grid-cols-[10rem_minmax(0,1fr)]">
+                                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 dark:border-white/10 dark:bg-white/[0.06]">
+                                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+                                    <Clock size={13} />
+                                    Time
+                                  </div>
+                                  <p className="mt-2 text-sm font-semibold text-zinc-950 dark:text-white">
+                                    {formatEventTimeRange(session.starts_at, session.ends_at, eventTimezone)}
+                                  </p>
+                                </div>
+
+                                <div className="min-w-0">
+                                  <p className="text-base font-semibold tracking-[-0.02em] text-zinc-950 dark:text-white">
+                                    {session.title}
+                                  </p>
+                                  {session.description ? (
+                                    <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                                      {session.description}
+                                    </p>
+                                  ) : null}
+                                  <div className="mt-4 flex flex-wrap gap-2">
+                                    {session.speaker_name ? (
+                                      <Chip
+                                        size="sm"
+                                        variant="flat"
+                                        startContent={<Mic2 size={12} />}
+                                        className="border border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-white/10 dark:bg-white/10 dark:text-zinc-200"
+                                      >
+                                        {session.speaker_name}
+                                      </Chip>
+                                    ) : null}
+                                    {session.location ? (
+                                      <Chip
+                                        size="sm"
+                                        variant="flat"
+                                        startContent={<MapPin size={12} />}
+                                        className="border border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-white/10 dark:bg-white/10 dark:text-zinc-200"
+                                      >
+                                        {session.location}
+                                      </Chip>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="rounded-[1.75rem] border border-zinc-200/80 bg-white/72 p-5 dark:border-white/10 dark:bg-white/[0.03]">
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -525,8 +668,12 @@ export default function EventDetailsPage() {
                     Date
                   </div>
                   <p className="mt-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {formatEventDate(eventRecord.event_date)}
+                    {formatEventDateInTimezone(eventRecord.event_date, eventTimezone)}
+                    {eventRecord.event_end_date
+                      ? ` - ${formatEventDateInTimezone(eventRecord.event_end_date, eventTimezone)}`
+                      : ""}
                   </p>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{eventTimezone}</p>
                 </div>
 
                 <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">

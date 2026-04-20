@@ -11,6 +11,7 @@ import {
   eventUpdatedEmail
 } from "../utils/emailTemplates.js";
 import { findSupportedFrenchCity } from "../utils/frenchCities.js";
+import { normalizeTimezone, parseEventAgenda } from "../utils/agenda.js";
 import { parseEventTicketTiers } from "../utils/ticketTiers.js";
 import notificationService from "../services/notificationService.js";
 
@@ -28,6 +29,9 @@ const didKeyEventDetailsChange = (beforeEvent, afterEvent) => {
     beforeEvent.title !== afterEvent.title ||
     new Date(beforeEvent.event_date).getTime() !==
       new Date(afterEvent.event_date).getTime() ||
+    new Date(beforeEvent.event_end_date || 0).getTime() !==
+      new Date(afterEvent.event_end_date || 0).getTime() ||
+    (beforeEvent.timezone || "Europe/Paris") !== (afterEvent.timezone || "Europe/Paris") ||
     beforeEvent.address !== afterEvent.address ||
     beforeEvent.city !== afterEvent.city ||
     Number(beforeEvent.price) !== Number(afterEvent.price)
@@ -66,6 +70,8 @@ const createEvent = async (req, res) => {
       address,
       city,
       event_date,
+      event_end_date,
+      timezone,
       capacity,
       price
     } = req.body;
@@ -88,6 +94,7 @@ const createEvent = async (req, res) => {
 
     const numericCapacity = Number(capacity);
     const numericPrice = Number(price);
+    const normalizedTimezone = normalizeTimezone(timezone);
 
     if (Number.isNaN(numericCapacity) || numericCapacity <= 0) {
       return res.status(400).json({
@@ -102,6 +109,19 @@ const createEvent = async (req, res) => {
         message: "Price must be a valid number greater than or equal to 0"
       });
     }
+
+    if (!normalizedTimezone) {
+      return res.status(400).json({
+        success: false,
+        message: "Timezone must be a valid IANA timezone"
+      });
+    }
+
+    const agendaTracks = parseEventAgenda({
+      rawAgendaTracks: req.body.agenda_tracks,
+      eventDate: event_date,
+      eventEndDate: event_end_date || null
+    });
 
     const ticketTiers = parseEventTicketTiers({
       rawTicketTiers: req.body.ticket_tiers,
@@ -154,9 +174,12 @@ const createEvent = async (req, res) => {
         image_url: uploadedImage.image_url,
         image_path: uploadedImage.image_path,
         event_date,
+        event_end_date: event_end_date || null,
+        timezone: normalizedTimezone,
         capacity: numericCapacity,
         price: numericPrice,
         ticket_tiers: ticketTiers,
+        agenda_tracks: agendaTracks || [],
         organizer_id: req.user.id
       });
     } catch (error) {
@@ -317,6 +340,8 @@ const updateEvent = async (req, res) => {
       address,
       city,
       event_date,
+      event_end_date,
+      timezone,
       capacity,
       price
     } = req.body;
@@ -339,6 +364,7 @@ const updateEvent = async (req, res) => {
 
     const numericCapacity = Number(capacity);
     const numericPrice = Number(price);
+    const normalizedTimezone = normalizeTimezone(timezone);
 
     if (Number.isNaN(numericCapacity) || numericCapacity <= 0) {
       return res.status(400).json({
@@ -353,6 +379,21 @@ const updateEvent = async (req, res) => {
         message: "Price must be a valid number greater than or equal to 0"
       });
     }
+
+    if (!normalizedTimezone) {
+      return res.status(400).json({
+        success: false,
+        message: "Timezone must be a valid IANA timezone"
+      });
+    }
+
+    const agendaTracks = req.body.agenda_tracks === undefined
+      ? undefined
+      : parseEventAgenda({
+          rawAgendaTracks: req.body.agenda_tracks,
+          eventDate: event_date,
+          eventEndDate: event_end_date || null
+        });
 
     const existingTicketTiers = req.body.ticket_tiers === undefined
       ? await Event.getTicketTiersForEvent(existingEvent.id)
@@ -437,9 +478,12 @@ const updateEvent = async (req, res) => {
         image_url: imageData.image_url,
         image_path: imageData.image_path,
         event_date,
+        event_end_date: event_end_date || null,
+        timezone: normalizedTimezone,
         capacity: numericCapacity,
         price: numericPrice,
-        ticket_tiers: ticketTiers
+        ticket_tiers: ticketTiers,
+        agenda_tracks: agendaTracks
       });
     } catch (error) {
       await deleteEventImage(uploadedImagePath);

@@ -20,7 +20,7 @@ import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
 import { isOrganizerRole } from "../services/authService";
 import {
-  formatEventDate,
+  formatEventDateInTimezone,
   formatEventPrice,
   formatEventPriceRange,
   formatEventVenue,
@@ -352,7 +352,10 @@ export default function DashboardPage() {
                             Event date
                           </p>
                           <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
-                            {formatEventDate(event.event_date)}
+                            {formatEventDateInTimezone(event.event_date, event.timezone)}
+                          </p>
+                          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            {event.timezone || "Europe/Paris"}
                           </p>
                         </div>
 
@@ -362,6 +365,17 @@ export default function DashboardPage() {
                           </p>
                           <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
                             {event.capacity} seats
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-zinc-200/80 bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+                          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                            Agenda
+                          </p>
+                          <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-100">
+                            {Number(event.agenda_session_count) > 0
+                              ? `${event.agenda_session_count} session${Number(event.agenda_session_count) === 1 ? "" : "s"}`
+                              : "No sessions"}
                           </p>
                         </div>
 

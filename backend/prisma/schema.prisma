@@ -23,6 +23,7 @@ model User {
   feedbacks    Feedback[]
   tickets      Ticket[]
   notifications Notification[]
+  reminder_deliveries EventReminderDelivery[]
 
   @@index([password_reset_token_hash])
   @@map("users")
@@ -40,6 +41,7 @@ model Notification {
   created_at DateTime  @default(now())
 
   user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  reminder_deliveries EventReminderDelivery[]
 
   @@unique([user_id, dedupe_key])
   @@index([user_id, created_at])
@@ -59,6 +61,8 @@ model Event {
   image_url    String?   @db.Text
   image_path   String?   @db.VarChar(500)
   event_date   DateTime
+  event_end_date DateTime?
+  timezone     String    @default("Europe/Paris") @db.VarChar(100)
   capacity     Int
   price        Decimal   @default(0.00) @db.Decimal(10, 2)
   organizer_id String    @db.Uuid
@@ -69,7 +73,11 @@ model Event {
   feedbacks    Feedback[]
   ticket_tiers TicketTier[]
   tickets      Ticket[]
+  agenda_tracks EventTrack[]
+  agenda_sessions EventSession[]
+  reminder_deliveries EventReminderDelivery[]
 
+  @@index([event_date])
   @@map("events")
 }
 
@@ -90,9 +98,72 @@ model Booking {
   event        Event @relation(fields: [event_id], references: [id])
   items        BookingItem[]
   tickets      Ticket[]
+  reminder_deliveries EventReminderDelivery[]
 
   @@unique([user_id, event_id])
   @@map("bookings")
+}
+
+model EventTrack {
+  id          String   @id @default(uuid()) @db.Uuid
+  event_id    String   @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now())
+
+  event    Event          @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  sessions EventSession[]
+
+  @@index([event_id])
+  @@map("event_tracks")
+}
+
+model EventSession {
+  id           String   @id @default(uuid()) @db.Uuid
+  event_id     String   @db.Uuid
+  track_id     String   @db.Uuid
+  title        String   @db.VarChar(200)
+  description  String?
+  speaker_name String?  @db.VarChar(150)
+  location     String?  @db.VarChar(150)
+  starts_at    DateTime
+  ends_at      DateTime
+  sort_order   Int      @default(0)
+  created_at   DateTime @default(now())
+
+  event Event      @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  track EventTrack @relation(fields: [track_id], references: [id], onDelete: Cascade)
+
+  @@index([event_id, starts_at])
+  @@index([track_id, starts_at])
+  @@map("event_sessions")
+}
+
+model EventReminderDelivery {
+  id              String    @id @default(uuid()) @db.Uuid
+  event_id        String    @db.Uuid
+  booking_id      String    @db.Uuid
+  user_id         String    @db.Uuid
+  reminder_key    String    @db.VarChar(20)
+  scheduled_for   DateTime
+  sent_at         DateTime?
+  notification_id String?   @db.Uuid
+  email_sent      Boolean   @default(false)
+  retry_count     Int       @default(0)
+  last_attempt_at DateTime?
+  last_error      String?
+  created_at      DateTime  @default(now())
+
+  event        Event         @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  booking      Booking       @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  notification Notification? @relation(fields: [notification_id], references: [id], onDelete: SetNull)
+
+  @@unique([event_id, user_id, reminder_key])
+  @@index([scheduled_for, sent_at])
+  @@index([user_id])
+  @@map("event_reminder_deliveries")
 }
 
 model TicketTier {

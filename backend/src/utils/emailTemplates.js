@@ -358,3 +358,20 @@ export const passwordResetEmail = ({ user, resetUrl, expiresInMinutes }) =>
     ],
     cta: { label: "Reset password", url: resetUrl },
   });
+
+export const eventReminderEmail = ({ attendee, event, reminderLabel, eventUrl }) =>
+  createEmail({
+    to: attendee.email,
+    subject: `Reminder: ${event.title}`,
+    title: `${event.title} starts ${reminderLabel}`,
+    status: "info",
+    statusLabel: "Event reminder",
+    intro: `Hello ${attendee.first_name}, this is a reminder that ${event.title} starts ${reminderLabel}.`,
+    details: [
+      asDetail("Event", event.title),
+      asDetail("Date", formatDate(event.event_date)),
+      asDetail("Timezone", event.timezone || "Europe/Paris"),
+      asDetail("Location", eventLocation(event)),
+    ],
+    cta: eventUrl ? { label: "View event", url: eventUrl } : null,
+  });

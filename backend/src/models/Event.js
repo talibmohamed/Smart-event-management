@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js";
+import { formatAgendaTrack } from "../utils/agenda.js";
 
 const eventWithOrganizer = {
   organizer: {
@@ -34,6 +35,37 @@ const flattenEvent = (event) => {
     last_name: organizer.last_name,
     organizer_email: organizer.email,
   };
+};
+
+const formatEventBaseFields = (event) => ({
+  ...event,
+  timezone: event.timezone || "Europe/Paris",
+});
+
+const getAgendaForEvent = async (event_id, client = prisma) => {
+  const tracks = await client.eventTrack.findMany({
+    where: { event_id },
+    include: {
+      sessions: {
+        orderBy: [
+          { starts_at: "asc" },
+          { sort_order: "asc" },
+        ],
+      },
+    },
+    orderBy: [
+      { sort_order: "asc" },
+      { created_at: "asc" },
+    ],
+  });
+
+  return tracks.map(formatAgendaTrack);
+};
+
+const countAgendaSessionsForEvent = async (event_id, client = prisma) => {
+  return client.eventSession.count({
+    where: { event_id },
+  });
 };
 
 const formatTicketTier = (tier) => {
@@ -106,7 +138,7 @@ const addTicketDataAndStats = async (event) => {
   const max_price = activePrices.length ? Math.max(...activePrices).toFixed(2) : event.price;
 
   return {
-    ...event,
+    ...formatEventBaseFields(event),
     price: min_price,
     min_price,
     max_price,
@@ -152,6 +184,43 @@ const createTicketTiers = async (client, event_id, ticket_tiers) => {
       )
     `;
   }
+};
+
+const createAgendaTracks = async (client, event_id, agenda_tracks = []) => {
+  for (const track of agenda_tracks) {
+    const createdTrack = await client.eventTrack.create({
+      data: {
+        event_id,
+        name: track.name,
+        description: track.description,
+        sort_order: track.sort_order,
+      },
+    });
+
+    for (const session of track.sessions) {
+      await client.eventSession.create({
+        data: {
+          event_id,
+          track_id: createdTrack.id,
+          title: session.title,
+          description: session.description,
+          speaker_name: session.speaker_name,
+          location: session.location,
+          starts_at: session.starts_at,
+          ends_at: session.ends_at,
+          sort_order: session.sort_order,
+        },
+      });
+    }
+  }
+};
+
+const replaceAgendaTracks = async (client, event_id, agenda_tracks = []) => {
+  await client.eventTrack.deleteMany({
+    where: { event_id },
+  });
+
+  await createAgendaTracks(client, event_id, agenda_tracks);
 };
 
 const getTierSoldMap = async (event_id, client = prisma) => {
@@ -240,10 +309,13 @@ const createEvent = async ({
   image_url,
   image_path,
   event_date,
+  event_end_date,
+  timezone,
   capacity,
   price,
   organizer_id,
   ticket_tiers,
+  agenda_tracks,
 }) => {
   const minPrice = getMinimumActiveTierPrice(ticket_tiers, price);
 
@@ -260,6 +332,8 @@ const createEvent = async ({
         image_url,
         image_path,
         event_date: new Date(event_date),
+        event_end_date: event_end_date ? new Date(event_end_date) : null,
+        timezone,
         capacity,
         price: minPrice,
         organizer_id,
@@ -267,11 +341,17 @@ const createEvent = async ({
     });
 
     await createTicketTiers(tx, createdEvent.id, ticket_tiers);
+    await createAgendaTracks(tx, createdEvent.id, agenda_tracks || []);
 
     return createdEvent;
   });
 
-  return addTicketDataAndStats(hideInternalEventFields(event));
+  const eventWithTicketData = await addTicketDataAndStats(hideInternalEventFields(event));
+
+  return {
+    ...eventWithTicketData,
+    agenda_tracks: await getAgendaForEvent(event.id),
+  };
 };
 
 const getAllEvents = async () => {
@@ -282,7 +362,14 @@ const getAllEvents = async () => {
     },
   });
 
-  return Promise.all(events.map((event) => addTicketDataAndStats(flattenEvent(event))));
+  return Promise.all(events.map(async (event) => {
+    const eventWithTicketData = await addTicketDataAndStats(flattenEvent(event));
+
+    return {
+      ...eventWithTicketData,
+      agenda_session_count: await countAgendaSessionsForEvent(event.id),
+    };
+  }));
 };
 
 const getEventById = async (id) => {
@@ -291,7 +378,16 @@ const getEventById = async (id) => {
     include: eventWithOrganizer,
   });
 
-  return addTicketDataAndStats(flattenEvent(event));
+  const eventWithTicketData = await addTicketDataAndStats(flattenEvent(event));
+
+  if (!eventWithTicketData) {
+    return null;
+  }
+
+  return {
+    ...eventWithTicketData,
+    agenda_tracks: await getAgendaForEvent(id),
+  };
 };
 
 const getEventRecordById = async (id) => {
@@ -331,9 +427,12 @@ const updateEvent = async (
     image_url,
     image_path,
     event_date,
+    event_end_date,
+    timezone,
     capacity,
     price,
     ticket_tiers,
+    agenda_tracks,
   }
 ) => {
   const minPrice = getMinimumActiveTierPrice(ticket_tiers, price);
@@ -360,6 +459,8 @@ const updateEvent = async (
         image_url,
         image_path,
         event_date: new Date(event_date),
+        event_end_date: event_end_date ? new Date(event_end_date) : null,
+        timezone,
         capacity,
         price: minPrice,
       },
@@ -367,10 +468,19 @@ const updateEvent = async (
 
     await syncTicketTiers(tx, id, ticket_tiers);
 
+    if (agenda_tracks !== undefined) {
+      await replaceAgendaTracks(tx, id, agenda_tracks);
+    }
+
     return updatedEvent;
   });
 
-  return addTicketDataAndStats(hideInternalEventFields(event));
+  const eventWithTicketData = await addTicketDataAndStats(hideInternalEventFields(event));
+
+  return {
+    ...eventWithTicketData,
+    agenda_tracks: await getAgendaForEvent(id),
+  };
 };
 
 const deleteEvent = async (id) => {
@@ -387,6 +497,8 @@ export default {
   getEventById,
   getEventRecordById,
   getTicketTiersForEvent,
+  getAgendaForEvent,
+  countAgendaSessionsForEvent,
   getConfirmedAttendeesForEvent,
   countConfirmedTicketsForEvent,
   updateEvent,
