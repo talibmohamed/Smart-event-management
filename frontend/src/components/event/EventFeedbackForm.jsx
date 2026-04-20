@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Button, Card, CardBody, CardHeader, Textarea } from "@heroui/react";
-import { Star } from "lucide-react"; // On utilise les icônes Lucide comme dans le reste de ton projet
+import { Star } from "lucide-react";
+import eventService from "../../services/eventService";
+import { extractApiErrorMessage } from "../../services/api";
 
 export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
   const [rating, setRating] = useState(0);
@@ -21,31 +23,18 @@ export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token'); 
+      // Magie ! On utilise ton eventService au lieu de fetch
+      const response = await eventService.submitFeedback(eventId, { rating, comment });
 
-      const response = await fetch(`/api/events/${eventId}/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ rating, comment })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to submit feedback");
-      }
-
-      setMessage("Thank you for your feedback!");
+      setMessage(response.data?.message || "Thank you for your feedback!");
       setRating(0);
       setComment('');
       
       if (onFeedbackSubmitted) onFeedbackSubmitted();
 
     } catch (err) {
-      setError(err.message);
+      // On utilise ton extracteur d'erreur pour avoir un beau message propre
+      setError(extractApiErrorMessage(err, "Failed to submit feedback."));
     } finally {
       setIsSubmitting(false);
     }

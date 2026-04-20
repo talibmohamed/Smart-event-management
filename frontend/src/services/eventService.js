@@ -41,6 +41,13 @@ const eventService = {
 
     return api.get(`/events/${id}/attendees`, config);
   },
+
+  // ==========================================
+  // NOUVEAU : Fonction pour envoyer l'avis
+  // ==========================================
+  submitFeedback(eventId, payload) {
+    return api.post(`/events/${eventId}/feedback`, payload);
+  },
 };
 
 export default eventService;
