@@ -1,6 +1,6 @@
 # Backend Status
 
-Last updated: 2026-04-16
+Last updated: 2026-04-19
 
 ## Current State
 
@@ -17,6 +17,7 @@ Last updated: 2026-04-16
 - Optional event cover images use Supabase Storage
 - Events support multi-tier ticketing with booking line items
 - Confirmed bookings generate QR-code-ready ticket records
+- Persistent realtime notifications are available through REST plus Socket.IO
 - Supabase Storage requires a public `event-images` bucket and service role credentials in backend env
 
 ## Implemented Features
@@ -35,6 +36,7 @@ Last updated: 2026-04-16
 - `npm run storage:setup` creates or updates the public Supabase `event-images` bucket
 - `npm run db:ticket-tier-schema` applies ticket tier and booking item tables, then backfills existing data
 - `npm run db:ticket-schema` applies the ticket table and backfills confirmed booking tickets
+- `npm run db:notification-schema` applies the notifications table and indexes
 - `npm run test` runs critical backend tests with mocked external services
 - `npm run test:watch` runs the same tests in watch mode
 - `npm run test:coverage` runs critical backend tests with a V8 coverage report
@@ -72,6 +74,7 @@ Last updated: 2026-04-16
 - Organizer/admin event update
 - Organizer/admin event deletion
 - Organizer/admin attendee list with booking status filtering
+- Backend-driven event update/delete notifications for affected attendees and admins
 - Backend-approved French city validation on event create and update
 - Backend-only Nominatim geocoding on event create and update
 - Stored event coordinates for split list/map UI support
@@ -101,6 +104,9 @@ Last updated: 2026-04-16
 - Stripe Checkout line items are generated from backend-calculated booking item prices
 - Resend emails are sent for booking confirmations, paid confirmations, payment failures/expirations, booking cancellations, event updates, and event deletions
 - Resend emails use a shared styled HTML layout with status badges, detail cards, CTA buttons, and text fallback
+- Backend creates persisted notifications for booking confirmations, payment failures/expirations, booking cancellations, event updates/deletions, and ticket check-ins
+- Notification delivery uses Socket.IO for live updates and REST for initial load/refresh recovery
+- Notification creation is centralized and deduped for webhook/retry-prone events
 - Booking confirmation emails include ticket page links and may include inline ticket QR codes
 - Booking confirmation emails include a branded generated ticket PDF attachment when PDF generation succeeds
 - Password reset emails are sent through Resend and expire after 60 minutes
@@ -145,6 +151,10 @@ Last updated: 2026-04-16
 - Stripe success redirect is not payment confirmation; only the webhook confirms paid bookings
 - Ticket PDFs render the frontend SVG logo as vector and strip embedded raster nodes to avoid black background artifacts
 - Email delivery is best-effort and does not change API success/failure results
+- Realtime notification delivery is best-effort; persisted notifications remain the source of truth
+- Notifications are ordered by `created_at DESC`
+- Duplicate webhook events do not create duplicate notifications
+- Frontend must not subscribe directly to Supabase tables for notifications
 - Forgot password responses do not reveal whether an email exists
 - Duplicate pending paid bookings return `409`
 - Pending paid bookings can be retried through `POST /api/bookings/:id/retry-payment`
@@ -159,6 +169,7 @@ Last updated: 2026-04-16
 - Public events list and event detail
 - Organizer event create, update, and delete
 - Organizer/admin event attendee list
+- Notification bell using `GET /api/notifications` plus Socket.IO `notification:new`
 - Attendee ticket display/download pages
 - Organizer/admin ticket scanner/check-in pages
 - Organizer/admin event cover image upload and removal

@@ -31,6 +31,13 @@ vi.mock("../../utils/emailService.js", () => ({
   sendEmailBestEffort: vi.fn(),
 }));
 
+vi.mock("../../services/notificationService.js", () => ({
+  default: {
+    notifyEventUpdated: vi.fn(),
+    notifyEventDeleted: vi.fn(),
+  },
+}));
+
 vi.mock("../../utils/frenchCities.js", () => ({
   findSupportedFrenchCity: vi.fn(),
 }));

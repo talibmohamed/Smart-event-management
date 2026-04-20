@@ -12,6 +12,7 @@ import {
 } from "../utils/emailTemplates.js";
 import { findSupportedFrenchCity } from "../utils/frenchCities.js";
 import { parseEventTicketTiers } from "../utils/ticketTiers.js";
+import notificationService from "../services/notificationService.js";
 
 const shouldRemoveImage = (value) => value === true || value === "true";
 const ATTENDEE_STATUS_FILTERS = ["confirmed", "pending_payment", "cancelled", "all"];
@@ -459,6 +460,11 @@ const updateEvent = async (req, res) => {
         beforeEvent: existingEvent,
         afterEvent: updatedEvent
       });
+      await notificationService.notifyEventUpdated({
+        event: updatedEvent,
+        attendeeBookings: confirmedAttendees,
+        changedAt: new Date(),
+      });
     }
 
     return res.status(200).json({
@@ -513,6 +519,11 @@ const deleteEvent = async (req, res) => {
     sendEventDeletedEmails({
       attendees: confirmedAttendees,
       event: existingEvent
+    });
+    await notificationService.notifyEventDeleted({
+      event: existingEvent,
+      attendeeBookings: confirmedAttendees,
+      actor: req.user,
     });
 
     return res.status(200).json({

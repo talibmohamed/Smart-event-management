@@ -11,6 +11,7 @@
     "db:payment-schema": "node scripts/applyBookingPaymentSchema.js",
     "db:password-reset-schema": "node scripts/applyPasswordResetSchema.js",
     "db:ticket-tier-schema": "node scripts/applyTicketTierSchema.js",
+    "db:notification-schema": "node scripts/applyNotificationSchema.js",
     "db:ticket-schema": "node scripts/applyTicketSchema.js",
     "email:preview": "node scripts/sendEmailPreviews.js",
     "postinstall": "npm run prisma:generate",
@@ -33,6 +34,7 @@
     "prisma": "6.19.2",
     "qrcode": "^1.5.4",
     "resend": "^6.10.0",
+    "socket.io": "^4.8.3",
     "stripe": "^22.0.1",
     "svg-to-pdfkit": "^0.1.8"
   },

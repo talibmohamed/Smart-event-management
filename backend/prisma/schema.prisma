@@ -22,9 +22,29 @@ model User {
   bookings     Booking[]
   feedbacks    Feedback[]
   tickets      Ticket[]
+  notifications Notification[]
 
   @@index([password_reset_token_hash])
   @@map("users")
+}
+
+model Notification {
+  id         String    @id @default(uuid()) @db.Uuid
+  user_id    String    @db.Uuid
+  type       String    @db.VarChar(50)
+  title      String    @db.VarChar(200)
+  message    String
+  data       Json?
+  dedupe_key String?   @db.VarChar(255)
+  read_at    DateTime?
+  created_at DateTime  @default(now())
+
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, dedupe_key])
+  @@index([user_id, created_at])
+  @@index([user_id, read_at])
+  @@map("notifications")
 }
 
 model Event {

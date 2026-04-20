@@ -4,6 +4,7 @@ import {
   generateTicketsPdf,
   getTicketPdfFilename,
 } from "../utils/ticketPdf.js";
+import notificationService from "../services/notificationService.js";
 
 const canManageTicket = (user, ticket) =>
   user.role === "admin" ||
@@ -168,6 +169,13 @@ const checkInTicket = async (req, res) => {
     }
 
     const updatedTicket = await Ticket.checkInTicket(ticket.ticket_code);
+    await notificationService.notifyTicketCheckedIn({
+      ticket: {
+        ...ticket,
+        status: updatedTicket.status,
+        checked_in_at: updatedTicket.checked_in_at,
+      },
+    });
 
     return res.status(200).json({
       success: true,

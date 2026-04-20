@@ -16,6 +16,7 @@ import {
 import { buildEmailTickets, getTicketUrl } from "../utils/ticketEmail.js";
 import { buildTicketPdfAttachment } from "../utils/ticketPdf.js";
 import { parseBookingItems } from "../utils/ticketTiers.js";
+import notificationService from "../services/notificationService.js";
 
 const isPaidBooking = (totalAmount) => Number(totalAmount) > 0;
 
@@ -39,7 +40,7 @@ const sendBookingConfirmedEmails = async (bookingId) => {
   const booking = await Booking.getBookingEmailContextById(bookingId);
 
   if (!booking) {
-    return;
+    return null;
   }
 
   const tickets = await Ticket.getTicketsForBooking(bookingId);
@@ -72,13 +73,15 @@ const sendBookingConfirmedEmails = async (bookingId) => {
       booking
     })
   );
+
+  return booking;
 };
 
 const sendBookingCancelledEmails = async (booking) => {
   const context = await Booking.getBookingEmailContextById(booking.id);
 
   if (!context) {
-    return;
+    return null;
   }
 
   sendEmailBestEffort(
@@ -97,6 +100,8 @@ const sendBookingCancelledEmails = async (booking) => {
       })
     );
   }
+
+  return context;
 };
 
 const createBooking = async (req, res) => {
@@ -202,7 +207,13 @@ const createBooking = async (req, res) => {
     }
 
     await Ticket.generateTicketsForBooking(booking.id);
-    await sendBookingConfirmedEmails(booking.id);
+    const notificationContext = await sendBookingConfirmedEmails(booking.id);
+    await notificationService.notifyBookingConfirmed({
+      booking,
+      attendee: notificationContext?.user,
+      event: notificationContext?.event || event,
+      organizer: notificationContext?.event?.organizer,
+    });
 
     return res.status(201).json({
       success: true,
@@ -255,9 +266,16 @@ const cancelBooking = async (req, res) => {
       });
     }
 
+    const wasConfirmed = booking.status === "confirmed";
     const updatedBooking = await Booking.cancelBooking(booking.id);
     await Ticket.cancelTicketsForBooking(booking.id);
-    await sendBookingCancelledEmails(booking);
+    const notificationContext = await sendBookingCancelledEmails(booking);
+    await notificationService.notifyBookingCancelled({
+      booking,
+      attendee: notificationContext?.user,
+      event: notificationContext?.event,
+      wasConfirmed,
+    });
 
     return res.status(200).json({
       success: true,

@@ -51,6 +51,13 @@ vi.mock("../../utils/emailService.js", () => ({
   sendEmailBestEffort: vi.fn(),
 }));
 
+vi.mock("../../services/notificationService.js", () => ({
+  default: {
+    notifyBookingConfirmed: vi.fn(),
+    notifyBookingCancelled: vi.fn(),
+  },
+}));
+
 vi.mock("../../utils/ticketPdf.js", () => ({
   buildTicketPdfAttachment: vi.fn(() =>
     Promise.resolve({

@@ -1,6 +1,6 @@
 # Quickseat API Spec
 
-Last updated: 2026-04-16
+Last updated: 2026-04-19
 
 ## Global Rules
 
@@ -18,6 +18,7 @@ Last updated: 2026-04-16
 - Local password reset schema command: `npm run db:password-reset-schema`
 - Local ticket tier schema command: `npm run db:ticket-tier-schema`
 - Local ticket schema command: `npm run db:ticket-schema` applies ticket tables and backfills confirmed booking tickets
+- Local notification schema command: `npm run db:notification-schema`
 - Local storage setup command: `npm run storage:setup`
 - Seeded sample password for all seed users: `Password123!`
 - Event geocoding uses Nominatim from the backend only; frontend must never call Nominatim directly
@@ -26,6 +27,7 @@ Last updated: 2026-04-16
 - Public event responses expose `image_url` only; internal `image_path` is never exposed
 - Required storage env variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_EVENT_IMAGES_BUCKET`
 - Paid bookings use Stripe Checkout and are confirmed only by verified Stripe webhooks
+- Realtime notifications use Socket.IO with JWT auth and are also persisted in PostgreSQL
 - Required Stripe env variables: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CURRENCY`, `FRONTEND_URL`
 - Required Resend env variables: `RESEND_API_KEY`, `EMAIL_FROM`, optional `EMAIL_REPLY_TO`, `EMAIL_ENABLED`
 - Transactional emails are styled HTML emails with plain text fallback; delivery is best-effort and never determines API success/failure
@@ -35,6 +37,7 @@ Last updated: 2026-04-16
 - Confirmed booking emails include a branded ticket PDF attachment when PDF generation succeeds
 - Ticket PDFs render the frontend SVG logo as vector and strip embedded raster nodes to avoid black background artifacts
 - Email previews can be sent with `npm run email:preview -- --to email@example.com`; pass `--template bookingConfirmedEmail` to send only the booking confirmation preview with ticket PDF
+- Frontend must not subscribe directly to Supabase tables for notifications
 
 ## Endpoints
 
@@ -980,6 +983,118 @@ Last updated: 2026-04-16
   - `400 { "success": false, "message": "Cancelled tickets cannot be checked in" }`
   - `409 { "success": false, "message": "Ticket has already been checked in" }`
   - `500 { "success": false, "message": "Server error while checking in ticket", "error": "..." }`
+
+### `GET /api/notifications`
+
+- Auth: yes
+- Allowed roles: `attendee`, `organizer`, `admin`
+- Request body: none
+- Query params:
+  - `status` optional: `all` or `unread`; default `all`
+  - `limit` optional number from 1 to 50; default `20`
+- Notes:
+  - Notifications are persisted and ordered by `created_at DESC`
+  - The backend creates notifications from trusted business events only
+  - Webhook/retry-prone events use dedupe keys so duplicate webhook retries do not create repeated notifications
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Notifications retrieved successfully",
+  "data": {
+    "notifications": [
+      {
+        "id": "uuid",
+        "user_id": "uuid",
+        "type": "booking_confirmed",
+        "title": "Booking confirmed",
+        "message": "John Doe booked AI Product Workshop",
+        "data": {
+          "event_id": "uuid",
+          "booking_id": "uuid"
+        },
+        "read_at": null,
+        "created_at": "2026-04-19T10:00:00.000Z"
+      }
+    ],
+    "unread_count": 1
+  }
+}
+```
+
+- Common errors:
+  - `400 { "success": false, "message": "Invalid notification status filter" }`
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `500 { "success": false, "message": "Server error while fetching notifications", "error": "..." }`
+
+### `PATCH /api/notifications/:id/read`
+
+- Auth: yes
+- Allowed roles: `attendee`, `organizer`, `admin`
+- Request body: none
+- Notes:
+  - Users can mark only their own notifications as read
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Notification marked as read",
+  "data": {
+    "notification": {
+      "id": "uuid",
+      "type": "booking_confirmed",
+      "read_at": "2026-04-19T10:05:00.000Z"
+    },
+    "unread_count": 0
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `404 { "success": false, "message": "Notification not found" }`
+  - `500 { "success": false, "message": "Server error while updating notification", "error": "..." }`
+
+### `PATCH /api/notifications/read-all`
+
+- Auth: yes
+- Allowed roles: `attendee`, `organizer`, `admin`
+- Request body: none
+- Notes:
+  - Marks all unread notifications for the current user as read
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Notifications marked as read",
+  "data": {
+    "notifications": [],
+    "unread_count": 0
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `500 { "success": false, "message": "Server error while updating notifications", "error": "..." }`
+
+### Socket.IO Notifications
+
+- Auth: yes, through Socket.IO `auth.token`
+- Allowed roles: `attendee`, `organizer`, `admin`
+- URL: backend origin, for example `http://localhost:5000`
+- Event emitted by backend: `notification:new`
+- Payload: same notification object shape returned by `GET /api/notifications`
+- Notes:
+  - Frontend should fetch `GET /api/notifications` on initial load even when Socket.IO connects
+  - Frontend should register one `notification:new` listener per active session and remove it on logout/session change
+  - Realtime delivery is best-effort; persisted REST notifications remain the source of truth
+  - Admins receive global platform notifications
+  - Organizers receive relevant event/booking notifications
+  - Attendees receive their own booking/payment/ticket/event notifications
 
 ### `POST /api/payments/stripe/webhook`
 

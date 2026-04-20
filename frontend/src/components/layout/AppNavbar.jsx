@@ -11,70 +11,93 @@ import {
   NavbarMenuToggle,
 } from "@heroui/react";
 import { LogOut, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import logoUrl from "../../../logo.svg";
 import { useAuth } from "../../context/AuthContext";
 import { isOrganizerRole } from "../../services/authService";
+import notificationService from "../../services/notificationService";
 import ThemeSwitcher from "../ui/ThemeSwitcher";
 import NotificationBell from "./NotificationBell";
-import {supabase} from "../../services/supabaseClient";
 
 const BASE_LINK_CLASS =
   "rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50";
 
 export default function AppNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, token, isAuthenticated, logout } = useAuth();
+  const returnPathRef = useRef("/");
 
   const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "";
   const userLabel = displayName || user?.email || "Account";
   const canCreateEvents = isOrganizerRole(user?.role);
   const canViewBookings = user?.role === "attendee";
 
-const [notifications, setNotifications] = useState([]);
+  useEffect(() => {
+    returnPathRef.current = `${location.pathname}${location.search}`;
+  }, [location.pathname, location.search]);
 
- useEffect(() => {
-    // On vérifie qu'on est connecté et que supabase est là
-    if (!supabase || !user) return;
+  const redirectToLogin = useCallback(() => {
+    logout();
+    navigate("/login", {
+      state: { from: returnPathRef.current },
+    });
+  }, [logout, navigate]);
 
-    const channel = supabase
-      .channel('realtime-bookings')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'bookings' },
-        async (payload) => {
-          // 1. On va chercher les détails de l'événement
-          const { data: eventData, error } = await supabase
-            .from('events')
-            .select('id, title, event_date, organizer_id') // On récupère l'id de l'organisateur
-            .eq('id', payload.new.event_id)
-            .single();
+  useEffect(() => {
+    if (!isAuthenticated || !token) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return undefined;
+    }
 
-          if (!error && eventData) {
-            // 2. CONDITION CRUCIALE : 
-            // On n'ajoute la notif QUE SI l'organisateur de l'événement est l'utilisateur actuel
-            if (eventData.organizer_id === user.id) {
-              const newNotif = {
-                id: payload.new.id,
-                eventId: eventData.id,
-                title: eventData.title,
-                date: eventData.event_date,
-              };
+    let ignore = false;
+    let disconnect = () => {};
 
-              setNotifications((prev) => [newNotif, ...prev]);
-            }
-          }
+    async function bootstrapNotifications() {
+      try {
+        const response = await notificationService.getNotifications({ status: "all", limit: 20 });
+
+        if (ignore) {
+          return;
         }
-      )
-      .subscribe();
+
+        const payload = response.data.data;
+        setNotifications(payload.notifications || []);
+        setUnreadCount(payload.unread_count || 0);
+
+        disconnect = notificationService.connect({
+          token,
+          onNotification(notification) {
+            setNotifications((currentNotifications) => [
+              notification,
+              ...currentNotifications.filter((item) => item.id !== notification.id),
+            ].slice(0, 20));
+            setUnreadCount((currentCount) => currentCount + 1);
+          },
+        });
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          redirectToLogin();
+          return;
+        }
+
+        console.error("Unable to load notifications:", error);
+      }
+    }
+
+    bootstrapNotifications();
 
     return () => {
-      supabase.removeChannel(channel);
+      ignore = true;
+      disconnect();
     };
-  }, [user]); // On ajoute [user] ici pour que ça s'actualise si on change de compte
+  }, [isAuthenticated, redirectToLogin, token]);
+
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/events", label: "Events" },
@@ -105,6 +128,51 @@ const [notifications, setNotifications] = useState([]);
     logout();
     closeMenu();
     navigate("/");
+  }
+
+  async function handleNotificationPress(notification) {
+    if (!notification.read_at) {
+      try {
+        const response = await notificationService.markRead(notification.id);
+        const payload = response.data.data;
+
+        setNotifications((currentNotifications) =>
+          currentNotifications.map((item) =>
+            item.id === notification.id ? payload.notification : item
+          )
+        );
+        setUnreadCount(payload.unread_count || 0);
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          redirectToLogin();
+          return;
+        }
+
+        console.error("Unable to mark notification as read:", error);
+      }
+    }
+
+    if (notification.data?.event_id) {
+      navigate(`/events/${notification.data.event_id}`);
+      closeMenu();
+    }
+  }
+
+  async function handleMarkAllNotificationsRead() {
+    try {
+      const response = await notificationService.markAllRead();
+      const payload = response.data.data;
+
+      setNotifications(payload.notifications || []);
+      setUnreadCount(payload.unread_count || 0);
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        redirectToLogin();
+        return;
+      }
+
+      console.error("Unable to mark notifications as read:", error);
+    }
   }
 
   function navLinkClass(href) {
@@ -198,9 +266,15 @@ const [notifications, setNotifications] = useState([]);
           </>
         ) : (
           <>
-          <NavbarItem>
-  <NotificationBell notifications={notifications} />
-</NavbarItem>
+            <NavbarItem>
+              <NotificationBell
+                notifications={notifications}
+                unreadCount={unreadCount}
+                onNotificationPress={handleNotificationPress}
+                onMarkAllRead={handleMarkAllNotificationsRead}
+              />
+            </NavbarItem>
+
             <NavbarItem className="hidden md:flex">
               <div className="flex items-center gap-3 rounded-full border border-zinc-900/8 bg-white/70 py-1.5 pl-1.5 pr-3 dark:border-white/8 dark:bg-white/5">
                 <Avatar

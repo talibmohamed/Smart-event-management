@@ -27,6 +27,12 @@ vi.mock("../../utils/ticketPdf.js", () => ({
   getTicketPdfFilename: vi.fn(() => "smart-event-tickets-booking-1.pdf"),
 }));
 
+vi.mock("../../services/notificationService.js", () => ({
+  default: {
+    notifyTicketCheckedIn: vi.fn(),
+  },
+}));
+
 const { default: Booking } = await import("../../models/Booking.js");
 const { default: Ticket } = await import("../../models/Ticket.js");
 const ticketController = (await import("../ticketController.js")).default;

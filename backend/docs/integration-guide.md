@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-16
+Last updated: 2026-04-19
 
 ## Base Setup
 
@@ -18,6 +18,7 @@ Authorization: Bearer <jwt>
 - Local password reset schema command: `npm run db:password-reset-schema`
 - Local ticket tier schema command: `npm run db:ticket-tier-schema`
 - Local ticket schema command: `npm run db:ticket-schema` applies ticket tables and backfills confirmed booking tickets
+- Local notification schema command: `npm run db:notification-schema`
 - Local storage setup command: `npm run storage:setup`
 - Backend runtime normalizes Supabase pooler connections for Prisma
 - Backend uploads event cover images to the public Supabase Storage bucket `event-images`
@@ -93,6 +94,10 @@ Authorization: Bearer <jwt>
 | Cancel booking action | `PUT /api/bookings/:id/cancel` | Requires JWT, owner or admin |
 | Organizer ticket validation | `GET /api/tickets/:ticket_code` | Requires organizer/admin; organizer owns event unless admin |
 | Organizer ticket check-in | `POST /api/tickets/:ticket_code/check-in` | Requires organizer/admin; organizer owns event unless admin |
+| Notification bell initial load | `GET /api/notifications?status=all&limit=20` | Requires JWT; ordered by newest first |
+| Mark notification read | `PATCH /api/notifications/:id/read` | Requires JWT; current user's notifications only |
+| Mark all notifications read | `PATCH /api/notifications/read-all` | Requires JWT |
+| Realtime notifications | Socket.IO `notification:new` | Connect to backend origin with JWT in `auth.token` |
 | Stripe webhook | `POST /api/payments/stripe/webhook` | Stripe only, raw body required |
 | Dev DB check | `GET /api/test/db` | Dev tooling, not a user page |
 
@@ -401,6 +406,40 @@ stripe listen --forward-to localhost:5000/api/payments/stripe/webhook
 - Set `EMAIL_ENABLED=false` to disable email sending locally
 - Use `npm run email:preview -- --to email@example.com` to send all templates to one inbox for visual inspection; this does not test booking/payment/event business functionality
 - Use `npm run email:preview -- --to email@example.com --template bookingConfirmedEmail` to send only the ticket email preview with the PDF attachment
+
+### Realtime Notifications
+
+- Frontend must not subscribe directly to Supabase tables.
+- Install/use `socket.io-client` and connect to the backend origin, not `/api`.
+- Pass the existing JWT when connecting:
+
+```js
+io("http://localhost:5000", {
+  auth: { token }
+})
+```
+
+- On app/session load, always fetch persisted notifications first:
+
+```http
+GET /api/notifications?status=all&limit=20
+```
+
+- Then listen for:
+
+```txt
+notification:new
+```
+
+- The event payload is the same notification object returned by REST.
+- Avoid duplicate listeners by removing `notification:new` handlers and disconnecting on logout or token change.
+- Notifications are ordered by `created_at DESC`.
+- Use `unread_count` from REST responses for the badge count.
+- Use `PATCH /api/notifications/:id/read` when opening one notification.
+- Use `PATCH /api/notifications/read-all` for “mark all as read”.
+- Backend creates notifications for booking confirmations, payment failures/expirations, booking cancellations, event updates/deletions, and ticket check-ins.
+- Admins receive global platform notifications.
+- Stripe/webhook notifications are deduped, so retries should not create repeated notifications.
 
 ## Response Notes
 

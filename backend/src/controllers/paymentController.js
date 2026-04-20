@@ -14,6 +14,7 @@ import {
   getExpectedAmountInCents,
   getPaymentCurrency
 } from "../utils/stripe.js";
+import notificationService from "../services/notificationService.js";
 
 const logWebhook = ({ event, bookingId, action }) => {
   console.log(
@@ -31,7 +32,7 @@ const sendPaidBookingConfirmedEmails = async (bookingId) => {
   const booking = await Booking.getBookingEmailContextById(bookingId);
 
   if (!booking) {
-    return;
+    return null;
   }
 
   const tickets = await Ticket.getTicketsForBooking(bookingId);
@@ -64,13 +65,15 @@ const sendPaidBookingConfirmedEmails = async (bookingId) => {
       booking
     })
   );
+
+  return booking;
 };
 
 const sendPaymentFailedEmail = async (bookingId, reason) => {
   const booking = await Booking.getBookingEmailContextById(bookingId);
 
   if (!booking) {
-    return;
+    return null;
   }
 
   sendEmailBestEffort(
@@ -80,13 +83,15 @@ const sendPaymentFailedEmail = async (bookingId, reason) => {
       reason
     })
   );
+
+  return booking;
 };
 
 const sendPaymentExpiredEmail = async (bookingId) => {
   const booking = await Booking.getBookingEmailContextById(bookingId);
 
   if (!booking) {
-    return;
+    return null;
   }
 
   sendEmailBestEffort(
@@ -95,6 +100,8 @@ const sendPaymentExpiredEmail = async (bookingId) => {
       event: booking.event
     })
   );
+
+  return booking;
 };
 
 const handleCheckoutCompleted = async (event) => {
@@ -132,6 +139,12 @@ const handleCheckoutCompleted = async (event) => {
       currency: session.currency || getPaymentCurrency()
     });
     await sendPaymentFailedEmail(booking.id, "Payment validation failed");
+    await notificationService.notifyPaymentFailed({
+      booking,
+      event: booking.event,
+      reason: "Payment validation failed",
+      stripeEventId: event.id,
+    });
     logWebhook({ event, bookingId: booking.id, action: "failed_validation" });
     return;
   }
@@ -168,6 +181,12 @@ const handleCheckoutCompleted = async (event) => {
       currency: paidCurrency || expectedCurrency
     });
     await sendPaymentFailedEmail(booking.id, "Payment amount or currency did not match the event price");
+    await notificationService.notifyPaymentFailed({
+      booking,
+      event: booking.event,
+      reason: "Payment amount or currency did not match the event price",
+      stripeEventId: event.id,
+    });
     logWebhook({ event, bookingId: booking.id, action: "failed_validation" });
     return;
   }
@@ -182,6 +201,12 @@ const handleCheckoutCompleted = async (event) => {
       currency: paidCurrency
     });
     await sendPaymentFailedEmail(booking.id, "The event became full before payment confirmation");
+    await notificationService.notifyPaymentFailed({
+      booking,
+      event: booking.event,
+      reason: "The event became full before payment confirmation",
+      stripeEventId: event.id,
+    });
     logWebhook({ event, bookingId: booking.id, action: "failed_full" });
     return;
   }
@@ -193,7 +218,14 @@ const handleCheckoutCompleted = async (event) => {
     currency: paidCurrency
   });
   await Ticket.generateTicketsForBooking(booking.id);
-  await sendPaidBookingConfirmedEmails(booking.id);
+  const notificationContext = await sendPaidBookingConfirmedEmails(booking.id);
+  await notificationService.notifyBookingConfirmed({
+    booking,
+    attendee: notificationContext?.user,
+    event: notificationContext?.event || booking.event,
+    organizer: notificationContext?.event?.organizer,
+    stripeEventId: event.id,
+  });
   logWebhook({ event, bookingId: booking.id, action: "confirmed" });
 };
 
@@ -206,7 +238,7 @@ const handleCheckoutExpired = async (event) => {
     return;
   }
 
-  const booking = await Booking.getBookingById(booking_id);
+  const booking = await Booking.getBookingWithEventById(booking_id);
 
   if (!booking) {
     logWebhook({ event, bookingId: booking_id, action: "ignored_missing_booking" });
@@ -230,6 +262,11 @@ const handleCheckoutExpired = async (event) => {
 
   await Booking.expirePayment(booking.id, event.id);
   await sendPaymentExpiredEmail(booking.id);
+  await notificationService.notifyPaymentExpired({
+    booking,
+    event: booking.event,
+    stripeEventId: event.id,
+  });
   logWebhook({ event, bookingId: booking.id, action: "expired" });
 };
 
