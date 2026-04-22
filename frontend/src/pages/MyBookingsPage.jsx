@@ -199,6 +199,7 @@ function BookingCard({
             </p>
           </div>
         </div>
+
       </CardBody>
 
       <CardFooter className="flex flex-col gap-3 px-5 pb-5 pt-5 sm:flex-row sm:flex-wrap">

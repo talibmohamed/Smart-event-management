@@ -1,5 +1,6 @@
 import express from "express";
 import eventController from "../controllers/eventController.js";
+import feedbackController from "../controllers/feedbackController.js"; // 👈 Nouvel import
 import authMiddleware from "../middlewares/authMiddleware.js";
 import eventImageUpload from "../middlewares/eventImageUpload.js";
 import roleMiddleware from "../middlewares/roleMiddleware.js";
@@ -14,6 +15,27 @@ router.get(
   eventController.getEventAttendees
 );
 router.get("/:id", eventController.getEventById);
+
+// ==========================================
+// NOUVELLES ROUTES POUR LES AVIS (FEEDBACK)
+// ==========================================
+
+// 1. Un participant laisse un avis sur l'événement
+router.post(
+  "/:id/feedback",
+  authMiddleware, // Doit être connecté
+  feedbackController.submitFeedback
+);
+
+// 2. L'organisateur récupère les statistiques des avis de son événement
+router.get(
+  "/:id/feedback",
+  authMiddleware,
+  roleMiddleware("organizer", "admin"), // Seul l'orga/admin peut voir le dashboard
+  feedbackController.getEventFeedbackStats
+);
+
+// ==========================================
 
 router.post(
   "/",

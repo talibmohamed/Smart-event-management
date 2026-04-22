@@ -18,6 +18,8 @@ import { DetailPageSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
+import EventFeedbackForm from "../components/event/EventFeedbackForm";
+import EventFeedbackStats from "../components/event/EventFeedbackStats"; // 👈 L'import des statistiques a été ajouté ici
 import eventService from "../services/eventService";
 import {
   formatEventAvailability,
@@ -696,6 +698,27 @@ export default function EventDetailsPage() {
                   </p>
                 </div>
               </div>
+
+              {/* ========================================================== */}
+              {/* ESPACE FEEDBACK (SÉPARÉ SELON LE RÔLE)                    */}
+              {/* ========================================================== */}
+              
+              <div className="mt-8 pt-6 border-t border-zinc-200/70 dark:border-white/10">
+                
+                {/* 1. VISU POUR L'ORGANISATEUR : Il voit les statistiques globales */}
+                {canEditEvent && (
+                  <EventFeedbackStats eventId={eventRecord.id} />
+                )}
+
+                {/* 2. VISU POUR LE VISITEUR (Attendee) : Il voit le formulaire pour voter */}
+                {!canEditEvent && isAuthenticated && isAttendee && new Date(eventRecord.event_date) < new Date() && (
+                  <div className="flex justify-center">
+                    <EventFeedbackForm eventId={eventRecord.id} />
+                  </div>
+                )}
+                
+              </div>
+
             </>
           )}
         </CardBody>
