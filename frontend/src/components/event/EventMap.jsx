@@ -2,7 +2,7 @@ import L from "leaflet";
 import { useEffect, useMemo, useRef } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import { formatEventPriceRange } from "../../utils/eventUtils";
+import { formatEventDate, formatEventPriceRange } from "../../utils/eventUtils";
 import { FRANCE_MAP_CENTER, getMappableEvents } from "../../utils/mapHelpers";
 
 function isValidLatLng(latitude, longitude) {
@@ -27,19 +27,29 @@ function getSafeZoom(map, minimumZoom = 13) {
 }
 
 function createMarkerIcon(isSelected) {
+  const html = isSelected
+    ? `
+      <div class="relative flex h-10 w-10 items-center justify-center">
+        <span class="absolute inline-flex h-10 w-10 animate-ping rounded-full bg-sky-400/45"></span>
+        <span class="absolute inline-flex h-10 w-10 rounded-full bg-sky-400/20"></span>
+        <span class="relative inline-flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-white bg-linear-to-br from-sky-500 via-indigo-500 to-violet-600 shadow-[0_10px_30px_rgba(56,189,248,0.45)]">
+          <span class="h-2.5 w-2.5 rounded-full bg-white shadow-inner"></span>
+        </span>
+      </div>
+    `
+    : `
+      <div class="group flex h-9 w-9 items-center justify-center">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-white bg-linear-to-br from-sky-500 to-sky-700 shadow-[0_8px_22px_rgba(2,132,199,0.35)] transition-transform duration-200 ease-out hover:scale-110">
+          <span class="h-2 w-2 rounded-full bg-white"></span>
+        </span>
+      </div>
+    `;
+
   return L.divIcon({
     className: "",
-    html: `
-      <div class="${
-        isSelected
-          ? "h-9 w-9 rounded-full border-[3px] border-white bg-zinc-950 shadow-xl shadow-zinc-950/30 ring-4 ring-sky-400/35"
-          : "h-8 w-8 rounded-full border-[3px] border-white bg-sky-600 shadow-lg shadow-sky-900/25"
-      } flex items-center justify-center">
-        <div class="h-2.5 w-2.5 rounded-full bg-white"></div>
-      </div>
-    `,
-    iconSize: isSelected ? [36, 36] : [32, 32],
-    iconAnchor: isSelected ? [18, 18] : [16, 16],
+    html,
+    iconSize: isSelected ? [40, 40] : [36, 36],
+    iconAnchor: isSelected ? [20, 20] : [18, 18],
     popupAnchor: [0, -18],
   });
 }
@@ -211,6 +221,7 @@ export default function EventMap({
   selectedEventId,
   focusEventId = "",
   onSelectEvent,
+  onHoverEvent,
   onViewportEventIdsChange,
   className = "",
 }) {
@@ -269,21 +280,36 @@ export default function EventMap({
                 icon={createMarkerIcon(isSelected)}
                 eventHandlers={{
                   click: () => onSelectEvent(event.id),
+                  mouseover: () => onHoverEvent?.(event.id),
                 }}
               >
                 <Popup>
-                  <div className="min-w-44 space-y-2">
-                    <p className="text-sm font-semibold text-zinc-950">{event.title}</p>
-                    <p className="text-xs text-zinc-600">{event.city || "City not available"}</p>
-                    <p className="text-xs font-medium text-zinc-900">
-                      {formatEventPriceRange(event)}
+                  <div className="min-w-60 space-y-2.5 p-3">
+                    <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-sky-700 dark:bg-sky-500/15 dark:text-sky-200">
+                      {event.category || "Event"}
+                    </span>
+                    <p className="text-sm font-semibold leading-snug tracking-tight text-zinc-950 dark:text-white">
+                      {event.title}
                     </p>
-                    <RouterLink
-                      to={`/events/${event.id}`}
-                      className="inline-flex text-xs font-semibold text-sky-700 hover:text-sky-900"
-                    >
-                      View details
-                    </RouterLink>
+                    {event.event_date ? (
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                        {formatEventDate(event.event_date)}
+                      </p>
+                    ) : null}
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                      {event.city || "City not available"}
+                    </p>
+                    <div className="flex items-center justify-between gap-2 border-t border-zinc-200 pt-2.5 dark:border-white/10">
+                      <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                        {formatEventPriceRange(event)}
+                      </span>
+                      <RouterLink
+                        to={`/events/${event.id}`}
+                        className="inline-flex items-center gap-1 rounded-full bg-zinc-950 px-3 py-1.5 text-[0.7rem] font-semibold text-white no-underline transition-colors hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                      >
+                        View
+                      </RouterLink>
+                    </div>
                   </div>
                 </Popup>
               </Marker>

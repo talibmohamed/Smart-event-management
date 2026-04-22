@@ -443,6 +443,7 @@ export default function EventsPage() {
                 selectedEventId={selectedEventId}
                 focusEventId={selectedEventId}
                 onSelectEvent={handleMarkerSelect}
+                onHoverEvent={(eventId) => handleSelectEvent(eventId)}
                 onViewportEventIdsChange={handleMapViewportEventIdsChange}
                 className="h-[60vh] lg:h-[calc(100vh-7rem)]"
               />
