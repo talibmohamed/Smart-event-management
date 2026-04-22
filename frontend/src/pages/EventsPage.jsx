@@ -212,7 +212,7 @@ export default function EventsPage() {
 
   return (
     <div className="w-full px-3 pb-20 pt-6 sm:px-4 md:px-5 md:pt-8">
-      <section className="relative overflow-hidden rounded-[1.75rem] border border-zinc-200/70 bg-white/72 px-4 py-10 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] md:px-6 md:py-12">
+      <section className="relative overflow-hidden rounded-[1.75rem] border border-zinc-200/70 bg-white/72 px-4 py-10 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-white/4 dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] md:px-6 md:py-12">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-0 top-0 h-52 w-52 rounded-full bg-sky-200/40 blur-3xl dark:bg-sky-500/10" />
           <div className="absolute right-0 top-8 h-56 w-56 rounded-full bg-emerald-200/30 blur-3xl dark:bg-emerald-500/10" />
@@ -245,7 +245,7 @@ export default function EventsPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/[0.05]">
+            <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/5">
               <CardBody className="gap-2 px-4 py-4">
                 <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                   Showing
@@ -256,7 +256,7 @@ export default function EventsPage() {
               </CardBody>
             </Card>
 
-            <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/[0.05]">
+            <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/5">
               <CardBody className="gap-2 px-4 py-4">
                 <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                   Upcoming
@@ -268,7 +268,7 @@ export default function EventsPage() {
               </CardBody>
             </Card>
 
-            <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/[0.05]">
+            <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/5">
               <CardBody className="gap-2 px-4 py-4">
                 <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                   Cities
@@ -298,49 +298,15 @@ export default function EventsPage() {
       </section>
 
       <section className="mt-6">
-        {!isLoading && !errorMessage && allEvents.length > 0 ? (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1 md:px-2">
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              {displayedEvents.length === 1
-                ? "1 event matches your current view."
-                : `${displayedEvents.length} events match your current view.`}
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              {isMapAreaPrioritized ? (
-                <Button
-                  size="sm"
-                  radius="full"
-                  variant="bordered"
-                  onPress={handleClearMapPriority}
-                  className="h-8 border-zinc-200 bg-white/80 text-xs font-semibold text-zinc-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-zinc-200"
-                >
-                  Reset map priority
-                </Button>
-              ) : null}
-              {mapAreaEventCount !== null ? (
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                  {mapAreaEventCount} prioritized
-                </p>
-              ) : null}
-              {filteredEvents.length > 0 ? (
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                  {mappableEvents.length} on map
-                </p>
-              ) : null}
-              {activeFilterCount > 0 ? (
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                  {activeFilterCount} active filter{activeFilterCount > 1 ? "s" : ""}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
         {isLoading ? (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
-            <EventGridSkeleton count={4} />
-            <aside className="hidden lg:block lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
-              <MapPanelSkeleton />
+          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start">
+            <div className="min-h-0">
+              <EventGridSkeleton count={4} />
+            </div>
+            <aside className="hidden lg:block lg:sticky lg:top-24">
+              <div className="lg:h-[calc(100vh-7rem)]">
+                <MapPanelSkeleton />
+              </div>
             </aside>
           </div>
         ) : errorMessage ? (
@@ -348,7 +314,7 @@ export default function EventsPage() {
             {errorMessage}
           </div>
         ) : allEvents.length === 0 ? (
-          <Card className="border border-dashed border-zinc-300 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
+          <Card className="border border-dashed border-zinc-300 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/3">
             <CardBody className="gap-3 px-6 py-12 text-center">
               <h2 className="text-2xl font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
                 No events published yet
@@ -360,7 +326,7 @@ export default function EventsPage() {
             </CardBody>
           </Card>
         ) : filteredEvents.length === 0 ? (
-          <Card className="border border-dashed border-zinc-300 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
+          <Card className="border border-dashed border-zinc-300 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/3">
             <CardBody className="gap-4 px-6 py-12 text-center">
               <h2 className="text-2xl font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
                 No events match these filters
@@ -380,8 +346,9 @@ export default function EventsPage() {
             </CardBody>
           </Card>
         ) : (
-          <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/80 bg-white/80 p-1 dark:border-white/10 dark:bg-white/[0.04] lg:hidden">
+          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+            {/* Mobile toggle - always accessible regardless of active view */}
+            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/80 bg-white/80 p-1 dark:border-white/10 dark:bg-white/4 lg:hidden">
               {["list", "map"].map((view) => (
                 <Button
                   key={view}
@@ -399,46 +366,87 @@ export default function EventsPage() {
               ))}
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
-              <div className={mobileView === "map" ? "hidden lg:block" : "block"}>
-                <div className="columns-1 gap-6 md:columns-2 lg:columns-1 xl:columns-2">
-                  {displayedEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className="mb-6 break-inside-avoid"
-                      ref={(node) => {
-                        if (node) {
-                          eventCardRefs.current[event.id] = node;
-                        } else {
-                          delete eventCardRefs.current[event.id];
-                        }
-                      }}
+            {/* Left: status bar + cards */}
+            <div
+              className={`flex min-h-0 flex-col gap-4 ${
+                mobileView === "map" ? "hidden lg:flex" : "flex"
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3 px-1 md:px-2">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {displayedEvents.length === 1
+                    ? "1 event matches your current view."
+                    : `${displayedEvents.length} events match your current view.`}
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  {isMapAreaPrioritized ? (
+                    <Button
+                      size="sm"
+                      radius="full"
+                      variant="bordered"
+                      onPress={handleClearMapPriority}
+                      className="h-8 border-zinc-200 bg-white/80 text-xs font-semibold text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200"
                     >
-                      <EventCard
-                        event={event}
-                        isSelected={event.id === selectedEventId}
-                        onSelect={(eventId) => handleSelectEvent(eventId)}
-                        onHover={(eventId) => handleSelectEvent(eventId)}
-                      />
-                    </div>
-                  ))}
+                      Reset map priority
+                    </Button>
+                  ) : null}
+                  {mapAreaEventCount !== null ? (
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      {mapAreaEventCount} prioritized
+                    </p>
+                  ) : null}
+                  {filteredEvents.length > 0 ? (
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      {mappableEvents.length} on map
+                    </p>
+                  ) : null}
+                  {activeFilterCount > 0 ? (
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      {activeFilterCount} active filter{activeFilterCount > 1 ? "s" : ""}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
-              <aside
-                className={`${
-                  mobileView === "list" ? "hidden lg:block" : "block"
-                } lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]`}
-              >
-                <EventMap
-                  events={filteredEvents}
-                  selectedEventId={selectedEventId}
-                  onSelectEvent={handleMarkerSelect}
-                  onViewportEventIdsChange={handleMapViewportEventIdsChange}
-                  className="h-[72vh] lg:h-full"
-                />
-              </aside>
+              <div className="columns-1 gap-6 md:columns-2 lg:columns-1 xl:columns-2">
+                {displayedEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="mb-6 break-inside-avoid"
+                    ref={(node) => {
+                      if (node) {
+                        eventCardRefs.current[event.id] = node;
+                      } else {
+                        delete eventCardRefs.current[event.id];
+                      }
+                    }}
+                  >
+                    <EventCard
+                      event={event}
+                      isSelected={event.id === selectedEventId}
+                      onSelect={(eventId) => handleSelectEvent(eventId)}
+                      onHover={(eventId) => handleSelectEvent(eventId)}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Right: sticky map panel that follows scroll on desktop */}
+            <aside
+              className={`${
+                mobileView === "list" ? "hidden lg:block" : "block"
+              } w-full self-start lg:sticky lg:top-24`}
+            >
+              <EventMap
+                events={filteredEvents}
+                selectedEventId={selectedEventId}
+                focusEventId={selectedEventId}
+                onSelectEvent={handleMarkerSelect}
+                onViewportEventIdsChange={handleMapViewportEventIdsChange}
+                className="h-[60vh] lg:h-[calc(100vh-7rem)]"
+              />
+            </aside>
           </div>
         )}
       </section>

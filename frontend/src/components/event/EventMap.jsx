@@ -58,19 +58,11 @@ function MapController({ mappableEvents, focusEventId }) {
   }, [map, mappableEvents.length]);
 
   useEffect(() => {
-    const selectedMarker = mappableEvents.find(
-      ({ event, latitude, longitude }) =>
-        String(event.id) === String(focusEventId) && isValidLatLng(latitude, longitude),
-    );
+    if (focusEventId) {
+      return;
+    }
 
     try {
-      if (selectedMarker) {
-        map.setView([selectedMarker.latitude, selectedMarker.longitude], getSafeZoom(map, 13), {
-          animate: false,
-        });
-        return;
-      }
-
       if (mappableEvents.length === 1) {
         const [marker] = mappableEvents;
         if (isValidLatLng(marker.latitude, marker.longitude)) {
@@ -95,6 +87,67 @@ function MapController({ mappableEvents, focusEventId }) {
     } catch {
       // Leaflet can briefly report invalid internal map state during responsive layout changes.
     }
+  }, [map, mappableEvents, focusEventId]);
+
+  useEffect(() => {
+    if (!focusEventId) {
+      return undefined;
+    }
+
+    const selectedMarker = mappableEvents.find(
+      ({ event, latitude, longitude }) =>
+        String(event.id) === String(focusEventId) && isValidLatLng(latitude, longitude),
+    );
+
+    if (!selectedMarker) {
+      return undefined;
+    }
+
+    const targetLatLng = L.latLng(selectedMarker.latitude, selectedMarker.longitude);
+    const currentZoom = map.getZoom();
+    const targetZoom = getSafeZoom(map, 13);
+    const targetInView = map.getBounds().pad(-0.15).contains(targetLatLng);
+
+    let cancelled = false;
+
+    try {
+      map.stop();
+    } catch {
+      // Ignore transient Leaflet state while responsive containers are changing size.
+    }
+
+    if (targetInView) {
+      try {
+        map.flyTo(targetLatLng, Math.max(currentZoom, 12), { duration: 0.6 });
+      } catch {
+        // Ignore transient Leaflet state while responsive containers are changing size.
+      }
+      return undefined;
+    }
+
+    const outZoom = Math.max(Math.min(currentZoom - 3, 7), 4);
+
+    try {
+      map.flyTo(map.getCenter(), outZoom, { duration: 0.45 });
+    } catch {
+      // Ignore transient Leaflet state while responsive containers are changing size.
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (cancelled) {
+        return;
+      }
+      try {
+        map.flyTo(targetLatLng, targetZoom, { duration: 0.75 });
+      } catch {
+        // Ignore transient Leaflet state while responsive containers are changing size.
+      }
+    }, 450);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
   }, [map, mappableEvents, focusEventId]);
 
   return null;
