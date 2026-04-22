@@ -1,32 +1,89 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from "../config/prisma.js";
 
-// Récupérer un événement
-export const getEventById = async (eventId) => {
-  return await prisma.event.findUnique({ where: { id: eventId } });
-};
+const formatFeedback = (feedback) => ({
+  id: feedback.id,
+  user_id: feedback.user_id,
+  event_id: feedback.event_id,
+  rating: feedback.rating,
+  comment: feedback.comment,
+  created_at: feedback.created_at,
+  user: feedback.user
+    ? {
+        first_name: feedback.user.first_name,
+        last_name: feedback.user.last_name,
+      }
+    : undefined,
+});
 
-// Vérifier si un utilisateur a bien un billet confirmé pour un événement
-export const getConfirmedBooking = async (userId, eventId) => {
-  return await prisma.booking.findFirst({
-    where: { user_id: userId, event_id: eventId, status: 'confirmed' }
+const getEventById = async (eventId) => {
+  return prisma.event.findUnique({
+    where: { id: eventId },
   });
 };
 
-// Créer ou mettre à jour un avis
-export const upsertFeedback = async (userId, eventId, rating, comment) => {
-  return await prisma.feedback.upsert({
-    where: { user_id_event_id: { user_id: userId, event_id: eventId } },
-    update: { rating: parseInt(rating), comment: comment || null },
-    create: { user_id: userId, event_id: eventId, rating: parseInt(rating), comment: comment || null }
+const getConfirmedBooking = async (userId, eventId) => {
+  return prisma.booking.findFirst({
+    where: {
+      user_id: userId,
+      event_id: eventId,
+      status: "confirmed",
+    },
   });
 };
 
-// Récupérer tous les avis d'un événement
-export const getFeedbacksByEvent = async (eventId) => {
-  return await prisma.feedback.findMany({
+const upsertFeedback = async ({ user_id, event_id, rating, comment }) => {
+  const feedback = await prisma.feedback.upsert({
+    where: {
+      user_id_event_id: {
+        user_id,
+        event_id,
+      },
+    },
+    update: {
+      rating,
+      comment: comment || null,
+    },
+    create: {
+      user_id,
+      event_id,
+      rating,
+      comment: comment || null,
+    },
+    include: {
+      user: {
+        select: {
+          first_name: true,
+          last_name: true,
+        },
+      },
+    },
+  });
+
+  return formatFeedback(feedback);
+};
+
+const getFeedbacksByEvent = async (eventId) => {
+  const feedbacks = await prisma.feedback.findMany({
     where: { event_id: eventId },
-    include: { user: { select: { first_name: true, last_name: true } } },
-    orderBy: { created_at: 'desc' }
+    include: {
+      user: {
+        select: {
+          first_name: true,
+          last_name: true,
+        },
+      },
+    },
+    orderBy: {
+      created_at: "desc",
+    },
   });
+
+  return feedbacks.map(formatFeedback);
+};
+
+export default {
+  getEventById,
+  getConfirmedBooking,
+  upsertFeedback,
+  getFeedbacksByEvent,
 };

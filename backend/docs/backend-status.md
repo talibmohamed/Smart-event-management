@@ -1,6 +1,6 @@
 # Backend Status
 
-Last updated: 2026-04-20
+Last updated: 2026-04-22
 
 ## Current State
 
@@ -77,6 +77,8 @@ Last updated: 2026-04-20
 
 - Public event list
 - Public event detail
+- Attendee feedback submission for completed attended events
+- Organizer/admin event feedback statistics with owner-safe access
 - Organizer/admin event creation
 - Organizer/admin event update
 - Organizer/admin event deletion
@@ -126,7 +128,6 @@ Last updated: 2026-04-20
 
 ## Pending Features
 
-- Feedback endpoints and business logic
 - Admin-specific supervision endpoints beyond current role checks
 - Event filtering, search, and pagination
 - Attendee export/download support

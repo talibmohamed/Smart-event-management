@@ -2,7 +2,7 @@
   "metadata": {
     "name": "Quickseat Backend API",
     "version": "1.0.0",
-    "lastUpdated": "2026-04-20",
+    "lastUpdated": "2026-04-22",
     "baseUrl": "http://localhost:5000"
   },
   "development": {
@@ -334,6 +334,23 @@
           "total_price": "string(decimal)"
         }
       ]
+    },
+    "feedback": {
+      "id": "string(uuid)",
+      "user_id": "string(uuid)",
+      "event_id": "string(uuid)",
+      "rating": "number(1-5)",
+      "comment": "string|null",
+      "created_at": "string(datetime)",
+      "user": {
+        "first_name": "string",
+        "last_name": "string"
+      }
+    },
+    "feedbackStatsResult": {
+      "average_rating": "number",
+      "total_reviews": "number",
+      "feedbacks": ["feedback"]
     },
     "bookingCreateFreeResult": {
       "booking": "booking",
@@ -828,6 +845,64 @@
       "behaviorNotes": [
         "Stored event image cleanup is best-effort.",
         "API response includes image_url but never image_path."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/events/:id/feedback",
+      "authRequired": true,
+      "allowedRoles": ["attendee", "organizer", "admin"],
+      "requestBody": {
+        "rating": { "type": "number", "required": true, "minimum": 1, "maximum": 5 },
+        "comment": { "type": "string", "required": false }
+      },
+      "successResponse": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "Feedback submitted successfully",
+          "data": "feedback"
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "Rating must be an integer between 1 and 5" },
+        { "status": 400, "message": "Feedback can only be submitted after the event has finished" },
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Only attendees can submit feedback" },
+        { "status": 403, "message": "Access denied. Confirmed attendance is required to submit feedback" },
+        { "status": 404, "message": "Event not found" },
+        { "status": 500, "message": "Server error while submitting feedback" }
+      ],
+      "behaviorNotes": [
+        "Only attendee users can submit feedback.",
+        "The event must be finished before feedback submission is allowed.",
+        "Feedback is upserted by user_id + event_id."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/feedback",
+      "authRequired": true,
+      "allowedRoles": ["organizer", "admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Event feedback retrieved successfully",
+          "data": "feedbackStatsResult"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Insufficient permissions" },
+        { "status": 403, "message": "Access denied. You can only view feedback for your own events" },
+        { "status": 404, "message": "Event not found" },
+        { "status": 500, "message": "Server error while fetching event feedback" }
+      ],
+      "behaviorNotes": [
+        "Organizers can view feedback only for their own events.",
+        "Admins can view feedback for any event."
       ]
     },
     {

@@ -42,16 +42,10 @@ const eventService = {
     return api.get(`/events/${id}/attendees`, config);
   },
 
-  // ==========================================
-  // NOUVEAU : Fonction pour envoyer l'avis (Participant)
-  // ==========================================
   submitFeedback(eventId, payload) {
     return api.post(`/events/${eventId}/feedback`, payload);
   },
 
-  // ==========================================
-  // NOUVEAU : Fonction pour récupérer les avis (Organisateur)
-  // ==========================================
   getEventFeedbackStats(eventId) {
     return api.get(`/events/${eventId}/feedback`);
   },

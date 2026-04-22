@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { Button, Card, CardBody, CardHeader, Textarea } from "@heroui/react";
 import { Star } from "lucide-react";
 import eventService from "../../services/eventService";
@@ -7,7 +7,7 @@ import { extractApiErrorMessage } from "../../services/api";
 export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
@@ -23,17 +23,17 @@ export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
     setError(null);
 
     try {
-      // Magie ! On utilise ton eventService au lieu de fetch
       const response = await eventService.submitFeedback(eventId, { rating, comment });
 
       setMessage(response.data?.message || "Thank you for your feedback!");
       setRating(0);
-      setComment('');
-      
-      if (onFeedbackSubmitted) onFeedbackSubmitted();
+      setComment("");
+
+      if (onFeedbackSubmitted) {
+        onFeedbackSubmitted(response.data?.data);
+      }
 
     } catch (err) {
-      // On utilise ton extracteur d'erreur pour avoir un beau message propre
       setError(extractApiErrorMessage(err, "Failed to submit feedback."));
     } finally {
       setIsSubmitting(false);
@@ -53,8 +53,6 @@ export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
       
       <CardBody className="px-6 py-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          
-          {/* LES 5 ÉTOILES */}
           <div className="flex gap-1.5">
             {[1, 2, 3, 4, 5].map((star) => {
               const isFilled = (hoverRating || rating) >= star;
@@ -81,7 +79,6 @@ export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
             })}
           </div>
 
-          {/* LE CHAMP COMMENTAIRE */}
           <Textarea
             label="Your comment (optional)"
             placeholder="What did you think of the event?"
@@ -91,11 +88,10 @@ export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
             minRows={3}
             classNames={{
               input: "resize-none text-sm",
-              label: "text-zinc-700 dark:text-zinc-300 font-medium"
+              label: "text-zinc-700 dark:text-zinc-300 font-medium",
             }}
           />
 
-          {/* MESSAGES D'ERREUR OU SUCCÈS */}
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
               {error}
@@ -108,7 +104,6 @@ export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
             </div>
           )}
 
-          {/* BOUTON VALIDER */}
           <Button
             type="submit"
             isLoading={isSubmitting}

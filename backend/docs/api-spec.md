@@ -1,6 +1,6 @@
 # Quickseat API Spec
 
-Last updated: 2026-04-20
+Last updated: 2026-04-22
 
 ## Global Rules
 
@@ -628,6 +628,94 @@ Last updated: 2026-04-20
   - `404 { "success": false, "message": "Event not found" }`
   - `403 { "success": false, "message": "Access denied. You can only delete your own events" }`
   - `500 { "success": false, "message": "Server error while deleting event", "error": "..." }`
+
+### `POST /api/events/:id/feedback`
+
+- Auth: yes
+- Allowed roles: authenticated users; business logic allows confirmed attendee participants only
+- Request body:
+
+```json
+{
+  "rating": 5,
+  "comment": "Great event"
+}
+```
+
+- Notes:
+  - `rating` is required and must be an integer between `1` and `5`
+  - `comment` is optional
+  - Only `attendee` users can submit feedback
+  - Feedback can be submitted only after the event has finished
+  - A confirmed booking for the event is required
+  - Feedback is upserted by `user_id + event_id`
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Feedback submitted successfully",
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "event_id": "uuid",
+    "rating": 5,
+    "comment": "Great event",
+    "created_at": "2026-04-12T10:00:00.000Z"
+  }
+}
+```
+
+- Common errors:
+  - `400 { "success": false, "message": "Rating must be an integer between 1 and 5" }`
+  - `400 { "success": false, "message": "Feedback can only be submitted after the event has finished" }`
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Only attendees can submit feedback" }`
+  - `403 { "success": false, "message": "Access denied. Confirmed attendance is required to submit feedback" }`
+  - `404 { "success": false, "message": "Event not found" }`
+  - `500 { "success": false, "message": "Server error while submitting feedback", "error": "..." }`
+
+### `GET /api/events/:id/feedback`
+
+- Auth: yes
+- Allowed roles: `organizer`, `admin`
+- Request body: none
+- Notes:
+  - Organizers can view feedback only for their own events
+  - Admins can view feedback for any event
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Event feedback retrieved successfully",
+  "data": {
+    "average_rating": 4.5,
+    "total_reviews": 2,
+    "feedbacks": [
+      {
+        "id": "uuid",
+        "user_id": "uuid",
+        "event_id": "uuid",
+        "rating": 5,
+        "comment": "Great event",
+        "created_at": "2026-04-12T10:00:00.000Z",
+        "user": {
+          "first_name": "John",
+          "last_name": "Doe"
+        }
+      }
+    ]
+  }
+}
+```
+
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Insufficient permissions" }`
+  - `403 { "success": false, "message": "Access denied. You can only view feedback for your own events" }`
+  - `404 { "success": false, "message": "Event not found" }`
+  - `500 { "success": false, "message": "Server error while fetching event feedback", "error": "..." }`
 
 ### `GET /api/bookings/my-bookings`
 

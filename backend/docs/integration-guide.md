@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-20
+Last updated: 2026-04-22
 
 ## Base Setup
 
@@ -102,6 +102,8 @@ Authorization: Bearer <jwt>
 | City autocomplete/select | `GET /api/cities?search=paris` | Public, returns max 20 backend-approved French cities |
 | Events list page | `GET /api/events` | Public |
 | Event detail page | `GET /api/events/:id` | Public |
+| Attendee feedback submission | `POST /api/events/:id/feedback` | Requires attendee JWT, confirmed attendance, and finished event |
+| Organizer/admin feedback stats | `GET /api/events/:id/feedback` | Requires organizer/admin; organizer owns event unless admin |
 | Organizer event attendees page | `GET /api/events/:id/attendees?status=confirmed` | Requires organizer/admin; organizer owns event unless admin |
 | Organizer create event page | `POST /api/events` | Requires `organizer` or `admin` |
 | Organizer edit event page | `PUT /api/events/:id` | Requires `organizer` or `admin`; supports safe ticket tier edits |
@@ -569,9 +571,16 @@ notification:new
   - `400 { "success": false, "message": "Address could not be located" }`
 - Invalid event image:
   - `400 { "success": false, "message": "Event image must be a JPEG, PNG, or WebP file under 5MB" }`
+- Invalid feedback rating:
+  - `400 { "success": false, "message": "Rating must be an integer between 1 and 5" }`
+- Feedback before event end:
+  - `400 { "success": false, "message": "Feedback can only be submitted after the event has finished" }`
+- Feedback without confirmed attendance:
+  - `403 { "success": false, "message": "Access denied. Confirmed attendance is required to submit feedback" }`
+- Organizer reading another organizer's event feedback:
+  - `403 { "success": false, "message": "Access denied. You can only view feedback for your own events" }`
 
 ## Not Available Yet
 
-- Feedback pages and feedback submission
 - Dedicated admin supervision endpoints
 - Event search, filtering, and pagination
