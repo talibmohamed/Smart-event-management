@@ -67,7 +67,7 @@ export default function EventFilters({
   ];
 
   return (
-    <div className="rounded-[1.75rem] border border-zinc-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
+    <div className="rounded-card border border-zinc-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>

@@ -156,7 +156,7 @@ export default function BookingStatusPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 md:py-16">
-      <Card className="overflow-hidden border border-zinc-200/80 bg-white/88 shadow-[0_24px_70px_rgba(148,163,184,0.12)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)]">
+      <Card className="overflow-hidden border border-zinc-200/80 bg-white/88 shadow-[0_24px_70px_rgba(148,163,184,0.12)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-elev-2-dark">
         <CardBody className="gap-6 p-6 md:p-8">
           {isLoading ? (
             <BookingStatusSkeleton />
@@ -170,7 +170,7 @@ export default function BookingStatusPage() {
                 <EventCoverImage
                   src={booking.image_url}
                   alt={`${booking.title} cover`}
-                  className="h-64 rounded-[1.75rem] border border-zinc-200/70 dark:border-white/10 md:h-80"
+                  className="h-64 rounded-card border border-zinc-200/70 dark:border-white/10 md:h-80"
                 />
               ) : null}
 
@@ -180,7 +180,7 @@ export default function BookingStatusPage() {
                 </div>
               ) : null}
 
-              <section className={`rounded-[1.75rem] border px-5 py-6 ${toneClassName}`}>
+              <section className={`rounded-card border px-5 py-6 ${toneClassName}`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex gap-3">
                     <div className="mt-0.5">

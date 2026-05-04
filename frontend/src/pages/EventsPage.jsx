@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, Chip } from "@heroui/react";
-import { CalendarDays, MapPin, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import EventCard from "../components/event/EventCard";
@@ -20,7 +20,6 @@ import {
   SORT_OPTIONS,
   TIME_FILTER_OPTIONS,
 } from "../utils/eventFilters";
-import { isUpcomingEvent } from "../utils/eventUtils";
 import { getMappableEvents } from "../utils/mapHelpers";
 
 function areFiltersEqual(left, right) {
@@ -43,6 +42,7 @@ export default function EventsPage() {
   const [selectedEventId, setSelectedEventId] = useState("");
   const [mobileView, setMobileView] = useState("list");
   const [mapVisibleEventIds, setMapVisibleEventIds] = useState(null);
+  const [prioritizeByMap, setPrioritizeByMap] = useState(false);
   const eventCardRefs = useRef({});
 
   useEffect(() => {
@@ -113,7 +113,7 @@ export default function EventsPage() {
     [mapVisibleEventIds],
   );
   const displayedEvents = useMemo(() => {
-    if (!visibleEventIds) {
+    if (!prioritizeByMap || !visibleEventIds) {
       return filteredEvents;
     }
 
@@ -129,7 +129,7 @@ export default function EventsPage() {
     });
 
     return [...eventsInMapArea, ...eventsOutsideMapArea];
-  }, [filteredEvents, visibleEventIds]);
+  }, [filteredEvents, prioritizeByMap, visibleEventIds]);
   const mapAreaEventCount = useMemo(() => {
     if (!visibleEventIds) {
       return null;
@@ -137,18 +137,6 @@ export default function EventsPage() {
 
     return filteredEvents.filter((event) => visibleEventIds.has(String(event.id))).length;
   }, [filteredEvents, visibleEventIds]);
-  const isMapAreaPrioritized = Boolean(visibleEventIds);
-
-  const featuredCities = useMemo(() => {
-    return Array.from(
-      new Set(displayedEvents.map((event) => event.city).filter(Boolean)),
-    ).slice(0, 3);
-  }, [displayedEvents]);
-
-  const upcomingCount = useMemo(
-    () => displayedEvents.filter((event) => isUpcomingEvent(event.event_date)).length,
-    [displayedEvents],
-  );
 
   const activeFilterCount = useMemo(
     () => countActiveEventFilters(filters),
@@ -178,6 +166,7 @@ export default function EventsPage() {
   function handleClearFilters() {
     setFilters(DEFAULT_EVENT_FILTERS);
     setMapVisibleEventIds(null);
+    setPrioritizeByMap(false);
   }
 
   function handleSelectEvent(eventId, { scrollToCard = false } = {}) {
@@ -206,79 +195,36 @@ export default function EventsPage() {
     setMapVisibleEventIds(eventIds);
   }
 
-  function handleClearMapPriority() {
-    setMapVisibleEventIds(null);
-  }
-
   return (
     <div className="w-full px-3 pb-20 pt-6 sm:px-4 md:px-5 md:pt-8">
-      <section className="relative overflow-hidden rounded-[1.75rem] border border-zinc-200/70 bg-white/72 px-4 py-10 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-white/4 dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] md:px-6 md:py-12">
+      <section className="relative overflow-hidden rounded-card border border-zinc-200/70 bg-white/72 px-4 py-8 shadow-elev-2 backdrop-blur-xl dark:border-white/10 dark:bg-white/4 dark:shadow-elev-2-dark md:px-6 md:py-10">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-0 top-0 h-52 w-52 rounded-full bg-sky-200/40 blur-3xl dark:bg-sky-500/10" />
           <div className="absolute right-0 top-8 h-56 w-56 rounded-full bg-emerald-200/30 blur-3xl dark:bg-emerald-500/10" />
         </div>
 
-        <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <Chip
-                variant="flat"
-                className="border border-zinc-200 bg-white/85 text-zinc-700 dark:border-white/10 dark:bg-white/8 dark:text-zinc-200"
-              >
-                Events directory
-              </Chip>
-              <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-white/10 dark:bg-white/6 dark:text-zinc-400">
-                <Sparkles size={13} />
-                Live backend data
-              </div>
-            </div>
-
-            <div>
-              <h1 className="text-4xl font-semibold tracking-[-0.05em] text-zinc-950 dark:text-white md:text-5xl">
-                Browse what's happening next.
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">
-                Explore the current event catalog, compare formats, and open full event details
-                before booking or managing your schedule.
-              </p>
+        <div className="relative space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Chip
+              variant="flat"
+              className="border border-zinc-200 bg-white/85 text-zinc-700 dark:border-white/10 dark:bg-white/8 dark:text-zinc-200"
+            >
+              Events directory
+            </Chip>
+            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-white/10 dark:bg-white/6 dark:text-zinc-400">
+              <Sparkles size={13} />
+              Live backend data
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/5">
-              <CardBody className="gap-2 px-4 py-4">
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                  Showing
-                </span>
-                <span className="text-3xl font-semibold tracking-[-0.04em] text-zinc-950 dark:text-white">
-                  {displayedEvents.length}
-                </span>
-              </CardBody>
-            </Card>
-
-            <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/5">
-              <CardBody className="gap-2 px-4 py-4">
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                  Upcoming
-                </span>
-                <span className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  <CalendarDays size={15} />
-                  {upcomingCount} events
-                </span>
-              </CardBody>
-            </Card>
-
-            <Card className="border border-zinc-200/80 bg-white/84 dark:border-white/10 dark:bg-white/5">
-              <CardBody className="gap-2 px-4 py-4">
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                  Cities
-                </span>
-                <span className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  <MapPin size={15} />
-                  {featuredCities.join(" | ") || "TBD"}
-                </span>
-              </CardBody>
-            </Card>
+          <div>
+            <h1 className="text-4xl font-semibold tracking-[-0.05em] text-zinc-950 dark:text-white md:text-5xl">
+              Browse what's happening next.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">
+              Explore the current event catalog, compare formats, and open full event details
+              before booking or managing your schedule.
+            </p>
           </div>
         </div>
       </section>
@@ -374,45 +320,44 @@ export default function EventsPage() {
             >
               <div className="flex flex-wrap items-center justify-between gap-3 px-1 md:px-2">
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {displayedEvents.length === 1
-                    ? "1 event matches your current view."
-                    : `${displayedEvents.length} events match your current view.`}
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  {isMapAreaPrioritized ? (
-                    <Button
-                      size="sm"
-                      radius="full"
-                      variant="bordered"
-                      onPress={handleClearMapPriority}
-                      className="h-8 border-zinc-200 bg-white/80 text-xs font-semibold text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200"
-                    >
-                      Reset map priority
-                    </Button>
-                  ) : null}
-                  {mapAreaEventCount !== null ? (
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                      {mapAreaEventCount} prioritized
-                    </p>
-                  ) : null}
+                  <span className="font-semibold text-zinc-950 dark:text-white">
+                    {displayedEvents.length}
+                  </span>{" "}
+                  {displayedEvents.length === 1 ? "event" : "events"}
                   {filteredEvents.length > 0 ? (
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                    <>
+                      <span className="mx-2 text-zinc-300 dark:text-white/20">·</span>
                       {mappableEvents.length} on map
-                    </p>
+                    </>
                   ) : null}
                   {activeFilterCount > 0 ? (
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                      {activeFilterCount} active filter{activeFilterCount > 1 ? "s" : ""}
-                    </p>
+                    <>
+                      <span className="mx-2 text-zinc-300 dark:text-white/20">·</span>
+                      {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"}
+                    </>
                   ) : null}
-                </div>
+                </p>
+                <Button
+                  size="sm"
+                  radius="full"
+                  variant={prioritizeByMap ? "solid" : "bordered"}
+                  onPress={() => setPrioritizeByMap((value) => !value)}
+                  className={
+                    prioritizeByMap
+                      ? "h-8 bg-zinc-950 text-xs font-semibold text-white dark:bg-white dark:text-zinc-950"
+                      : "h-8 border-zinc-200 bg-white/80 text-xs font-semibold text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200"
+                  }
+                >
+                  {prioritizeByMap && mapAreaEventCount !== null
+                    ? `Map area: ${mapAreaEventCount} in view`
+                    : "Sort by map area"}
+                </Button>
               </div>
 
-              <div className="columns-1 gap-6 md:columns-2 lg:columns-1 xl:columns-2">
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 {displayedEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="mb-6 break-inside-avoid"
                     ref={(node) => {
                       if (node) {
                         eventCardRefs.current[event.id] = node;

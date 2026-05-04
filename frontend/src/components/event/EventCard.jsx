@@ -12,7 +12,7 @@ import EventCoverImage from "./EventCoverImage";
 export default function EventCard({ event, isSelected = false, onSelect, onHover }) {
   return (
     <Card
-      className={`group w-full overflow-hidden rounded-[1.75rem] border bg-white/76 shadow-[0_18px_55px_rgba(148,163,184,0.14)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/90 hover:shadow-[0_26px_70px_rgba(148,163,184,0.24)] dark:bg-white/[0.045] dark:shadow-black/15 dark:hover:bg-white/[0.065] dark:hover:shadow-black/30 ${
+      className={`group w-full overflow-hidden rounded-card border bg-white/95 shadow-elev-1 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-pop dark:bg-zinc-950/70 dark:shadow-black/15 dark:hover:bg-zinc-900/80 dark:hover:shadow-black/30 ${
         isSelected
           ? "border-sky-400 ring-4 ring-sky-400/18 dark:border-sky-300 dark:ring-sky-300/15"
           : "border-zinc-200/80 hover:border-zinc-300/90 dark:border-white/10 dark:hover:border-white/18"
@@ -78,17 +78,11 @@ export default function EventCard({ event, isSelected = false, onSelect, onHover
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full bg-zinc-100/80 px-3 py-2 text-xs font-semibold text-zinc-600 dark:bg-white/8 dark:text-zinc-300">
             <Users size={14} />
             <span>{formatEventAvailability(event)}</span>
           </div>
-
-          {isSelected ? (
-            <span className="rounded-full bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-700 dark:bg-sky-400/10 dark:text-sky-200">
-              On map
-            </span>
-          ) : null}
         </div>
       </CardBody>
 

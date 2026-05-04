@@ -61,9 +61,9 @@ function BookingCard({
 
   return (
     <Card
-      className={`group w-full overflow-hidden rounded-[1.75rem] border bg-white/76 shadow-[0_18px_55px_rgba(148,163,184,0.14)] backdrop-blur-xl transition-all duration-300 dark:bg-white/[0.045] dark:shadow-black/15 ${
+      className={`group w-full overflow-hidden rounded-card border bg-white/95 shadow-elev-1 transition-all duration-300 dark:bg-zinc-950/70 dark:shadow-black/15 ${
         isActiveBooking
-          ? "border-zinc-200/80 hover:-translate-y-1 hover:border-zinc-300/90 hover:bg-white/90 hover:shadow-[0_26px_70px_rgba(148,163,184,0.24)] dark:border-white/10 dark:hover:border-white/18 dark:hover:bg-white/[0.065] dark:hover:shadow-black/30"
+          ? "border-zinc-200/80 hover:-translate-y-1 hover:border-zinc-300/90 hover:bg-white hover:shadow-pop dark:border-white/10 dark:hover:border-white/18 dark:hover:bg-zinc-900/80 dark:hover:shadow-black/30"
           : "border-zinc-200/70 opacity-75 dark:border-white/10"
       }`}
     >
@@ -426,7 +426,7 @@ export default function MyBookingsPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-12 md:py-16">
       <div className="space-y-8">
-        <section className="relative overflow-hidden rounded-[2rem] border border-zinc-200/70 bg-white/72 px-6 py-10 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] md:px-8 md:py-12">
+        <section className="relative overflow-hidden rounded-section border border-zinc-200/70 bg-white/72 px-6 py-10 shadow-elev-2 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-elev-2-dark md:px-8 md:py-12">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-8 top-0 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl dark:bg-emerald-500/10" />
             <div className="absolute right-0 top-10 h-56 w-56 rounded-full bg-sky-200/35 blur-3xl dark:bg-sky-500/10" />

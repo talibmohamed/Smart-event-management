@@ -121,7 +121,7 @@ export default function MobileEventsMapSheet({
   const sheetTransform = `translateY(calc(${SHEET_TRANSLATES[sheetSnap]} + ${dragOffset}px))`;
 
   return (
-    <div className="relative h-[calc(100svh-8.5rem)] min-h-[34rem] overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-zinc-100 dark:border-white/10 dark:bg-zinc-950 lg:hidden">
+    <div className="relative h-[calc(100svh-8.5rem)] min-h-[34rem] overflow-hidden rounded-card border border-zinc-200/80 bg-zinc-100 dark:border-white/10 dark:bg-zinc-950 lg:hidden">
       <EventMap
         events={filteredEvents}
         selectedEventId={selectedEventId}

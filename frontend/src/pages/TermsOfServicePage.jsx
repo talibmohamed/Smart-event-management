@@ -37,7 +37,7 @@ const termsSections = [
 export default function TermsOfServicePage() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-10 sm:px-6 md:pt-16">
-      <section className="relative overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white/72 p-6 shadow-[0_30px_90px_rgba(148,163,184,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:p-10">
+      <section className="relative overflow-hidden rounded-section border border-zinc-200/80 bg-white/72 p-6 shadow-[0_30px_90px_rgba(148,163,184,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:p-10">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(14,165,233,0.16),transparent_35%),radial-gradient(circle_at_100%_20%,rgba(139,92,246,0.14),transparent_32%)]" />
 
         <div className="relative">

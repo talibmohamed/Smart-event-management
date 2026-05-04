@@ -130,7 +130,7 @@ function ProductPreview() {
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <div className="relative min-h-[34rem] overflow-hidden rounded-[2rem] border border-zinc-900/10 bg-zinc-950 p-4 text-white shadow-[0_30px_100px_rgba(15,23,42,0.22)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_30px_100px_rgba(0,0,0,0.45)] sm:p-5">
+    <div className="relative min-h-[34rem] overflow-hidden rounded-section border border-zinc-900/10 bg-zinc-950 p-4 text-white shadow-[0_30px_100px_rgba(15,23,42,0.22)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_30px_100px_rgba(0,0,0,0.45)] sm:p-5">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(56,189,248,0.28),transparent_35%),radial-gradient(circle_at_90%_10%,rgba(139,92,246,0.22),transparent_36%),linear-gradient(145deg,rgba(255,255,255,0.08),transparent_45%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:3.2rem_3.2rem] opacity-35" />
 
@@ -219,7 +219,7 @@ function ProductPreview() {
 
 function FeaturedEventCard({ event }) {
   return (
-    <Card className="group overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white/76 shadow-[0_18px_55px_rgba(148,163,184,0.14)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/90 hover:shadow-[0_26px_70px_rgba(148,163,184,0.24)] dark:border-white/10 dark:bg-white/[0.045] dark:shadow-black/15 dark:hover:bg-white/[0.065] dark:hover:shadow-black/30">
+    <Card className="group overflow-hidden rounded-card border border-zinc-200/80 bg-white/95 shadow-elev-1 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-pop dark:border-white/10 dark:bg-zinc-950/70 dark:shadow-black/15 dark:hover:bg-zinc-900/80 dark:hover:shadow-black/30">
       <div className="relative p-3 pb-0">
         {event.image_url ? (
           <EventCoverImage
@@ -410,7 +410,7 @@ export default function HomePage() {
                 ].map(([title, description]) => (
                   <div
                     key={title}
-                    className="rounded-2xl border border-zinc-200/80 bg-white/62 p-4 backdrop-blur dark:border-white/10 dark:bg-white/[0.04]"
+                    className="rounded-2xl border border-zinc-200/80 bg-white/90 p-4 dark:border-white/10 dark:bg-white/[0.04]"
                   >
                     <p className="text-sm font-semibold text-zinc-950 dark:text-white">{title}</p>
                     <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{description}</p>
@@ -451,7 +451,7 @@ export default function HomePage() {
 
               return (
                 <motion.div key={role.label} variants={cardVariant}>
-                  <Card className="h-full border border-zinc-200/80 bg-white/70 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/70 dark:border-white/10 dark:bg-white/[0.04] dark:hover:shadow-black/25">
+                  <Card className="h-full border border-zinc-200/80 bg-white/95 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/70 dark:border-white/10 dark:bg-zinc-950/70 dark:hover:shadow-black/25">
                     <CardBody className="gap-6 p-6">
                       <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-100 text-zinc-800 dark:border-white/10 dark:bg-white/8 dark:text-white">
                         <Icon size={21} />
@@ -475,7 +475,7 @@ export default function HomePage() {
           </motion.div>
         </AnimatedSection>
 
-        <AnimatedSection className="mt-20 overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-zinc-950 p-6 text-white shadow-[0_30px_90px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-white/[0.04] sm:p-8 lg:p-10">
+        <AnimatedSection className="mt-20 overflow-hidden rounded-section border border-zinc-200/80 bg-zinc-950 p-6 text-white shadow-[0_30px_90px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-white/[0.04] sm:p-8 lg:p-10">
           <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-200">
@@ -570,14 +570,14 @@ export default function HomePage() {
               ))}
             </motion.div>
           ) : (
-            <div className="mt-10 rounded-[1.5rem] border border-zinc-200/80 bg-white/65 p-6 text-sm text-zinc-600 backdrop-blur dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-400">
+            <div className="mt-10 rounded-[1.5rem] border border-zinc-200/80 bg-white/90 p-6 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-400">
               {eventsError || "Featured events will appear here once upcoming events are published."}
             </div>
           )}
         </AnimatedSection>
 
         <AnimatedSection className="mt-20">
-          <div className="relative overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white/76 p-7 text-center shadow-[0_30px_90px_rgba(148,163,184,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:p-10">
+          <div className="relative overflow-hidden rounded-section border border-zinc-200/80 bg-white/76 p-7 text-center shadow-[0_30px_90px_rgba(148,163,184,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:p-10">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.18),transparent_38%),radial-gradient(circle_at_100%_60%,rgba(139,92,246,0.14),transparent_34%)]" />
             <div className="relative mx-auto max-w-3xl">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-sky-600 shadow-sm dark:border-white/10 dark:bg-white/8 dark:text-sky-200">

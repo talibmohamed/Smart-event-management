@@ -230,7 +230,7 @@ export default function EventMap({
   if (events.length > 0 && mappableEvents.length === 0) {
     return (
       <div
-        className={`flex h-full min-h-0 w-full items-center justify-center rounded-[1.75rem] border border-dashed border-zinc-300 bg-white/82 p-6 text-center dark:border-white/10 dark:bg-white/[0.04] ${className}`}
+        className={`flex h-full min-h-0 w-full items-center justify-center rounded-card border border-dashed border-zinc-300 bg-white/82 p-6 text-center dark:border-white/10 dark:bg-white/[0.04] ${className}`}
       >
         <div>
           <p className="text-lg font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
@@ -246,7 +246,7 @@ export default function EventMap({
 
   return (
     <div
-      className={`relative h-full min-h-0 w-full overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.04] ${className}`}
+      className={`relative h-full min-h-0 w-full overflow-hidden rounded-card border border-zinc-200/80 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/[0.04] ${className}`}
     >
       <div className="h-full min-h-0 w-full">
         <MapContainer

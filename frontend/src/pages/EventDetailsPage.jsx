@@ -307,7 +307,7 @@ export default function EventDetailsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 md:py-16">
-      <Card className="overflow-hidden border border-zinc-200/80 bg-white/88 shadow-[0_24px_70px_rgba(148,163,184,0.12)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)]">
+      <Card className="overflow-hidden border border-zinc-200/80 bg-white/88 shadow-[0_24px_70px_rgba(148,163,184,0.12)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-elev-2-dark">
         <CardBody className="gap-6 p-6 md:p-8">
           {isLoading ? (
             <DetailPageSkeleton />
@@ -321,11 +321,11 @@ export default function EventDetailsPage() {
                 <EventCoverImage
                   src={eventRecord.image_url}
                   alt={`${eventRecord.title} cover`}
-                  className="h-72 rounded-[1.75rem] border border-zinc-200/70 dark:border-white/10 md:h-96"
+                  className="h-72 rounded-card border border-zinc-200/70 dark:border-white/10 md:h-96"
                 />
               ) : null}
 
-              <div className="relative overflow-hidden rounded-[1.75rem] border border-zinc-200/70 bg-zinc-50/85 px-5 py-6 dark:border-white/10 dark:bg-white/[0.03] md:px-6 md:py-7">
+              <div className="relative overflow-hidden rounded-card border border-zinc-200/70 bg-zinc-50/85 px-5 py-6 dark:border-white/10 dark:bg-white/[0.03] md:px-6 md:py-7">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute -left-6 top-0 h-40 w-40 rounded-full bg-sky-200/45 blur-3xl dark:bg-sky-500/10" />
                   <div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-indigo-200/35 blur-3xl dark:bg-indigo-500/10" />
@@ -445,7 +445,7 @@ export default function EventDetailsPage() {
               </p>
 
               {agendaTracks.length > 0 ? (
-                <div className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white/80 shadow-sm shadow-zinc-200/50 dark:border-white/10 dark:bg-white/[0.035] dark:shadow-black/20">
+                <div className="overflow-hidden rounded-section border border-zinc-200/80 bg-white/80 shadow-sm shadow-zinc-200/50 dark:border-white/10 dark:bg-white/[0.035] dark:shadow-black/20">
                   <div className="border-b border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-white to-sky-50/70 px-5 py-5 dark:border-white/10 dark:from-white/[0.08] dark:via-white/[0.03] dark:to-sky-400/10">
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                       <div>
@@ -560,7 +560,7 @@ export default function EventDetailsPage() {
                 </div>
               ) : null}
 
-              <div className="rounded-[1.75rem] border border-zinc-200/80 bg-white/72 p-5 dark:border-white/10 dark:bg-white/[0.03]">
+              <div className="rounded-card border border-zinc-200/80 bg-white/72 p-5 dark:border-white/10 dark:bg-white/[0.03]">
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                   <div>
                     <h2 className="text-xl font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">

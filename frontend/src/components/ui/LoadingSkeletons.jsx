@@ -10,7 +10,7 @@ function SkeletonBox({ className = "" }) {
 
 export function EventCardSkeleton() {
   return (
-    <Card className="w-full overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white/76 shadow-[0_18px_55px_rgba(148,163,184,0.14)] dark:border-white/10 dark:bg-white/[0.045]">
+    <Card className="w-full overflow-hidden rounded-card border border-zinc-200/80 bg-white/76 shadow-elev-1 dark:border-white/10 dark:bg-white/[0.045]">
       <div className="p-3 pb-0">
         <SkeletonBox className="h-48 w-full rounded-[1.35rem]" />
       </div>
@@ -116,7 +116,7 @@ export function BookingCardSkeleton({ count = 2 }) {
       {Array.from({ length: count }).map((_, index) => (
         <Card
           key={index}
-          className="w-full overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white/76 shadow-[0_18px_55px_rgba(148,163,184,0.14)] dark:border-white/10 dark:bg-white/[0.045]"
+          className="w-full overflow-hidden rounded-card border border-zinc-200/80 bg-white/76 shadow-elev-1 dark:border-white/10 dark:bg-white/[0.045]"
         >
           <div className="p-3 pb-0">
             <SkeletonBox className="h-48 w-full rounded-[1.35rem]" />
@@ -144,14 +144,14 @@ export function BookingCardSkeleton({ count = 2 }) {
 export function DetailPageSkeleton() {
   return (
     <div className="space-y-6">
-      <SkeletonBox className="h-72 w-full rounded-[1.75rem] md:h-96" />
-      <SkeletonBox className="h-44 w-full rounded-[1.75rem]" />
+      <SkeletonBox className="h-72 w-full rounded-card md:h-96" />
+      <SkeletonBox className="h-44 w-full rounded-card" />
       <div className="space-y-3">
         <SkeletonLine className="h-4 w-full" />
         <SkeletonLine className="h-4 w-11/12" />
         <SkeletonLine className="h-4 w-2/3" />
       </div>
-      <SkeletonBox className="h-80 w-full rounded-[1.75rem]" />
+      <SkeletonBox className="h-80 w-full rounded-card" />
       <div className="grid gap-4 md:grid-cols-3">
         <SkeletonBox className="h-24 w-full" />
         <SkeletonBox className="h-24 w-full" />
@@ -187,7 +187,7 @@ export function EventFormSkeleton() {
 export function TicketPageSkeleton() {
   return (
     <div className="space-y-8">
-      <SkeletonBox className="h-48 w-full rounded-[2rem]" />
+      <SkeletonBox className="h-48 w-full rounded-section" />
       <div className="grid gap-4 md:grid-cols-3">
         <SkeletonBox className="h-24 w-full" />
         <SkeletonBox className="h-24 w-full md:col-span-2" />
@@ -258,8 +258,8 @@ export function AttendeesSkeleton({ count = 4 }) {
 export function BookingStatusSkeleton() {
   return (
     <div className="space-y-6">
-      <SkeletonBox className="h-64 w-full rounded-[1.75rem] md:h-80" />
-      <SkeletonBox className="h-44 w-full rounded-[1.75rem]" />
+      <SkeletonBox className="h-64 w-full rounded-card md:h-80" />
+      <SkeletonBox className="h-44 w-full rounded-card" />
       <div className="grid gap-4 md:grid-cols-3">
         <SkeletonBox className="h-24 w-full" />
         <SkeletonBox className="h-24 w-full" />

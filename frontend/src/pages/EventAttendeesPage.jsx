@@ -238,7 +238,7 @@ export default function EventAttendeesPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-12 md:py-16">
       <div className="space-y-8">
-        <section className="relative overflow-hidden rounded-[2rem] border border-zinc-200/70 bg-white/72 px-6 py-10 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_24px_70px_rgba(2,6,23,0.4)] md:px-8 md:py-12">
+        <section className="relative overflow-hidden rounded-section border border-zinc-200/70 bg-white/72 px-6 py-10 shadow-elev-2 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-elev-2-dark md:px-8 md:py-12">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-8 top-0 h-48 w-48 rounded-full bg-sky-200/40 blur-3xl dark:bg-sky-500/10" />
             <div className="absolute right-0 top-10 h-56 w-56 rounded-full bg-emerald-200/35 blur-3xl dark:bg-emerald-500/10" />
@@ -347,7 +347,7 @@ export default function EventAttendeesPage() {
           </Card>
         ) : (
           <section className="space-y-4">
-            <div className="hidden overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white/84 shadow-sm dark:border-white/10 dark:bg-white/[0.04] lg:block">
+            <div className="hidden overflow-hidden rounded-card border border-zinc-200/80 bg-white/84 shadow-sm dark:border-white/10 dark:bg-white/[0.04] lg:block">
               <div className="grid grid-cols-[1.2fr_0.9fr_0.8fr_0.8fr_1.4fr] gap-4 border-b border-zinc-200/80 px-5 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:border-white/10 dark:text-zinc-400">
                 <span>Attendee</span>
                 <span>Booking</span>

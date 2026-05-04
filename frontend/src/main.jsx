@@ -4,6 +4,7 @@ import { HeroUIProvider } from "@heroui/react"
 import { BrowserRouter } from "react-router-dom"
 import App from "./App"
 import { AuthProvider } from "./context/AuthContext"
+import "@fontsource-variable/inter"
 import "./index.css"
 import "leaflet/dist/leaflet.css"
 
