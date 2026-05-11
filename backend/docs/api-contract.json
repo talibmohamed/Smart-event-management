@@ -92,6 +92,7 @@
     "transactionalEmail": "Resend emails use styled HTML templates with plain text fallback, status badges, detail cards, CTA buttons, and best-effort delivery. They never determine API success or failure.",
     "passwordReset": "Forgot password responses do not reveal whether an email exists. Reset tokens are emailed, stored hashed, and expire after 60 minutes.",
     "userStatus": "User status values are active and suspended. Suspended users cannot log in and existing JWTs are rejected by auth middleware on every protected request.",
+    "adminAnalytics": "Admin analytics are backend-computed. Revenue is integer cents converted from decimal euro amount_paid and counts only confirmed paid bookings with non-null amount_paid. Time series use UTC daily buckets and zero-fill missing days.",
     "ticketTiers": "Events use ticket_tiers for pricing and availability. Event.price remains as the minimum active tier price for compatibility.",
     "tickets": "Confirmed bookings generate one Ticket row per purchased ticket quantity. QR values use ticket_code. Branded ticket PDFs are generated on demand for email attachments and frontend downloads by rendering the frontend SVG logo as vector and stripping embedded raster nodes to avoid black background artifacts.",
     "notifications": "Notifications are persisted in PostgreSQL, ordered by created_at DESC, delivered in realtime with Socket.IO notification:new, and deduped for webhook/retry-prone events. Frontend must not subscribe directly to Supabase tables.",
@@ -147,6 +148,44 @@
           "startsAt": "string(datetime)"
         }
       ]
+    },
+    "analyticsSummary": {
+      "users": { "total": "number", "newLast30Days": "number" },
+      "events": { "total": "number", "upcoming": "number", "past": "number" },
+      "bookings": {
+        "total": "number",
+        "confirmed": "number",
+        "cancelled": "number",
+        "pendingPayment": "number"
+      },
+      "revenue": {
+        "totalCents": "number",
+        "currency": "eur",
+        "last30DaysCents": "number"
+      }
+    },
+    "analyticsPoint": {
+      "date": "string(YYYY-MM-DD)",
+      "value": "number"
+    },
+    "topAnalyticsEvent": {
+      "eventId": "string(uuid)",
+      "title": "string",
+      "organizerId": "string(uuid)",
+      "organizerName": "string",
+      "eventDate": "string(datetime)",
+      "bookingsCount": "number",
+      "revenueCents": "number",
+      "currency": "eur"
+    },
+    "topAnalyticsOrganizer": {
+      "organizerId": "string(uuid)",
+      "name": "string",
+      "email": "string",
+      "eventsCount": "number",
+      "bookingsCount": "number",
+      "revenueCents": "number",
+      "currency": "eur"
     },
     "city": {
       "name": "string",
@@ -714,6 +753,130 @@
       "behaviorNotes": [
         "Suspending a user does not cancel bookings, refund payments, or delete events.",
         "Suspended users are rejected by login and auth middleware on every protected request."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/analytics/summary",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Analytics summary retrieved successfully",
+          "data": "analyticsSummary"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" }
+      ],
+      "behaviorNotes": [
+        "Runs independent totals in parallel.",
+        "Revenue uses the shared confirmed paid non-null amount predicate."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/analytics/timeseries",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "queryParams": {
+        "metric": {
+          "type": "string",
+          "required": true,
+          "allowedValues": ["bookings_created", "revenue", "users_created", "events_created"]
+        },
+        "from": { "type": "string(ISO date)", "required": true },
+        "to": { "type": "string(ISO date)", "required": true }
+      },
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Analytics timeseries retrieved successfully",
+          "data": {
+            "metric": "string",
+            "from": "string(YYYY-MM-DD)",
+            "to": "string(YYYY-MM-DD)",
+            "points": ["analyticsPoint"]
+          }
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "metric must be one of: bookings_created, revenue, users_created, events_created" },
+        { "status": 400, "message": "from must be less than or equal to to" },
+        { "status": 400, "message": "date range must be 365 days or less" },
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" }
+      ],
+      "behaviorNotes": [
+        "Buckets are UTC days.",
+        "Missing days are zero-filled.",
+        "Revenue point values are integer cents."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/analytics/top-events",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "queryParams": {
+        "sortBy": { "type": "string", "required": false, "default": "revenue", "allowedValues": ["revenue", "bookings"] },
+        "limit": { "type": "integer", "required": false, "default": 10, "maximum": 25 },
+        "from": { "type": "string(ISO date)", "required": false },
+        "to": { "type": "string(ISO date)", "required": false }
+      },
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Top events retrieved successfully",
+          "data": { "items": ["topAnalyticsEvent"] }
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "sortBy must be one of: revenue, bookings" },
+        { "status": 400, "message": "limit must be less than or equal to 25" },
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/analytics/top-organizers",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "queryParams": {
+        "sortBy": {
+          "type": "string",
+          "required": false,
+          "default": "revenue",
+          "allowedValues": ["revenue", "events", "bookings"]
+        },
+        "limit": { "type": "integer", "required": false, "default": 10, "maximum": 25 }
+      },
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Top organizers retrieved successfully",
+          "data": {
+            "items": ["topAnalyticsOrganizer"],
+            "currency": "eur"
+          }
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "sortBy must be one of: revenue, events, bookings" },
+        { "status": 400, "message": "limit must be less than or equal to 25" },
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" }
       ]
     },
     {
@@ -1502,6 +1665,9 @@
   ],
   "pendingFeatures": [
     "Feedback endpoints",
-    "Advanced admin audit logs and bulk actions"
+    "Advanced admin audit logs and bulk actions",
+    "Transaction monitoring dashboard",
+    "Per-event analytics drilldowns",
+    "Analytics caching, exports, cohorts, funnels, and retention curves"
   ]
 }

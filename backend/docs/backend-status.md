@@ -84,6 +84,8 @@ Last updated: 2026-05-11
 - Admin role changes with self-role-change protection
 - Admin suspend/unsuspend actions with self-suspension protection
 - Suspended users keep existing bookings/events, but cannot authenticate or use existing JWTs
+- Admin-only platform analytics summary, UTC daily time series, top events, and top organizers
+- Analytics revenue uses one shared predicate: confirmed paid bookings with non-null `amount_paid`
 
 ### Events
 
@@ -142,6 +144,8 @@ Last updated: 2026-05-11
 
 - Event filtering, search, and pagination
 - Attendee export/download support
+- Transaction monitoring dashboard
+- Per-event analytics drilldowns, cohort/funnel/retention analysis, analytics exports, and caching
 - Advanced ticket rules such as deadline-based Early Bird tiers
 - Persisted PDF files in storage; PDFs are generated on demand
 - Refund handling and advanced payment operations

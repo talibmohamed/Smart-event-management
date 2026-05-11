@@ -106,7 +106,12 @@ export default function AppNavbar() {
       ? [
           ...(canViewBookings ? [{ href: "/my-bookings", label: "My Bookings" }] : []),
           { href: "/dashboard", label: "Dashboard" },
-          ...(canManageUsers ? [{ href: "/admin/users", label: "Users" }] : []),
+          ...(canManageUsers
+            ? [
+                { href: "/admin/analytics", label: "Analytics" },
+                { href: "/admin/users", label: "Users" },
+              ]
+            : []),
         ]
       : []),
   ];

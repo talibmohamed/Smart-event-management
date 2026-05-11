@@ -47,6 +47,8 @@ Last updated: 2026-05-11
 - Optional Redis/BullMQ scaling uses `REDIS_ENABLED=true` and `REDIS_URL`; PostgreSQL remains the source of truth
 - Auth rate limiting can be enabled with `AUTH_RATE_LIMIT_ENABLED=true`
 - User status values are `active` and `suspended`; suspended users cannot log in and existing JWTs are rejected on protected routes
+- Admin analytics revenue is returned in integer cents; `amount_paid` is stored as decimal euros and converted by the backend
+- Admin analytics time series are bucketed by UTC day and zero-filled by the backend
 
 ## Redis And Worker Runtime
 
@@ -418,6 +420,137 @@ Last updated: 2026-05-11
   - `401 { "success": false, "message": "Not authorized" }`
   - `403 { "success": false, "message": "Access denied. Admins only" }`
   - `404 { "success": false, "message": "User not found" }`
+
+### `GET /api/admin/analytics/summary`
+
+- Auth: yes
+- Allowed roles: `admin`
+- Request body: none
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Analytics summary retrieved successfully",
+  "data": {
+    "users": { "total": 1240, "newLast30Days": 87 },
+    "events": { "total": 312, "upcoming": 64, "past": 248 },
+    "bookings": {
+      "total": 5821,
+      "confirmed": 5102,
+      "cancelled": 419,
+      "pendingPayment": 300
+    },
+    "revenue": {
+      "totalCents": 12450000,
+      "currency": "eur",
+      "last30DaysCents": 880000
+    }
+  }
+}
+```
+
+- Notes:
+  - Revenue counts only bookings where `status = confirmed`, `payment_status = paid`, and `amount_paid IS NOT NULL`
+  - `upcoming` means `event_date >= now`; `past` means `event_date < now`
+  - Revenue cents are converted from decimal euro `amount_paid`
+
+### `GET /api/admin/analytics/timeseries`
+
+- Auth: yes
+- Allowed roles: `admin`
+- Query params:
+  - `metric` required enum: `bookings_created`, `revenue`, `users_created`, `events_created`
+  - `from` required ISO date
+  - `to` required ISO date
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Analytics timeseries retrieved successfully",
+  "data": {
+    "metric": "bookings_created",
+    "from": "2026-04-11",
+    "to": "2026-05-11",
+    "points": [
+      { "date": "2026-04-11", "value": 12 },
+      { "date": "2026-04-12", "value": 0 }
+    ]
+  }
+}
+```
+
+- Notes:
+  - Buckets are daily UTC days
+  - Missing days are zero-filled
+  - Revenue values are integer cents
+- Common errors:
+  - `400 { "success": false, "message": "metric must be one of: bookings_created, revenue, users_created, events_created" }`
+  - `400 { "success": false, "message": "from must be less than or equal to to" }`
+  - `400 { "success": false, "message": "date range must be 365 days or less" }`
+
+### `GET /api/admin/analytics/top-events`
+
+- Auth: yes
+- Allowed roles: `admin`
+- Query params:
+  - `sortBy` optional enum: `revenue`, `bookings`; default `revenue`
+  - `limit` optional integer; default `10`, max `25`
+  - `from` optional ISO date filtering `event_date >= from`
+  - `to` optional ISO date filtering `event_date <= to`
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Top events retrieved successfully",
+  "data": {
+    "items": [
+      {
+        "eventId": "uuid",
+        "title": "Tech Conference",
+        "organizerId": "uuid",
+        "organizerName": "Jane Organizer",
+        "eventDate": "2026-04-13T10:00:00.000Z",
+        "bookingsCount": 142,
+        "revenueCents": 285000,
+        "currency": "eur"
+      }
+    ]
+  }
+}
+```
+
+### `GET /api/admin/analytics/top-organizers`
+
+- Auth: yes
+- Allowed roles: `admin`
+- Query params:
+  - `sortBy` optional enum: `revenue`, `events`, `bookings`; default `revenue`
+  - `limit` optional integer; default `10`, max `25`
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Top organizers retrieved successfully",
+  "data": {
+    "items": [
+      {
+        "organizerId": "uuid",
+        "name": "Jane Organizer",
+        "email": "jane@example.com",
+        "eventsCount": 10,
+        "bookingsCount": 142,
+        "revenueCents": 285000,
+        "currency": "eur"
+      }
+    ],
+    "currency": "eur"
+  }
+}
+```
 
 ### `GET /api/cities`
 

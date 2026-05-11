@@ -104,6 +104,10 @@ Authorization: Bearer <jwt>
 | Admin user detail | `GET /api/admin/users/:id` | Requires admin JWT; returns recent bookings/events |
 | Admin role change | `PATCH /api/admin/users/:id/role` | Requires admin JWT; backend blocks self-role changes |
 | Admin suspend/unsuspend | `PATCH /api/admin/users/:id/status` | Requires admin JWT; backend blocks self-suspension |
+| Admin analytics summary | `GET /api/admin/analytics/summary` | Requires admin JWT; platform totals and revenue in cents |
+| Admin analytics chart | `GET /api/admin/analytics/timeseries` | Requires admin JWT; UTC daily zero-filled points |
+| Admin top events | `GET /api/admin/analytics/top-events` | Requires admin JWT; sort by revenue or bookings |
+| Admin top organizers | `GET /api/admin/analytics/top-organizers` | Requires admin JWT; sort by revenue, events, or bookings |
 | City autocomplete/select | `GET /api/cities?search=paris` | Public, returns max 20 backend-approved French cities |
 | Events list page | `GET /api/events` | Public |
 | Event detail page | `GET /api/events/:id` | Public |
