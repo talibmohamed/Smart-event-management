@@ -2,7 +2,7 @@
   "metadata": {
     "name": "Quickseat Backend API",
     "version": "1.0.0",
-    "lastUpdated": "2026-04-22",
+    "lastUpdated": "2026-05-11",
     "baseUrl": "http://localhost:5000"
   },
   "development": {
@@ -14,6 +14,7 @@
     "ticketSchemaCommandBehavior": "Applies ticket table and backfills tickets for existing confirmed bookings",
     "notificationSchemaCommand": "npm run db:notification-schema",
     "schedulingSchemaCommand": "npm run db:scheduling-schema",
+    "userStatusSchemaCommand": "npm run db:user-status-schema",
     "reminderWorkerCommand": "npm run worker:reminders",
     "notificationWorkerCommand": "npm run worker:notifications",
     "combinedWorkersCommand": "npm run workers",
@@ -90,6 +91,7 @@
     "eventImages": "Event cover images are uploaded by the backend to Supabase Storage. API responses expose image_url only and never expose image_path.",
     "transactionalEmail": "Resend emails use styled HTML templates with plain text fallback, status badges, detail cards, CTA buttons, and best-effort delivery. They never determine API success or failure.",
     "passwordReset": "Forgot password responses do not reveal whether an email exists. Reset tokens are emailed, stored hashed, and expire after 60 minutes.",
+    "userStatus": "User status values are active and suspended. Suspended users cannot log in and existing JWTs are rejected by auth middleware on every protected request.",
     "ticketTiers": "Events use ticket_tiers for pricing and availability. Event.price remains as the minimum active tier price for compatibility.",
     "tickets": "Confirmed bookings generate one Ticket row per purchased ticket quantity. QR values use ticket_code. Branded ticket PDFs are generated on demand for email attachments and frontend downloads by rendering the frontend SVG logo as vector and stripping embedded raster nodes to avoid black background artifacts.",
     "notifications": "Notifications are persisted in PostgreSQL, ordered by created_at DESC, delivered in realtime with Socket.IO notification:new, and deduped for webhook/retry-prone events. Frontend must not subscribe directly to Supabase tables.",
@@ -104,7 +106,8 @@
       "first_name": "string",
       "last_name": "string",
       "email": "string",
-      "role": "string(attendee|organizer|admin)"
+      "role": "string(attendee|organizer|admin)",
+      "status": "string(active|suspended)"
     },
     "userProfile": {
       "id": "string(uuid)",
@@ -112,7 +115,38 @@
       "last_name": "string",
       "email": "string",
       "role": "string(attendee|organizer|admin)",
+      "status": "string(active|suspended)",
       "created_at": "string(datetime)"
+    },
+    "adminUser": {
+      "id": "string(uuid)",
+      "email": "string",
+      "name": "string",
+      "first_name": "string",
+      "last_name": "string",
+      "role": "string(attendee|organizer|admin)",
+      "status": "string(active|suspended)",
+      "createdAt": "string(datetime)",
+      "bookingsCount": "number",
+      "eventsOrganizedCount": "number"
+    },
+    "adminUserDetail": {
+      "extends": "adminUser",
+      "recentBookings": [
+        {
+          "id": "string(uuid)",
+          "eventTitle": "string",
+          "status": "string",
+          "createdAt": "string(datetime)"
+        }
+      ],
+      "recentEventsOrganized": [
+        {
+          "id": "string(uuid)",
+          "title": "string",
+          "startsAt": "string(datetime)"
+        }
+      ]
     },
     "city": {
       "name": "string",
@@ -475,6 +509,7 @@
       },
       "commonErrors": [
         { "status": 400, "message": "Invalid credentials" },
+        { "status": 403, "message": "Account suspended" },
         { "status": 500, "message": "Server error during login" }
       ]
     },
@@ -550,7 +585,135 @@
       "commonErrors": [
         { "status": 401, "message": "Not authorized" },
         { "status": 401, "message": "Token invalid" },
+        { "status": 403, "message": "Account suspended" },
         { "status": 500, "message": "Server error" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/users",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "queryParams": {
+        "page": { "type": "integer", "required": false, "default": 1, "minimum": 1 },
+        "pageSize": { "type": "integer", "required": false, "default": 20, "minimum": 1, "maximum": 50 },
+        "q": { "type": "string", "required": false, "description": "Case-insensitive search on email, first_name, and last_name" },
+        "role": { "type": "string", "required": false, "allowedValues": ["attendee", "organizer", "admin"] },
+        "status": { "type": "string", "required": false, "allowedValues": ["active", "suspended"] },
+        "sort": {
+          "type": "string",
+          "required": false,
+          "default": "created_desc",
+          "allowedValues": ["created_desc", "created_asc", "email_asc", "email_desc"]
+        }
+      },
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "items": ["adminUser"],
+          "page": "number",
+          "pageSize": "number",
+          "total": "number",
+          "hasMore": "boolean"
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "Invalid user role filter" },
+        { "status": 400, "message": "Invalid user status filter" },
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" }
+      ],
+      "behaviorNotes": [
+        "Uses the shared pagination parser.",
+        "Returns explicit non-sensitive fields only; password_hash and reset tokens are never selected."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/users/:id",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "User retrieved successfully",
+          "data": "adminUserDetail"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" },
+        { "status": 404, "message": "User not found" }
+      ],
+      "behaviorNotes": [
+        "Includes the last 5 bookings and last 5 organized events.",
+        "lastLoginAt is omitted because login timestamps are not tracked."
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/users/:id/role",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "requestBody": {
+        "role": {
+          "type": "string",
+          "required": true,
+          "allowedValues": ["attendee", "organizer", "admin"]
+        }
+      },
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "User role updated successfully",
+          "data": "adminUser"
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "Invalid user role" },
+        { "status": 400, "message": "You cannot change your own role" },
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" },
+        { "status": 404, "message": "User not found" }
+      ],
+      "behaviorNotes": [
+        "Changing an organizer to attendee does not delete or reassign existing events."
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/users/:id/status",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "requestBody": {
+        "status": {
+          "type": "string",
+          "required": true,
+          "allowedValues": ["active", "suspended"]
+        }
+      },
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "User status updated successfully",
+          "data": "adminUser"
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "Invalid user status" },
+        { "status": 400, "message": "You cannot suspend your own account" },
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" },
+        { "status": 404, "message": "User not found" }
+      ],
+      "behaviorNotes": [
+        "Suspending a user does not cancel bookings, refund payments, or delete events.",
+        "Suspended users are rejected by login and auth middleware on every protected request."
       ]
     },
     {
@@ -1339,7 +1502,6 @@
   ],
   "pendingFeatures": [
     "Feedback endpoints",
-    "Admin-specific supervision endpoints",
-    "Event filtering and pagination"
+    "Advanced admin audit logs and bulk actions"
   ]
 }

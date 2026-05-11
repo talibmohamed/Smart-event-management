@@ -1,12 +1,13 @@
 # Backend Status
 
-Last updated: 2026-04-22
+Last updated: 2026-05-11
 
 ## Current State
 
 - Runtime data access is Prisma-only
 - Runtime Prisma connection is normalized for the Supabase pooler
 - Authentication is implemented with JWT
+- Auth middleware verifies current user status on every protected request
 - Core auth, event, and booking flows are available
 - Paid bookings use Stripe Checkout and webhook confirmation
 - Transactional emails use styled HTML templates through Resend with plain text fallback and best-effort delivery
@@ -40,6 +41,7 @@ Last updated: 2026-04-22
 - `npm run db:ticket-schema` applies the ticket table and backfills confirmed booking tickets
 - `npm run db:notification-schema` applies the notifications table and indexes
 - `npm run db:scheduling-schema` applies agenda, event timezone/end-date, and reminder delivery tables/indexes
+- `npm run db:user-status-schema` applies the `users.status` column and active/suspended check constraint
 - `npm run test` runs critical backend tests with mocked external services
 - `npm run test:watch` runs the same tests in watch mode
 - `npm run test:coverage` runs critical backend tests with a V8 coverage report
@@ -63,6 +65,7 @@ Last updated: 2026-04-22
 - `POST /api/auth/forgot-password`
 - `POST /api/auth/reset-password`
 - `GET /api/auth/me`
+- Suspended users cannot log in and existing JWTs are rejected by auth middleware
 - JWT protection middleware
 - Critical auth middleware and password reset tests
 
@@ -72,6 +75,15 @@ Last updated: 2026-04-22
 - Organizer and admin protection for event write endpoints
 - Owner-or-admin checks for event update and delete
 - Owner-or-admin checks for booking cancellation
+- Reusable admin-only guard for platform administration routes
+
+### Admin
+
+- Admin-only platform user list with pagination, search, role/status filtering, and sorting
+- Admin-only user detail with recent bookings and recently organized events
+- Admin role changes with self-role-change protection
+- Admin suspend/unsuspend actions with self-suspension protection
+- Suspended users keep existing bookings/events, but cannot authenticate or use existing JWTs
 
 ### Events
 
@@ -128,7 +140,6 @@ Last updated: 2026-04-22
 
 ## Pending Features
 
-- Admin-specific supervision endpoints beyond current role checks
 - Event filtering, search, and pagination
 - Attendee export/download support
 - Advanced ticket rules such as deadline-based Early Bird tiers

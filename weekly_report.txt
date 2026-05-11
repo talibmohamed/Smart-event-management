@@ -1,11 +1,11 @@
-Weekly Report - Smart Event Management
+Weekly Report - Quickseat
 
-Team: Smart Event Management contributors
-Report period: 2026-03-23 to 2026-04-13
-Generated: 2026-04-13
+Team: Quickseat contributors
+Report period: 2026-03-23 to 2026-05-11
+Generated: 2026-05-11
 
 Project summary:
-Smart Event Management is a web application for creating, browsing, booking, and managing university events. The platform supports attendees, organizers, and admins using a Node.js/Express backend, Prisma ORM, PostgreSQL/Supabase, JWT authentication, and a React frontend.
+Quickseat is a web application for creating, browsing, booking, and managing university events. The platform supports attendees, organizers, and admins using a Node.js/Express backend, Prisma ORM, PostgreSQL/Supabase, JWT authentication, Stripe payments, Supabase Storage, Resend email delivery, Socket.IO notifications, Redis-ready workers, and a React frontend built with Vite, Tailwind CSS, and HeroUI.
 
 Week 1 (2026-03-23 to 2026-03-29)
 
@@ -96,15 +96,116 @@ Testing status:
 - Frontend build passes with npm run build.
 - Backend endpoints were documented and tested manually during integration.
 - Manual flows checked: event creation, event editing, image upload preview, event browsing, map display, booking creation, booking cancellation, and payment retry UI.
-- Stripe webhook behavior still needs full end-to-end verification with Stripe CLI and real test checkout sessions.
+
+Week 4 (2026-04-14 to 2026-04-20)
+
+Completed - Tickets and email:
+- Added branded ticket PDFs with improved visual layout.
+- Added QR code generation and inline QR support for ticket confirmation emails.
+- Added styled HTML transactional email templates and plain-text fallbacks.
+- Added an email preview script to send sample templates for visual inspection.
+- Expanded ticket email generation and updated backend utility tests around ticket email and PDF behavior.
+
+Completed - Frontend UX:
+- Added loading skeletons across major pages to improve perceived performance during API calls.
+- Added the MobileEventsMapSheet component for better event browsing on small screens.
+- Reworked app branding from Smart Event Management to Quickseat, including the new name, logo usage, and slogan.
+
+Completed - Notifications and infrastructure:
+- Implemented a backend-persisted notification system with real-time Socket.IO delivery.
+- Added frontend notification bell integration and notification fetching logic.
+- Added Redis/BullMQ-based queue infrastructure for notifications and reminders.
+- Added notification worker and reminder worker support in the backend.
+
+Completed - Scheduling and reminders:
+- Added event scheduling enhancements including event timezone, end date, and structured agenda tracks/sessions.
+- Added reminder scanning and reminder delivery infrastructure for event reminders.
+
+Challenges:
+- Email delivery needed to stay best-effort so booking/payment flows would not fail when email sending failed.
+- Ticket PDF generation and inline QR delivery had to work consistently across email clients and the frontend download flow.
+- Realtime notifications required cleanup after an initial frontend-only approach so the backend remained the source of truth.
+
+Testing status:
+- Added and maintained backend tests around email templates, ticket PDF generation, notification behavior, Redis config, and reminder queue logic.
+- Manually verified email preview flows and ticket attachment rendering.
+
+Week 5 (2026-04-21 to 2026-04-27)
+
+Completed - Feedback and reviews:
+- Added feedback submission and retrieval endpoints for events.
+- Added backend feedback model/controller logic for ratings and comments.
+- Added organizer/admin feedback statistics retrieval for owned events.
+- Integrated frontend feedback submission and feedback statistics display components.
+- Merged teammate work around feedback and aligned it with the main branch.
+
+Completed - Maps and event browsing:
+- Improved EventMap marker icons and popup styling.
+- Enhanced map interaction behavior and the Events page layout.
+- Continued refining the list/map experience so map focus and event browsing feel more responsive.
+
+Completed - Repository maintenance:
+- Removed accidentally committed root dependencies and cleaned the repository state after a bad merge.
+- Updated the database schema snapshot file to match the current project state.
+
+Challenges:
+- Merge cleanup was necessary because some teammate changes included poor repository hygiene and overlapping frontend work.
+- Feedback flows had to be restricted correctly so only confirmed attendees could submit reviews and only organizers/admins could view stats.
+
+Testing status:
+- Backend controller tests were added/updated for feedback and related access-control rules.
+- Frontend build and integration flows continued to pass after merge cleanup.
+
+Week 6 (2026-04-28 to 2026-05-04)
+
+Completed:
+- Refactored UI components using newer design tokens and style updates.
+- Improved visual consistency across the app while preserving the existing event, booking, and organizer flows.
+- Continued stabilizing the frontend after the notification, feedback, and mobile map additions.
+
+Challenges:
+- UI refactors had to avoid breaking already-working booking, event, and ticket flows.
+- Design token changes required careful updates so dark/light mode and component consistency remained intact.
+
+Testing status:
+- Frontend production build continued to pass after the styling refactor.
+
+Week 7 (2026-05-05 to 2026-05-11)
+
+Completed - Backend event listing:
+- Moved event list filtering and sorting logic from frontend-only behavior into the backend GET /api/events endpoint.
+- Added validated query params for pagination, search, category, city, date range, and sorting.
+- Added priceMin and priceMax filters and backend price sorting based on the stored event minimum ticket-tier price.
+- Added a reusable backend pagination/query parsing helper for future list endpoints.
+- Updated API documentation and the API contract to reflect the new event listing behavior.
+
+Completed - Frontend event discovery:
+- Refactored the Events page to consume backend-filtered, backend-sorted, paginated event results.
+- Replaced full-list client-side filtering with API-driven querying.
+- Preserved URL sync between filters and the browser address bar.
+- Added frontend load-more pagination behavior.
+- Restored price filtering and price sorting UI using the new backend query params.
+- Kept the existing map/list split and mobile map UX while making the map reflect the currently loaded result set.
+
+Completed - Audit and quality work:
+- Audited event price synchronization with ticket-tier mutations and confirmed there was no runtime stale-price path in the current architecture.
+- Confirmed backend tests still pass after the event listing refactor.
+
+Challenges:
+- The new backend list contract required narrowing frontend filters to what the backend actually supports while preserving the existing UX.
+- Category and city filter options still rely on a temporary bootstrap fetch because there is not yet a dedicated facets endpoint.
+- Dashboard event loading still depends on the public events endpoint and is capped by page size until a dedicated dashboard endpoint is introduced.
+
+Testing status:
+- Backend Vitest suite passes after the event listing refactor.
+- Frontend production build passes after the pagination/filter migration.
+- Manual browser smoke testing is still limited by the current CLI environment; automated build and test checks were completed successfully.
 
 Current next steps:
-- Run and verify all database migrations and payment schema changes in the target environment.
-- Configure Stripe keys, webhook secret, and webhook forwarding for development and deployment.
-- Fully test paid booking flows end-to-end: create booking, redirect to Stripe, receive webhook, poll booking status, and display final state.
-- Test Supabase image upload, replacement, and deletion end-to-end.
-- Plan and implement email notifications for key user actions: registration, booking confirmation, payment success, booking cancellation, and event updates.
-- Add in-app notification support so attendees and organizers can see important platform updates without relying only on email.
-- Add automated checks: lint, frontend build, backend startup, Prisma generation, and key API integration tests.
-- Improve mobile UX for the booking, payment status, and map/list pages.
-- Prepare deployment checklist for environment variables, database migration, Supabase Storage, Stripe webhooks, and frontend API URL.
+- Add a dedicated `/api/events/facets` endpoint so frontend category/city filters do not rely on bootstrap list fetches.
+- Add dedicated organizer/admin dashboard endpoints instead of reusing the public event list endpoint.
+- Expand analytics and reporting for organizers and admins.
+- Add user-management flows for admins.
+- Add organizer-attendee messaging.
+- Add waitlist support for full events.
+- Improve deployment hardening for Render/Vercel, Redis-backed workers, Stripe webhooks, and environment setup.

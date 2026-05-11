@@ -17,6 +17,7 @@ import EventCheckInPage from "../pages/EventCheckInPage"
 import MyBookingsPage from "../pages/MyBookingsPage"
 import BookingStatusPage from "../pages/BookingStatusPage"
 import BookingTicketsPage from "../pages/BookingTicketsPage"
+import AdminUsersPage from "../pages/AdminUsersPage"
 import ProtectedRoute from "./ProtectedRoute"
 
 export default function AppRouter() {
@@ -49,6 +50,10 @@ export default function AppRouter() {
           <Route path="/events/:id/edit" element={<EditEventPage />} />
           <Route path="/events/:id/attendees" element={<EventAttendeesPage />} />
           <Route path="/events/:id/check-in" element={<EventCheckInPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+          <Route path="/admin/users" element={<AdminUsersPage />} />
         </Route>
       </Route>
     </Routes>

@@ -22,10 +22,12 @@ CREATE TABLE users (
     email VARCHAR(150) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'attendee',
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
     password_reset_token_hash VARCHAR(64),
     password_reset_expires_at TIMESTAMP(3),
     created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT users_role_check CHECK (role IN ('attendee', 'organizer', 'admin'))
+    CONSTRAINT users_role_check CHECK (role IN ('attendee', 'organizer', 'admin')),
+    CONSTRAINT users_status_check CHECK (status IN ('active', 'suspended'))
 );
 
 CREATE INDEX users_password_reset_token_hash_idx

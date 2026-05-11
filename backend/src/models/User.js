@@ -15,6 +15,7 @@ const createUser = async ({ first_name, last_name, email, password_hash, role })
       last_name: true,
       email: true,
       role: true,
+      status: true,
       created_at: true,
     },
   });
@@ -30,6 +31,7 @@ const findUserByEmail = async (email) => {
       email: true,
       password_hash: true,
       role: true,
+      status: true,
       created_at: true,
     },
   });
@@ -44,6 +46,7 @@ const findUserById = async (id) => {
       last_name: true,
       email: true,
       role: true,
+      status: true,
       created_at: true,
     },
   });

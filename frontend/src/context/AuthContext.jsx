@@ -54,7 +54,7 @@ export function AuthProvider({ children }) {
           return
         }
 
-        if (error?.response?.status === 401) {
+        if (error?.response?.status === 401 || error?.response?.status === 403) {
           resetSessionState(setUser, setToken)
         }
       })

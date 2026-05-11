@@ -36,6 +36,7 @@ export default function AppNavbar() {
   const userLabel = displayName || user?.email || "Account";
   const canCreateEvents = isOrganizerRole(user?.role);
   const canViewBookings = user?.role === "attendee";
+  const canManageUsers = user?.role === "admin";
 
   useEffect(() => {
     returnPathRef.current = `${location.pathname}${location.search}`;
@@ -105,6 +106,7 @@ export default function AppNavbar() {
       ? [
           ...(canViewBookings ? [{ href: "/my-bookings", label: "My Bookings" }] : []),
           { href: "/dashboard", label: "Dashboard" },
+          ...(canManageUsers ? [{ href: "/admin/users", label: "Users" }] : []),
         ]
       : []),
   ];

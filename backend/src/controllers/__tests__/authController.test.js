@@ -19,6 +19,7 @@ vi.mock("../../config/prisma.js", () => ({
 vi.mock("bcryptjs", () => ({
   default: {
     hash: vi.fn(),
+    compare: vi.fn(),
   },
 }));
 
@@ -36,6 +37,7 @@ describe("auth controller password reset", () => {
     prisma.$executeRaw.mockResolvedValue(1);
     prisma.$queryRaw.mockResolvedValue([]);
     bcrypt.hash.mockResolvedValue("hashed-password");
+    bcrypt.compare.mockResolvedValue(true);
   });
 
   it("forgot password returns 400 when email is missing", async () => {
@@ -141,6 +143,29 @@ describe("auth controller password reset", () => {
     expect(res.json).toHaveBeenCalledWith({
       success: true,
       message: "Password reset successfully",
+    });
+  });
+
+  it("login rejects suspended users after password verification", async () => {
+    prisma.user.findUnique.mockResolvedValue(
+      mockUser({
+        password_hash: "hashed-password",
+        status: "suspended",
+      })
+    );
+    bcrypt.compare.mockResolvedValue(true);
+    const req = createMockReq({
+      body: { email: "test@example.com", password: "password123" },
+    });
+    const res = createMockRes();
+
+    await authController.login(req, res);
+
+    expect(bcrypt.compare).toHaveBeenCalledWith("password123", "hashed-password");
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "Account suspended",
     });
   });
 });

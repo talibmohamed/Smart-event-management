@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Last updated: 2026-04-22
+Last updated: 2026-05-11
 
 ## Base Setup
 
@@ -20,6 +20,7 @@ Authorization: Bearer <jwt>
 - Local ticket schema command: `npm run db:ticket-schema` applies ticket tables and backfills confirmed booking tickets
 - Local notification schema command: `npm run db:notification-schema`
 - Local scheduling/reminder schema command: `npm run db:scheduling-schema`
+- Local user status schema command: `npm run db:user-status-schema`
 - Local worker commands:
   - `npm run worker:reminders`
   - `npm run worker:notifications`
@@ -78,7 +79,7 @@ Authorization: Bearer <jwt>
 - Store the token in frontend auth state and persistent storage
 - On app startup, if a token exists, call `GET /api/auth/me`
 - On `401`, clear the token and redirect to login
-- On `403`, keep the session and show a permission error
+- On `403`, show a permission error; if the message is `Account suspended`, clear the session and redirect to login
 - On `429`, show the backend message and ask the user to try again later
 
 ## Redis/Worker Notes
@@ -99,6 +100,10 @@ Authorization: Bearer <jwt>
 | Forgot password page | `POST /api/auth/forgot-password` | Public, sends reset email if account exists |
 | Reset password page | `POST /api/auth/reset-password` | Public, uses token from email link |
 | Session restore | `GET /api/auth/me` | Requires JWT |
+| Admin users page | `GET /api/admin/users` | Requires admin JWT; supports pagination, search, role/status filters, and sorting |
+| Admin user detail | `GET /api/admin/users/:id` | Requires admin JWT; returns recent bookings/events |
+| Admin role change | `PATCH /api/admin/users/:id/role` | Requires admin JWT; backend blocks self-role changes |
+| Admin suspend/unsuspend | `PATCH /api/admin/users/:id/status` | Requires admin JWT; backend blocks self-suspension |
 | City autocomplete/select | `GET /api/cities?search=paris` | Public, returns max 20 backend-approved French cities |
 | Events list page | `GET /api/events` | Public |
 | Event detail page | `GET /api/events/:id` | Public |

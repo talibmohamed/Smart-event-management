@@ -81,6 +81,7 @@ export const register = async (req, res) => {
           last_name: user.last_name,
           email: user.email,
           role: user.role,
+          status: user.status,
         },
       },
     });
@@ -117,6 +118,13 @@ export const login = async (req, res) => {
       });
     }
 
+    if (user.status === "suspended") {
+      return res.status(403).json({
+        success: false,
+        message: "Account suspended",
+      });
+    }
+
     const token = generateToken(user);
 
     res.json({
@@ -130,6 +138,7 @@ export const login = async (req, res) => {
           last_name: user.last_name,
           email: user.email,
           role: user.role,
+          status: user.status,
         },
       },
     });
@@ -262,6 +271,7 @@ export const getMe = async (req, res) => {
         last_name: true,
         email: true,
         role: true,
+        status: true,
         created_at: true,
       },
     });

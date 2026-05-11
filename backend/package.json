@@ -14,6 +14,7 @@
     "db:notification-schema": "node scripts/applyNotificationSchema.js",
     "db:scheduling-schema": "node scripts/applySchedulingSchema.js",
     "db:ticket-schema": "node scripts/applyTicketSchema.js",
+    "db:user-status-schema": "node scripts/applyUserStatusSchema.js",
     "email:preview": "node scripts/sendEmailPreviews.js",
     "postinstall": "npm run prisma:generate",
     "test": "vitest run",
