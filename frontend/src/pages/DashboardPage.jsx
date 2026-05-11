@@ -85,10 +85,15 @@ export default function DashboardPage() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await eventService.getEvents();
+        // Known limit: this public events fetch is capped at 50 until the dashboard gets a dedicated backend endpoint.
+        const response = await eventService.getEvents({
+          page: 1,
+          pageSize: 50,
+          sort: "date_asc",
+        });
 
         if (!ignore) {
-          setEvents(response.data.data || []);
+          setEvents(response.data.items || []);
         }
       } catch (error) {
         if (ignore) {

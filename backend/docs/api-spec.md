@@ -301,61 +301,79 @@ Last updated: 2026-04-22
 
 ### `GET /api/events`
 
-- Auth: no
-- Allowed roles: all
-- Request body: none
-- Success:
+  - Auth: no
+  - Allowed roles: all
+  - Request body: none
+  - Query params:
+    - `page` optional integer, default `1`, minimum `1`
+    - `pageSize` optional integer, default `20`, minimum `1`, maximum `50`
+    - `q` optional string, case-insensitive search on `title` and `description`
+    - `category` optional string, exact match
+    - `city` optional string, exact match, case-insensitive
+    - `priceMin` optional non-negative number, filters by event `price` where `price >= priceMin`
+    - `priceMax` optional non-negative number, filters by event `price` where `price <= priceMax`
+    - `dateFrom` optional ISO date, filters `event_date >= dateFrom`
+    - `dateTo` optional ISO date, filters `event_date <= dateTo`
+    - `sort` optional enum: `date_asc` (default), `date_desc`, `title_asc`, `title_desc`, `price_asc`, `price_desc`
+  - Success:
 
-```json
-{
-  "success": true,
-  "message": "Events retrieved successfully",
-  "data": [
-    {
-      "id": "uuid",
-      "title": "AI Workshop",
-      "description": "Hands-on session",
-      "category": "Technology",
-      "address": "28 Rue Notre Dame des Champs",
-      "city": "Paris",
-      "latitude": "48.8419660",
-      "longitude": "2.3295360",
-      "image_url": "https://example.supabase.co/storage/v1/object/public/event-images/events/user-id/image.webp",
-      "event_date": "2026-05-01T09:00:00.000Z",
-      "event_end_date": "2026-05-01T17:00:00.000Z",
-      "timezone": "Europe/Paris",
-      "capacity": 100,
-      "price": "10.00",
-      "organizer_id": "uuid",
-      "created_at": "2026-04-08T10:00:00.000Z",
-      "confirmed_bookings": 25,
-      "remaining_seats": 75,
-      "is_full": false,
-      "min_price": "10.00",
-      "max_price": "50.00",
-      "ticket_tiers": [
-        {
-          "id": "uuid",
-          "name": "VIP",
-          "description": "Front-row access",
-          "price": "50.00",
-          "capacity": 20,
-          "sold_quantity": 4,
-          "remaining_quantity": 16,
-          "is_active": true
-        }
-      ],
-      "agenda_session_count": 3,
-      "first_name": "Jane",
-      "last_name": "Smith",
-      "organizer_email": "jane@example.com"
-    }
-  ]
-}
-```
+  ```json
+  {
+    "items": [
+      {
+        "id": "uuid",
+        "title": "AI Workshop",
+        "description": "Hands-on session",
+        "category": "Technology",
+        "address": "28 Rue Notre Dame des Champs",
+        "city": "Paris",
+        "latitude": "48.8419660",
+        "longitude": "2.3295360",
+        "image_url": "https://example.supabase.co/storage/v1/object/public/event-images/events/user-id/image.webp",
+        "event_date": "2026-05-01T09:00:00.000Z",
+        "event_end_date": "2026-05-01T17:00:00.000Z",
+        "timezone": "Europe/Paris",
+        "capacity": 100,
+        "price": "10.00",
+        "organizer_id": "uuid",
+        "created_at": "2026-04-08T10:00:00.000Z",
+        "confirmed_bookings": 25,
+        "remaining_seats": 75,
+        "is_full": false,
+        "min_price": "10.00",
+        "max_price": "50.00",
+        "ticket_tiers": [
+          {
+            "id": "uuid",
+            "name": "VIP",
+            "description": "Front-row access",
+            "price": "50.00",
+            "capacity": 20,
+            "sold_quantity": 4,
+            "remaining_quantity": 16,
+            "is_active": true
+          }
+        ],
+        "agenda_session_count": 3,
+        "first_name": "Jane",
+        "last_name": "Smith",
+        "organizer_email": "jane@example.com"
+      }
+    ],
+    "page": 1,
+    "pageSize": 20,
+    "total": 137,
+    "hasMore": true
+  }
+  ```
 
-- Common errors:
-  - `500 { "success": false, "message": "Server error while fetching events", "error": "..." }`
+  - Common errors:
+    - `400 { "message": "page must be greater than or equal to 1" }`
+    - `400 { "message": "pageSize must be less than or equal to 50" }`
+    - `400 { "message": "priceMin must be a non-negative number" }`
+    - `400 { "message": "priceMin must be less than or equal to priceMax" }`
+    - `400 { "message": "sort must be one of: date_asc, date_desc, title_asc, title_desc, price_asc, price_desc" }`
+    - `500 { "success": false, "message": "Server error while fetching events", "error": "..." }`
 
 ### `GET /api/events/:id`
 

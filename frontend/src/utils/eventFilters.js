@@ -2,16 +2,11 @@ export const DEFAULT_EVENT_FILTERS = {
   q: "",
   category: "",
   city: "",
-  price: "all",
+  priceMin: "",
+  priceMax: "",
   time: "all",
-  sort: "soonest",
+  sort: "date_asc",
 };
-
-export const PRICE_FILTER_OPTIONS = [
-  { value: "all", label: "All prices" },
-  { value: "free", label: "Free" },
-  { value: "paid", label: "Paid" },
-];
 
 export const TIME_FILTER_OPTIONS = [
   { value: "all", label: "All times" },
@@ -20,77 +15,41 @@ export const TIME_FILTER_OPTIONS = [
 ];
 
 export const SORT_OPTIONS = [
-  { value: "soonest", label: "Soonest" },
-  { value: "latest", label: "Latest" },
-  { value: "price-asc", label: "Price low to high" },
-  { value: "price-desc", label: "Price high to low" },
+  { value: "date_asc", label: "Soonest" },
+  { value: "date_desc", label: "Latest" },
+  { value: "title_asc", label: "Title A-Z" },
+  { value: "title_desc", label: "Title Z-A" },
+  { value: "price_asc", label: "Price low to high" },
+  { value: "price_desc", label: "Price high to low" },
 ];
 
-const VALID_PRICE_FILTERS = new Set(PRICE_FILTER_OPTIONS.map((option) => option.value));
 const VALID_TIME_FILTERS = new Set(TIME_FILTER_OPTIONS.map((option) => option.value));
 const VALID_SORT_OPTIONS = new Set(SORT_OPTIONS.map((option) => option.value));
 
-function normalizeText(value) {
-  return (value || "").toString().trim().toLowerCase();
-}
-
-function parseDateValue(dateValue) {
-  const parsedDate = new Date(dateValue);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return null;
-  }
-
-  return parsedDate;
-}
-
-function parsePriceValue(eventOrPriceValue) {
-  const priceValue =
-    eventOrPriceValue && typeof eventOrPriceValue === "object"
-      ? eventOrPriceValue.min_price ?? eventOrPriceValue.price
-      : eventOrPriceValue;
-  const numericPrice = Number(priceValue);
-
-  if (Number.isNaN(numericPrice)) {
-    return 0;
-  }
-
-  return numericPrice;
+function buildCurrentIsoTimestamp() {
+  return new Date().toISOString();
 }
 
 export function parseEventFilterParams(searchParams) {
-  const nextFilters = {
+  return sanitizeEventFilters({
     q: searchParams.get("q") || DEFAULT_EVENT_FILTERS.q,
     category: searchParams.get("category") || DEFAULT_EVENT_FILTERS.category,
     city: searchParams.get("city") || DEFAULT_EVENT_FILTERS.city,
-    price: searchParams.get("price") || DEFAULT_EVENT_FILTERS.price,
+    priceMin: searchParams.get("priceMin") || DEFAULT_EVENT_FILTERS.priceMin,
+    priceMax: searchParams.get("priceMax") || DEFAULT_EVENT_FILTERS.priceMax,
     time: searchParams.get("time") || DEFAULT_EVENT_FILTERS.time,
     sort: searchParams.get("sort") || DEFAULT_EVENT_FILTERS.sort,
-  };
-
-  return sanitizeEventFilters(nextFilters);
+  });
 }
 
-export function sanitizeEventFilters(filters, options = {}) {
-  const hasCategoryOptions = Array.isArray(options.categories);
-  const hasCityOptions = Array.isArray(options.cities);
-  const categories = hasCategoryOptions ? options.categories : [];
-  const cities = hasCityOptions ? options.cities : [];
-  const category =
-    typeof filters.category === "string" ? filters.category : DEFAULT_EVENT_FILTERS.category;
-  const city = typeof filters.city === "string" ? filters.city : DEFAULT_EVENT_FILTERS.city;
-
+export function sanitizeEventFilters(filters = {}) {
   return {
     q: typeof filters.q === "string" ? filters.q : DEFAULT_EVENT_FILTERS.q,
     category:
-      !category || !hasCategoryOptions || categories.includes(category)
-        ? category
-        : DEFAULT_EVENT_FILTERS.category,
-    city:
-      !city || !hasCityOptions || cities.includes(city)
-        ? city
-        : DEFAULT_EVENT_FILTERS.city,
-    price: VALID_PRICE_FILTERS.has(filters.price) ? filters.price : DEFAULT_EVENT_FILTERS.price,
+      typeof filters.category === "string" ? filters.category : DEFAULT_EVENT_FILTERS.category,
+    city: typeof filters.city === "string" ? filters.city : DEFAULT_EVENT_FILTERS.city,
+    priceMin: typeof filters.priceMin === "string" ? filters.priceMin : DEFAULT_EVENT_FILTERS.priceMin,
+    priceMax: typeof filters.priceMax === "string" ? filters.priceMax : DEFAULT_EVENT_FILTERS.priceMax,
     time: VALID_TIME_FILTERS.has(filters.time) ? filters.time : DEFAULT_EVENT_FILTERS.time,
     sort: VALID_SORT_OPTIONS.has(filters.sort) ? filters.sort : DEFAULT_EVENT_FILTERS.sort,
   };
@@ -111,8 +70,12 @@ export function buildEventFilterSearchParams(filters) {
     params.set("city", filters.city);
   }
 
-  if (filters.price !== DEFAULT_EVENT_FILTERS.price) {
-    params.set("price", filters.price);
+  if (filters.priceMin.trim()) {
+    params.set("priceMin", filters.priceMin.trim());
+  }
+
+  if (filters.priceMax.trim()) {
+    params.set("priceMax", filters.priceMax.trim());
   }
 
   if (filters.time !== DEFAULT_EVENT_FILTERS.time) {
@@ -121,6 +84,42 @@ export function buildEventFilterSearchParams(filters) {
 
   if (filters.sort !== DEFAULT_EVENT_FILTERS.sort) {
     params.set("sort", filters.sort);
+  }
+
+  return params;
+}
+
+export function buildEventListQueryParams(filters, { page = 1, pageSize = 20 } = {}) {
+  const params = {
+    page,
+    pageSize,
+    sort: filters.sort,
+  };
+
+  if (filters.q.trim()) {
+    params.q = filters.q.trim();
+  }
+
+  if (filters.category) {
+    params.category = filters.category;
+  }
+
+  if (filters.city) {
+    params.city = filters.city;
+  }
+
+  if (filters.priceMin.trim()) {
+    params.priceMin = filters.priceMin.trim();
+  }
+
+  if (filters.priceMax.trim()) {
+    params.priceMax = filters.priceMax.trim();
+  }
+
+  if (filters.time === "upcoming") {
+    params.dateFrom = buildCurrentIsoTimestamp();
+  } else if (filters.time === "past") {
+    params.dateTo = buildCurrentIsoTimestamp();
   }
 
   return params;
@@ -138,75 +137,13 @@ export function getEventFilterOptions(events) {
   return { categories, cities };
 }
 
-export function getFilteredAndSortedEvents(events, filters) {
-  const now = Date.now();
-  const normalizedQuery = normalizeText(filters.q);
-
-  const filteredEvents = events.filter((event) => {
-    const title = normalizeText(event.title);
-    const description = normalizeText(event.description);
-    const category = normalizeText(event.category);
-    const address = normalizeText(event.address);
-    const city = normalizeText(event.city);
-    const price = parsePriceValue(event);
-    const parsedDate = parseDateValue(event.event_date);
-    const eventTime = parsedDate?.getTime() ?? null;
-
-    const matchesQuery =
-      !normalizedQuery ||
-      title.includes(normalizedQuery) ||
-      description.includes(normalizedQuery) ||
-      category.includes(normalizedQuery) ||
-      address.includes(normalizedQuery) ||
-      city.includes(normalizedQuery);
-
-    const matchesCategory = !filters.category || event.category === filters.category;
-    const matchesCity = !filters.city || event.city === filters.city;
-    const matchesPrice =
-      filters.price === "all" ||
-      (filters.price === "free" && price <= 0) ||
-      (filters.price === "paid" && price > 0);
-
-    const matchesTime =
-      filters.time === "all" ||
-      (filters.time === "upcoming" && eventTime !== null && eventTime >= now) ||
-      (filters.time === "past" && eventTime !== null && eventTime < now);
-
-    return (
-      matchesQuery &&
-      matchesCategory &&
-      matchesCity &&
-      matchesPrice &&
-      matchesTime
-    );
-  });
-
-  return [...filteredEvents].sort((left, right) => {
-    const leftDate = parseDateValue(left.event_date)?.getTime() ?? 0;
-    const rightDate = parseDateValue(right.event_date)?.getTime() ?? 0;
-    const leftPrice = parsePriceValue(left);
-    const rightPrice = parsePriceValue(right);
-
-    switch (filters.sort) {
-      case "latest":
-        return rightDate - leftDate;
-      case "price-asc":
-        return leftPrice - rightPrice || leftDate - rightDate;
-      case "price-desc":
-        return rightPrice - leftPrice || leftDate - rightDate;
-      case "soonest":
-      default:
-        return leftDate - rightDate;
-    }
-  });
-}
-
 export function countActiveEventFilters(filters) {
   return [
     Boolean(filters.q.trim()),
     Boolean(filters.category),
     Boolean(filters.city),
-    filters.price !== DEFAULT_EVENT_FILTERS.price,
+    Boolean(filters.priceMin.trim()),
+    Boolean(filters.priceMax.trim()),
     filters.time !== DEFAULT_EVENT_FILTERS.time,
     filters.sort !== DEFAULT_EVENT_FILTERS.sort,
   ].filter(Boolean).length;

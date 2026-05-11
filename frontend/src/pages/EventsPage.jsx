@@ -10,35 +10,57 @@ import { extractApiErrorMessage } from "../services/api";
 import eventService from "../services/eventService";
 import {
   buildEventFilterSearchParams,
+  buildEventListQueryParams,
   countActiveEventFilters,
   DEFAULT_EVENT_FILTERS,
   getEventFilterOptions,
-  getFilteredAndSortedEvents,
   parseEventFilterParams,
-  PRICE_FILTER_OPTIONS,
   sanitizeEventFilters,
   SORT_OPTIONS,
   TIME_FILTER_OPTIONS,
 } from "../utils/eventFilters";
 import { getMappableEvents } from "../utils/mapHelpers";
 
+const EVENTS_PAGE_SIZE = 20;
+const FILTER_OPTIONS_PAGE_SIZE = 50;
+
 function areFiltersEqual(left, right) {
   return (
     left.q === right.q &&
     left.category === right.category &&
     left.city === right.city &&
-    left.price === right.price &&
+    left.priceMin === right.priceMin &&
+    left.priceMax === right.priceMax &&
     left.time === right.time &&
     left.sort === right.sort
   );
 }
 
+function mergeEvents(existingEvents, nextEvents) {
+  const eventMap = new Map(existingEvents.map((event) => [String(event.id), event]));
+
+  nextEvents.forEach((event) => {
+    eventMap.set(String(event.id), event);
+  });
+
+  return [...eventMap.values()];
+}
+
 export default function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [allEvents, setAllEvents] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [filterOptions, setFilterOptions] = useState({ categories: [], cities: [] });
   const [filters, setFilters] = useState(() => parseEventFilterParams(searchParams));
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: EVENTS_PAGE_SIZE,
+    total: 0,
+    hasMore: false,
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState("");
   const [selectedEventId, setSelectedEventId] = useState("");
   const [mobileView, setMobileView] = useState("list");
   const [mapVisibleEventIds, setMapVisibleEventIds] = useState(null);
@@ -46,51 +68,12 @@ export default function EventsPage() {
   const eventCardRefs = useRef({});
 
   useEffect(() => {
-    let ignore = false;
-
-    async function loadEvents() {
-      try {
-        setIsLoading(true);
-        setErrorMessage("");
-
-        const response = await eventService.getEvents();
-
-        if (!ignore) {
-          setAllEvents(response.data.data || []);
-        }
-      } catch (error) {
-        if (!ignore) {
-          setErrorMessage(
-            extractApiErrorMessage(error, "Unable to load events right now."),
-          );
-        }
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadEvents();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  const filterOptions = useMemo(() => getEventFilterOptions(allEvents), [allEvents]);
-
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    const nextFilters = sanitizeEventFilters(parseEventFilterParams(searchParams), filterOptions);
+    const nextFilters = sanitizeEventFilters(parseEventFilterParams(searchParams));
 
     setFilters((currentFilters) =>
       areFiltersEqual(currentFilters, nextFilters) ? currentFilters : nextFilters,
     );
-  }, [filterOptions, isLoading, searchParams]);
+  }, [searchParams]);
 
   useEffect(() => {
     const nextParams = buildEventFilterSearchParams(filters);
@@ -102,25 +85,101 @@ export default function EventsPage() {
     }
   }, [filters, searchParams, setSearchParams]);
 
-  const filteredEvents = useMemo(
-    () => getFilteredAndSortedEvents(allEvents, filters),
-    [allEvents, filters],
-  );
+  useEffect(() => {
+    let ignore = false;
 
-  const mappableEvents = useMemo(() => getMappableEvents(filteredEvents), [filteredEvents]);
+    async function loadFilterOptions() {
+      try {
+        // Temporary bootstrap for category/city selects until a dedicated /api/events/facets endpoint exists.
+        const response = await eventService.getEvents({
+          page: 1,
+          pageSize: FILTER_OPTIONS_PAGE_SIZE,
+          sort: "title_asc",
+        });
+
+        if (!ignore) {
+          setFilterOptions(getEventFilterOptions(response.data?.items || []));
+        }
+      } catch {
+        if (!ignore) {
+          setFilterOptions({ categories: [], cities: [] });
+        }
+      }
+    }
+
+    loadFilterOptions();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadFirstPage() {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+        setLoadMoreErrorMessage("");
+
+        const response = await eventService.getEvents(
+          buildEventListQueryParams(filters, {
+            page: 1,
+            pageSize: EVENTS_PAGE_SIZE,
+          }),
+        );
+
+        if (!ignore) {
+          setEvents(response.data?.items || []);
+          setPagination({
+            page: response.data?.page || 1,
+            pageSize: response.data?.pageSize || EVENTS_PAGE_SIZE,
+            total: response.data?.total || 0,
+            hasMore: Boolean(response.data?.hasMore),
+          });
+        }
+      } catch (error) {
+        if (!ignore) {
+          setEvents([]);
+          setPagination({
+            page: 1,
+            pageSize: EVENTS_PAGE_SIZE,
+            total: 0,
+            hasMore: false,
+          });
+          setErrorMessage(
+            extractApiErrorMessage(error, "Unable to load events right now."),
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadFirstPage();
+
+    return () => {
+      ignore = true;
+    };
+  }, [filters]);
+
+  const mappableEvents = useMemo(() => getMappableEvents(events), [events]);
   const visibleEventIds = useMemo(
     () => (mapVisibleEventIds ? new Set(mapVisibleEventIds) : null),
     [mapVisibleEventIds],
   );
   const displayedEvents = useMemo(() => {
     if (!prioritizeByMap || !visibleEventIds) {
-      return filteredEvents;
+      return events;
     }
 
     const eventsInMapArea = [];
     const eventsOutsideMapArea = [];
 
-    filteredEvents.forEach((event) => {
+    events.forEach((event) => {
       if (visibleEventIds.has(String(event.id))) {
         eventsInMapArea.push(event);
       } else {
@@ -129,15 +188,14 @@ export default function EventsPage() {
     });
 
     return [...eventsInMapArea, ...eventsOutsideMapArea];
-  }, [filteredEvents, prioritizeByMap, visibleEventIds]);
+  }, [events, prioritizeByMap, visibleEventIds]);
   const mapAreaEventCount = useMemo(() => {
     if (!visibleEventIds) {
       return null;
     }
 
-    return filteredEvents.filter((event) => visibleEventIds.has(String(event.id))).length;
-  }, [filteredEvents, visibleEventIds]);
-
+    return events.filter((event) => visibleEventIds.has(String(event.id))).length;
+  }, [events, visibleEventIds]);
   const activeFilterCount = useMemo(
     () => countActiveEventFilters(filters),
     [filters],
@@ -146,14 +204,15 @@ export default function EventsPage() {
   useEffect(() => {
     if (
       selectedEventId &&
-      !filteredEvents.some((event) => event.id === selectedEventId)
+      !events.some((event) => event.id === selectedEventId)
     ) {
       setSelectedEventId("");
     }
-  }, [filteredEvents, selectedEventId]);
+  }, [events, selectedEventId]);
 
   useEffect(() => {
     setMapVisibleEventIds(null);
+    setPrioritizeByMap(false);
   }, [filters]);
 
   function handleFilterChange(field, value) {
@@ -165,8 +224,9 @@ export default function EventsPage() {
 
   function handleClearFilters() {
     setFilters(DEFAULT_EVENT_FILTERS);
-    setMapVisibleEventIds(null);
+      setMapVisibleEventIds(null);
     setPrioritizeByMap(false);
+    setLoadMoreErrorMessage("");
   }
 
   function handleSelectEvent(eventId, { scrollToCard = false } = {}) {
@@ -194,6 +254,42 @@ export default function EventsPage() {
   function handleMapViewportEventIdsChange(eventIds) {
     setMapVisibleEventIds(eventIds);
   }
+
+  async function handleLoadMore() {
+    if (isLoadingMore || !pagination.hasMore) {
+      return;
+    }
+
+    try {
+      setIsLoadingMore(true);
+      setLoadMoreErrorMessage("");
+
+      const nextPage = pagination.page + 1;
+      const response = await eventService.getEvents(
+        buildEventListQueryParams(filters, {
+          page: nextPage,
+          pageSize: pagination.pageSize,
+        }),
+      );
+
+      setEvents((currentEvents) => mergeEvents(currentEvents, response.data?.items || []));
+      setPagination({
+        page: response.data?.page || nextPage,
+        pageSize: response.data?.pageSize || pagination.pageSize,
+        total: response.data?.total || pagination.total,
+        hasMore: Boolean(response.data?.hasMore),
+      });
+    } catch (error) {
+      setLoadMoreErrorMessage(
+        extractApiErrorMessage(error, "Unable to load more events right now."),
+      );
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
+
+  const hasNoPublishedEvents = !isLoading && !errorMessage && pagination.total === 0 && activeFilterCount === 0;
+  const hasNoMatchingEvents = !isLoading && !errorMessage && pagination.total === 0 && activeFilterCount > 0;
 
   return (
     <div className="w-full px-3 pb-20 pt-6 sm:px-4 md:px-5 md:pt-8">
@@ -234,7 +330,6 @@ export default function EventsPage() {
           filters={filters}
           categories={filterOptions.categories}
           cities={filterOptions.cities}
-          priceOptions={PRICE_FILTER_OPTIONS}
           timeOptions={TIME_FILTER_OPTIONS}
           sortOptions={SORT_OPTIONS}
           activeFilterCount={activeFilterCount}
@@ -259,7 +354,7 @@ export default function EventsPage() {
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
             {errorMessage}
           </div>
-        ) : allEvents.length === 0 ? (
+        ) : hasNoPublishedEvents ? (
           <Card className="border border-dashed border-zinc-300 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/3">
             <CardBody className="gap-3 px-6 py-12 text-center">
               <h2 className="text-2xl font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
@@ -271,14 +366,14 @@ export default function EventsPage() {
               </p>
             </CardBody>
           </Card>
-        ) : filteredEvents.length === 0 ? (
+        ) : hasNoMatchingEvents ? (
           <Card className="border border-dashed border-zinc-300 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/3">
             <CardBody className="gap-4 px-6 py-12 text-center">
               <h2 className="text-2xl font-semibold tracking-[-0.03em] text-zinc-950 dark:text-white">
                 No events match these filters
               </h2>
               <p className="mx-auto max-w-xl text-sm text-zinc-600 dark:text-zinc-400">
-                Try adjusting your search, category, city, price, or time filters to widen the
+                Try adjusting your search, category, city, time, or sort filters to widen the
                 results.
               </p>
               <div>
@@ -293,7 +388,6 @@ export default function EventsPage() {
           </Card>
         ) : (
           <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-            {/* Mobile toggle - always accessible regardless of active view */}
             <div className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200/80 bg-white/80 p-1 dark:border-white/10 dark:bg-white/4 lg:hidden">
               {["list", "map"].map((view) => (
                 <Button
@@ -312,7 +406,6 @@ export default function EventsPage() {
               ))}
             </div>
 
-            {/* Left: status bar + cards */}
             <div
               className={`flex min-h-0 flex-col gap-4 ${
                 mobileView === "map" ? "hidden lg:flex" : "flex"
@@ -321,15 +414,11 @@ export default function EventsPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 px-1 md:px-2">
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   <span className="font-semibold text-zinc-950 dark:text-white">
-                    {displayedEvents.length}
+                    {events.length}
                   </span>{" "}
-                  {displayedEvents.length === 1 ? "event" : "events"}
-                  {filteredEvents.length > 0 ? (
-                    <>
-                      <span className="mx-2 text-zinc-300 dark:text-white/20">·</span>
-                      {mappableEvents.length} on map
-                    </>
-                  ) : null}
+                  loaded of {pagination.total}
+                  <span className="mx-2 text-zinc-300 dark:text-white/20">·</span>
+                  {mappableEvents.length} on map
                   {activeFilterCount > 0 ? (
                     <>
                       <span className="mx-2 text-zinc-300 dark:text-white/20">·</span>
@@ -375,16 +464,35 @@ export default function EventsPage() {
                   </div>
                 ))}
               </div>
+
+              {pagination.hasMore ? (
+                <div className="space-y-3 pt-2">
+                  <div className="flex justify-center">
+                    <Button
+                      radius="full"
+                      onPress={handleLoadMore}
+                      isLoading={isLoadingMore}
+                      className="bg-zinc-950 px-6 text-white dark:bg-white dark:text-zinc-950"
+                    >
+                      Load more
+                    </Button>
+                  </div>
+                  {loadMoreErrorMessage ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                      {loadMoreErrorMessage}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
-            {/* Right: sticky map panel that follows scroll on desktop */}
             <aside
               className={`${
                 mobileView === "list" ? "hidden lg:block" : "block"
               } w-full self-start lg:sticky lg:top-24`}
             >
               <EventMap
-                events={filteredEvents}
+                events={events}
                 selectedEventId={selectedEventId}
                 focusEventId={selectedEventId}
                 onSelectEvent={handleMarkerSelect}

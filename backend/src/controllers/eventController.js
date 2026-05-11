@@ -12,11 +12,25 @@ import {
 } from "../utils/emailTemplates.js";
 import { findSupportedFrenchCity } from "../utils/frenchCities.js";
 import { normalizeTimezone, parseEventAgenda } from "../utils/agenda.js";
+import {
+  createValidationError,
+  parseIsoDateQueryValue,
+  parseNonNegativeNumberQueryValue,
+  parsePaginationQuery,
+} from "../utils/pagination.js";
 import { parseEventTicketTiers } from "../utils/ticketTiers.js";
 import notificationService from "../services/notificationService.js";
 
 const shouldRemoveImage = (value) => value === true || value === "true";
 const ATTENDEE_STATUS_FILTERS = ["confirmed", "pending_payment", "cancelled", "all"];
+const EVENT_LIST_SORT_MAP = {
+  date_asc: [{ event_date: "asc" }, { title: "asc" }],
+  date_desc: [{ event_date: "desc" }, { title: "asc" }],
+  title_asc: [{ title: "asc" }, { event_date: "asc" }],
+  title_desc: [{ title: "desc" }, { event_date: "asc" }],
+  price_asc: [{ price: "asc" }, { event_date: "asc" }],
+  price_desc: [{ price: "desc" }, { event_date: "asc" }],
+};
 
 const hasCoordinates = (coordinates) =>
   coordinates?.latitude !== null &&
@@ -59,6 +73,83 @@ const sendEventDeletedEmails = ({ attendees, event }) => {
       })
     );
   });
+};
+
+const parseOptionalStringQueryValue = (rawValue, name) => {
+  if (rawValue === undefined || rawValue === null || rawValue === "") {
+    return "";
+  }
+
+  if (typeof rawValue !== "string") {
+    throw createValidationError(`${name} must be a string`);
+  }
+
+  return rawValue.trim();
+};
+
+const parsePublicEventListQuery = (query = {}) => {
+  const pagination = parsePaginationQuery(query, {
+    defaultPage: 1,
+    defaultPageSize: 20,
+    maxPageSize: 50,
+    defaultSort: "date_asc",
+    sortMap: EVENT_LIST_SORT_MAP,
+  });
+
+  const q = parseOptionalStringQueryValue(query.q, "q");
+  const category = parseOptionalStringQueryValue(query.category, "category");
+  const city = parseOptionalStringQueryValue(query.city, "city");
+  const dateFrom = parseIsoDateQueryValue(query.dateFrom, "dateFrom");
+  const dateTo = parseIsoDateQueryValue(query.dateTo, "dateTo");
+  const priceMin = parseNonNegativeNumberQueryValue(query.priceMin, "priceMin");
+  const priceMax = parseNonNegativeNumberQueryValue(query.priceMax, "priceMax");
+
+  if (dateFrom && dateTo && dateFrom.getTime() > dateTo.getTime()) {
+    throw createValidationError("dateFrom must be less than or equal to dateTo");
+  }
+
+  if (priceMin !== null && priceMax !== null && priceMin > priceMax) {
+    throw createValidationError("priceMin must be less than or equal to priceMax");
+  }
+
+  const where = {};
+
+  if (q) {
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  if (category) {
+    where.category = category;
+  }
+
+  if (city) {
+    where.city = {
+      equals: city,
+      mode: "insensitive",
+    };
+  }
+
+  if (dateFrom || dateTo) {
+    where.event_date = {
+      ...(dateFrom ? { gte: dateFrom } : {}),
+      ...(dateTo ? { lte: dateTo } : {}),
+    };
+  }
+
+  if (priceMin !== null || priceMax !== null) {
+    where.price = {
+      ...(priceMin !== null ? { gte: priceMin } : {}),
+      ...(priceMax !== null ? { lte: priceMax } : {}),
+    };
+  }
+
+  return {
+    ...pagination,
+    where,
+  };
 };
 
 const createEvent = async (req, res) => {
@@ -212,18 +303,20 @@ const createEvent = async (req, res) => {
 
 const getAllEvents = async (req, res) => {
   try {
-    const events = await Event.getAllEvents();
+    const eventListQuery = parsePublicEventListQuery(req.query);
+    const events = await Event.getAllEvents(eventListQuery);
 
-    return res.status(200).json({
-      success: true,
-      message: "Events retrieved successfully",
-      data: events
-    });
+    return res.status(200).json(events);
   } catch (error) {
     console.error("Get all events error:", error);
 
+    if (error.statusCode === 400) {
+      return res.status(400).json({
+        message: error.message,
+      });
+    }
+
     return res.status(500).json({
-      success: false,
       message: "Server error while fetching events",
       error: error.message
     });

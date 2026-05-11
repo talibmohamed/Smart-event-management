@@ -307,10 +307,10 @@ export default function HomePage() {
     let ignore = false;
 
     eventService
-      .getEvents()
+      .getEvents({ page: 1, pageSize: 20, sort: "date_asc" })
       .then((response) => {
         if (!ignore) {
-          setEvents(Array.isArray(response.data?.data) ? response.data.data : []);
+          setEvents(Array.isArray(response.data?.items) ? response.data.items : []);
         }
       })
       .catch(() => {

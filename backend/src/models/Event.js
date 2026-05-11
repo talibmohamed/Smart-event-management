@@ -354,15 +354,26 @@ const createEvent = async ({
   };
 };
 
-const getAllEvents = async () => {
-  const events = await prisma.event.findMany({
-    include: eventWithOrganizer,
-    orderBy: {
-      event_date: "asc",
-    },
-  });
+const getAllEvents = async ({
+  where = {},
+  skip = 0,
+  take = 20,
+  orderBy = [{ event_date: "asc" }],
+  page = 1,
+  pageSize = 20,
+} = {}) => {
+  const [events, total] = await Promise.all([
+    prisma.event.findMany({
+      where,
+      include: eventWithOrganizer,
+      orderBy,
+      skip,
+      take,
+    }),
+    prisma.event.count({ where }),
+  ]);
 
-  return Promise.all(events.map(async (event) => {
+  const items = await Promise.all(events.map(async (event) => {
     const eventWithTicketData = await addTicketDataAndStats(flattenEvent(event));
 
     return {
@@ -370,6 +381,14 @@ const getAllEvents = async () => {
       agenda_session_count: await countAgendaSessionsForEvent(event.id),
     };
   }));
+
+  return {
+    items,
+    page,
+    pageSize,
+    total,
+    hasMore: page * pageSize < total,
+  };
 };
 
 const getEventById = async (id) => {

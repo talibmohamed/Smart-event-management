@@ -587,16 +587,46 @@
       "authRequired": false,
       "allowedRoles": ["public"],
       "requestBody": null,
+      "queryParams": {
+        "page": { "type": "integer", "required": false, "default": 1, "minimum": 1 },
+        "pageSize": { "type": "integer", "required": false, "default": 20, "minimum": 1, "maximum": 50 },
+        "q": { "type": "string", "required": false, "description": "Case-insensitive contains search on title and description" },
+        "category": { "type": "string", "required": false, "description": "Exact category match" },
+        "city": { "type": "string", "required": false, "description": "Case-insensitive exact city match" },
+        "priceMin": { "type": "number", "required": false, "minimum": 0, "description": "Filters event price >= priceMin" },
+        "priceMax": { "type": "number", "required": false, "minimum": 0, "description": "Filters event price <= priceMax" },
+        "dateFrom": { "type": "string", "required": false, "format": "date-time", "description": "Filters event_date >= dateFrom" },
+        "dateTo": { "type": "string", "required": false, "format": "date-time", "description": "Filters event_date <= dateTo" },
+        "sort": {
+          "type": "string",
+          "required": false,
+          "default": "date_asc",
+          "enum": ["date_asc", "date_desc", "title_asc", "title_desc", "price_asc", "price_desc"]
+        }
+      },
       "successResponse": {
         "status": 200,
         "body": {
-          "success": true,
-          "message": "Events retrieved successfully",
-          "data": ["eventPublic"]
+          "items": ["eventPublic"],
+          "page": 1,
+          "pageSize": 20,
+          "total": 137,
+          "hasMore": true
         }
       },
       "commonErrors": [
+        { "status": 400, "message": "page must be greater than or equal to 1" },
+        { "status": 400, "message": "pageSize must be less than or equal to 50" },
+        { "status": 400, "message": "priceMin must be a non-negative number" },
+        { "status": 400, "message": "priceMin must be less than or equal to priceMax" },
+        { "status": 400, "message": "sort must be one of: date_asc, date_desc, title_asc, title_desc, price_asc, price_desc" },
         { "status": 500, "message": "Server error while fetching events" }
+      ],
+      "behaviorNotes": [
+        "Search uses case-insensitive contains on title OR description.",
+        "Price filtering uses the event public price field, which equals the minimum active ticket tier price.",
+        "total counts all matches before pagination.",
+        "hasMore is true when page * pageSize < total."
       ]
     },
     {

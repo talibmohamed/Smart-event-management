@@ -16,8 +16,8 @@ function getEventMutationConfig(payload) {
 }
 
 const eventService = {
-  getEvents() {
-    return api.get("/events");
+  getEvents(params = {}) {
+    return api.get("/events", { params });
   },
 
   getEventById(id) {

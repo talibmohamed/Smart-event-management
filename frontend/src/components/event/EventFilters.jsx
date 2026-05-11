@@ -49,20 +49,29 @@ export default function EventFilters({
   filters,
   categories,
   cities,
-  priceOptions,
   timeOptions,
   sortOptions,
   activeFilterCount,
   onFilterChange,
   onClear,
 }) {
+  const selectedCategoryOptions =
+    filters.category && !categories.includes(filters.category)
+      ? [{ value: filters.category, label: filters.category }]
+      : [];
+  const selectedCityOptions =
+    filters.city && !cities.includes(filters.city)
+      ? [{ value: filters.city, label: filters.city }]
+      : [];
   const categoryOptions = [
     { value: "", label: "All categories" },
+    ...selectedCategoryOptions,
     ...categories.map((category) => ({ value: category, label: category })),
   ];
 
   const cityOptions = [
     { value: "", label: "All cities" },
+    ...selectedCityOptions,
     ...cities.map((city) => ({ value: city, label: city })),
   ];
 
@@ -76,7 +85,7 @@ export default function EventFilters({
               Filter events
             </div>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-              Narrow the catalog with search, timing, price, category, and city.
+              Narrow the catalog with search, price, timing, category, city, and sort order.
             </p>
           </div>
 
@@ -101,7 +110,7 @@ export default function EventFilters({
               type="search"
               label="Search"
               labelPlacement="outside"
-              placeholder="Search title, category, address, or city..."
+              placeholder="Search title or description..."
               value={filters.q}
               onChange={(event) => onFilterChange("q", event.target.value)}
               startContent={<Search size={16} className="text-zinc-400" />}
@@ -130,17 +139,46 @@ export default function EventFilters({
           />
 
           <FilterSelect
-            label="Price"
-            value={filters.price}
-            options={priceOptions}
-            onChange={(value) => onFilterChange("price", value)}
-          />
-
-          <FilterSelect
             label="Time"
             value={filters.time}
             options={timeOptions}
             onChange={(value) => onFilterChange("time", value)}
+          />
+
+          <Input
+            type="number"
+            label="Min price"
+            labelPlacement="outside"
+            placeholder="0"
+            min="0"
+            step="0.01"
+            value={filters.priceMin}
+            onChange={(event) => onFilterChange("priceMin", event.target.value)}
+            radius="lg"
+            classNames={{
+              inputWrapper:
+                "h-12 border border-zinc-200 bg-white/85 shadow-none hover:bg-white focus-within:!bg-white focus-within:ring-2 focus-within:ring-sky-400/30 dark:border-white/10 dark:bg-white/[0.05] dark:hover:bg-white/[0.08] dark:focus-within:!bg-white/[0.08]",
+              label: "font-medium !text-zinc-700 dark:!text-zinc-300",
+              input: "!text-zinc-900 placeholder:!text-zinc-400 dark:!text-white dark:placeholder:!text-zinc-500",
+            }}
+          />
+
+          <Input
+            type="number"
+            label="Max price"
+            labelPlacement="outside"
+            placeholder="Any"
+            min="0"
+            step="0.01"
+            value={filters.priceMax}
+            onChange={(event) => onFilterChange("priceMax", event.target.value)}
+            radius="lg"
+            classNames={{
+              inputWrapper:
+                "h-12 border border-zinc-200 bg-white/85 shadow-none hover:bg-white focus-within:!bg-white focus-within:ring-2 focus-within:ring-sky-400/30 dark:border-white/10 dark:bg-white/[0.05] dark:hover:bg-white/[0.08] dark:focus-within:!bg-white/[0.08]",
+              label: "font-medium !text-zinc-700 dark:!text-zinc-300",
+              input: "!text-zinc-900 placeholder:!text-zinc-400 dark:!text-white dark:placeholder:!text-zinc-500",
+            }}
           />
         </div>
 
