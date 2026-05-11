@@ -49,6 +49,9 @@ Last updated: 2026-05-11
 - User status values are `active` and `suspended`; suspended users cannot log in and existing JWTs are rejected on protected routes
 - Admin analytics revenue is returned in integer cents; `amount_paid` is stored as decimal euros and converted by the backend
 - Admin analytics time series are bucketed by UTC day and zero-filled by the backend
+- Admin transaction dashboards are read-only views over booking rows; there is no separate transaction table
+- Booking status values used by the backend: `confirmed`, `pending_payment`, `cancelled`
+- Payment status values used by the backend: `unpaid`, `paid`, `failed`, `cancelled`, `expired`; the database field may be null for legacy/edge records
 
 ## Redis And Worker Runtime
 
@@ -551,6 +554,132 @@ Last updated: 2026-05-11
   }
 }
 ```
+
+### `GET /api/admin/transactions`
+
+- Auth: yes
+- Allowed roles: `admin`
+- Request body: none
+- Query params:
+  - `page` optional integer, default `1`, min `1`
+  - `pageSize` optional integer, default `20`, min `1`, max `50`
+  - `q` optional string; searches attendee email/name, event title, Stripe Checkout Session ID, and Stripe Payment Intent ID
+  - `status` optional enum: `confirmed`, `pending_payment`, `cancelled`
+  - `paymentStatus` optional enum: `unpaid`, `paid`, `failed`, `cancelled`, `expired`
+  - `dateFrom` optional ISO date; filters `booking_date >= dateFrom`
+  - `dateTo` optional ISO date; filters `booking_date <= dateTo`
+  - `sort` optional enum: `date_desc`, `date_asc`, `amount_desc`, `amount_asc`
+- Success:
+
+```json
+{
+  "items": [
+    {
+      "id": "booking-uuid",
+      "bookingDate": "2026-04-13T10:00:00.000Z",
+      "status": "confirmed",
+      "paymentStatus": "paid",
+      "amountPaidCents": 12500,
+      "currency": "eur",
+      "user": {
+        "id": "uuid",
+        "email": "john@example.com",
+        "name": "John Doe"
+      },
+      "event": {
+        "id": "uuid",
+        "title": "Tech Conference",
+        "eventDate": "2026-05-13T10:00:00.000Z"
+      },
+      "stripe": {
+        "checkoutSessionId": "cs_...",
+        "paymentIntentId": "pi_...",
+        "eventId": "evt_..."
+      },
+      "ticketsCount": 2
+    }
+  ],
+  "page": 1,
+  "pageSize": 20,
+  "total": 412,
+  "hasMore": true
+}
+```
+
+- Notes:
+  - `amountPaidCents` is `null` when `amount_paid` is null; `0` means an actual zero-value confirmed/free booking
+  - Uses explicit Prisma selects and does not return password hashes or reset tokens
+  - `booking_date` is not indexed in the current Prisma schema; indexing is deferred
+- Common errors:
+  - `400 { "success": false, "message": "Invalid booking status filter" }`
+  - `400 { "success": false, "message": "Invalid payment status filter" }`
+  - `400 { "success": false, "message": "dateFrom must be less than or equal to dateTo" }`
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Admins only" }`
+
+### `GET /api/admin/transactions/:id`
+
+- Auth: yes
+- Allowed roles: `admin`
+- Request body: none
+- Success:
+
+```json
+{
+  "success": true,
+  "message": "Transaction retrieved successfully",
+  "data": {
+    "id": "booking-uuid",
+    "bookingDate": "2026-04-13T10:00:00.000Z",
+    "status": "confirmed",
+    "paymentStatus": "paid",
+    "amountPaidCents": 12500,
+    "currency": "eur",
+    "user": {
+      "id": "uuid",
+      "email": "john@example.com",
+      "name": "John Doe"
+    },
+    "event": {
+      "id": "uuid",
+      "title": "Tech Conference",
+      "eventDate": "2026-05-13T10:00:00.000Z",
+      "organizer": {
+        "id": "uuid",
+        "name": "Jane Organizer",
+        "email": "jane@example.com"
+      }
+    },
+    "stripe": {
+      "checkoutSessionId": "cs_...",
+      "paymentIntentId": "pi_...",
+      "eventId": "evt_..."
+    },
+    "ticketsCount": 52,
+    "items": [
+      {
+        "ticketTierId": "uuid",
+        "ticketTierName": "VIP",
+        "quantity": 2,
+        "unitPriceCents": 6250,
+        "totalPriceCents": 12500
+      }
+    ],
+    "ticketCodes": ["SEM-..."],
+    "ticketCodesReturned": 50,
+    "ticketCodesTruncated": true
+  }
+}
+```
+
+- Notes:
+  - Returns at most 50 ticket codes; `ticketsCount` remains the true total
+  - Stripe Dashboard URLs are built by the frontend, not returned by the API
+  - Read-only only; no refund/cancel/override endpoint is part of this feature
+- Common errors:
+  - `401 { "success": false, "message": "Not authorized" }`
+  - `403 { "success": false, "message": "Access denied. Admins only" }`
+  - `404 { "success": false, "message": "Transaction not found" }`
 
 ### `GET /api/cities`
 

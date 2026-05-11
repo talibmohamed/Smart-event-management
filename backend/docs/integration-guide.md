@@ -108,6 +108,8 @@ Authorization: Bearer <jwt>
 | Admin analytics chart | `GET /api/admin/analytics/timeseries` | Requires admin JWT; UTC daily zero-filled points |
 | Admin top events | `GET /api/admin/analytics/top-events` | Requires admin JWT; sort by revenue or bookings |
 | Admin top organizers | `GET /api/admin/analytics/top-organizers` | Requires admin JWT; sort by revenue, events, or bookings |
+| Admin transactions page | `GET /api/admin/transactions` | Requires admin JWT; read-only booking/payment transaction list |
+| Admin transaction detail | `GET /api/admin/transactions/:id` | Requires admin JWT; read-only detail with items, ticket codes, organizer, and Stripe IDs |
 | City autocomplete/select | `GET /api/cities?search=paris` | Public, returns max 20 backend-approved French cities |
 | Events list page | `GET /api/events` | Public |
 | Event detail page | `GET /api/events/:id` | Public |
@@ -134,6 +136,16 @@ Authorization: Bearer <jwt>
 | Dev DB check | `GET /api/test/db` | Dev tooling, not a user page |
 
 ## Request Notes
+
+### Admin Transactions
+
+- Transactions are booking rows, not a separate database table.
+- Frontend must not mutate bookings from this page.
+- Booking status filters: `confirmed`, `pending_payment`, `cancelled`.
+- Payment status filters: `unpaid`, `paid`, `failed`, `cancelled`, `expired`.
+- `amountPaidCents: null` means no payment amount was recorded; `0` means a real zero-value amount.
+- Stripe Dashboard links are built on the frontend from returned IDs.
+- `VITE_STRIPE_DASHBOARD_MODE=live` uses live Stripe Dashboard URLs; any other value defaults to Stripe test URLs.
 
 ### Register
 
@@ -591,5 +603,6 @@ notification:new
 
 ## Not Available Yet
 
-- Dedicated admin supervision endpoints
-- Event search, filtering, and pagination
+- Admin booking mutation actions such as refunds, forced cancellation, and payment overrides
+- Transaction caching and a `booking_date` index for larger datasets
+- Per-event analytics drilldowns and exports

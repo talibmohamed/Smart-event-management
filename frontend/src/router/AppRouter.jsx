@@ -18,6 +18,7 @@ import MyBookingsPage from "../pages/MyBookingsPage"
 import BookingStatusPage from "../pages/BookingStatusPage"
 import BookingTicketsPage from "../pages/BookingTicketsPage"
 import AdminAnalyticsPage from "../pages/AdminAnalyticsPage"
+import AdminTransactionsPage from "../pages/AdminTransactionsPage"
 import AdminUsersPage from "../pages/AdminUsersPage"
 import ProtectedRoute from "./ProtectedRoute"
 
@@ -55,6 +56,7 @@ export default function AppRouter() {
 
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+          <Route path="/admin/transactions" element={<AdminTransactionsPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
         </Route>
       </Route>

@@ -109,6 +109,7 @@ export default function AppNavbar() {
           ...(canManageUsers
             ? [
                 { href: "/admin/analytics", label: "Analytics" },
+                { href: "/admin/transactions", label: "Transactions" },
                 { href: "/admin/users", label: "Users" },
               ]
             : []),

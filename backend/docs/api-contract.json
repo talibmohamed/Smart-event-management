@@ -93,6 +93,7 @@
     "passwordReset": "Forgot password responses do not reveal whether an email exists. Reset tokens are emailed, stored hashed, and expire after 60 minutes.",
     "userStatus": "User status values are active and suspended. Suspended users cannot log in and existing JWTs are rejected by auth middleware on every protected request.",
     "adminAnalytics": "Admin analytics are backend-computed. Revenue is integer cents converted from decimal euro amount_paid and counts only confirmed paid bookings with non-null amount_paid. Time series use UTC daily buckets and zero-fill missing days.",
+    "adminTransactions": "Admin transactions are read-only views over booking rows. Booking statuses are confirmed, pending_payment, and cancelled. Payment statuses are unpaid, paid, failed, cancelled, and expired, with null possible for legacy rows. amountPaidCents is null when amount_paid is null.",
     "ticketTiers": "Events use ticket_tiers for pricing and availability. Event.price remains as the minimum active tier price for compatibility.",
     "tickets": "Confirmed bookings generate one Ticket row per purchased ticket quantity. QR values use ticket_code. Branded ticket PDFs are generated on demand for email attachments and frontend downloads by rendering the frontend SVG logo as vector and stripping embedded raster nodes to avoid black background artifacts.",
     "notifications": "Notifications are persisted in PostgreSQL, ordered by created_at DESC, delivered in realtime with Socket.IO notification:new, and deduped for webhook/retry-prone events. Frontend must not subscribe directly to Supabase tables.",
@@ -186,6 +187,55 @@
       "bookingsCount": "number",
       "revenueCents": "number",
       "currency": "eur"
+    },
+    "adminTransaction": {
+      "id": "string(uuid)",
+      "bookingDate": "string(datetime)",
+      "status": "string(confirmed|pending_payment|cancelled)",
+      "paymentStatus": "string(unpaid|paid|failed|cancelled|expired)|null",
+      "amountPaidCents": "number|null",
+      "currency": "string|null",
+      "user": {
+        "id": "string(uuid)",
+        "email": "string",
+        "name": "string"
+      },
+      "event": {
+        "id": "string(uuid)",
+        "title": "string",
+        "eventDate": "string(datetime)"
+      },
+      "stripe": {
+        "checkoutSessionId": "string|null",
+        "paymentIntentId": "string|null",
+        "eventId": "string|null"
+      },
+      "ticketsCount": "number"
+    },
+    "adminTransactionDetail": {
+      "extends": "adminTransaction",
+      "event": {
+        "id": "string(uuid)",
+        "title": "string",
+        "eventDate": "string(datetime)",
+        "organizer": {
+          "id": "string(uuid)",
+          "name": "string",
+          "email": "string"
+        }
+      },
+      "items": [
+        {
+          "ticketTierId": "string(uuid)",
+          "ticketTierName": "string",
+          "quantity": "number",
+          "unitPriceCents": "number",
+          "totalPriceCents": "number"
+        }
+      ],
+      "ticketCodes": ["string"],
+      "ticketCodesReturned": "number",
+      "ticketCodesTruncated": "number"
     },
     "city": {
       "name": "string",
@@ -877,6 +927,94 @@
         { "status": 400, "message": "limit must be less than or equal to 25" },
         { "status": 401, "message": "Not authorized" },
         { "status": 403, "message": "Access denied. Admins only" }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/transactions",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "queryParams": {
+        "page": { "type": "integer", "required": false, "default": 1, "minimum": 1 },
+        "pageSize": { "type": "integer", "required": false, "default": 20, "minimum": 1, "maximum": 50 },
+        "q": {
+          "type": "string",
+          "required": false,
+          "description": "Case-insensitive search on user email, user name, event title, Stripe Checkout Session ID, and Stripe Payment Intent ID"
+        },
+        "status": {
+          "type": "string",
+          "required": false,
+          "allowedValues": ["confirmed", "pending_payment", "cancelled"]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "required": false,
+          "allowedValues": ["unpaid", "paid", "failed", "cancelled", "expired"]
+        },
+        "dateFrom": { "type": "string(ISO date)", "required": false, "description": "Filters booking_date >= dateFrom" },
+        "dateTo": { "type": "string(ISO date)", "required": false, "description": "Filters booking_date <= dateTo" },
+        "sort": {
+          "type": "string",
+          "required": false,
+          "default": "date_desc",
+          "allowedValues": ["date_desc", "date_asc", "amount_desc", "amount_asc"]
+        }
+      },
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "items": ["adminTransaction"],
+          "page": 1,
+          "pageSize": 20,
+          "total": 412,
+          "hasMore": true
+        }
+      },
+      "commonErrors": [
+        { "status": 400, "message": "page must be greater than or equal to 1" },
+        { "status": 400, "message": "pageSize must be less than or equal to 50" },
+        { "status": 400, "message": "Invalid booking status filter" },
+        { "status": 400, "message": "Invalid payment status filter" },
+        { "status": 400, "message": "dateFrom must be less than or equal to dateTo" },
+        { "status": 400, "message": "sort must be one of: date_desc, date_asc, amount_desc, amount_asc" },
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" }
+      ],
+      "behaviorNotes": [
+        "Transactions are booking rows, not a separate table.",
+        "This endpoint is read-only and does not mutate bookings, payments, tickets, or Stripe state.",
+        "amountPaidCents is null when amount_paid is null; 0 means an actual recorded zero amount.",
+        "Returns Stripe IDs only. Frontend builds Stripe Dashboard URLs.",
+        "Uses explicit Prisma selects and does not return password hashes or reset tokens.",
+        "booking_date is not indexed in the current schema; indexing is deferred."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/transactions/:id",
+      "authRequired": true,
+      "allowedRoles": ["admin"],
+      "requestBody": null,
+      "successResponse": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "Transaction retrieved successfully",
+          "data": "adminTransactionDetail"
+        }
+      },
+      "commonErrors": [
+        { "status": 401, "message": "Not authorized" },
+        { "status": 403, "message": "Access denied. Admins only" },
+        { "status": 404, "message": "Transaction not found" }
+      ],
+      "behaviorNotes": [
+        "Returns booking items, organizer summary, and up to 50 ticket codes.",
+        "ticketsCount remains the true total even when ticketCodes is capped.",
+        "This endpoint is read-only and does not provide refund, cancellation, or override actions.",
+        "Uses explicit Prisma selects and does not return password hashes or reset tokens."
       ]
     },
     {
@@ -1664,9 +1802,8 @@
     }
   ],
   "pendingFeatures": [
-    "Feedback endpoints",
     "Advanced admin audit logs and bulk actions",
-    "Transaction monitoring dashboard",
+    "Admin booking mutation actions such as refunds, forced cancellation, and payment overrides",
     "Per-event analytics drilldowns",
     "Analytics caching, exports, cohorts, funnels, and retention curves"
   ]

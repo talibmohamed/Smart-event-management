@@ -86,6 +86,7 @@ Last updated: 2026-05-11
 - Suspended users keep existing bookings/events, but cannot authenticate or use existing JWTs
 - Admin-only platform analytics summary, UTC daily time series, top events, and top organizers
 - Analytics revenue uses one shared predicate: confirmed paid bookings with non-null `amount_paid`
+- Admin-only read-only transaction list/detail for booking/payment investigation and Stripe IDs
 
 ### Events
 
@@ -144,7 +145,7 @@ Last updated: 2026-05-11
 
 - Event filtering, search, and pagination
 - Attendee export/download support
-- Transaction monitoring dashboard
+- Admin booking mutation actions such as refunds, forced cancellation, and payment overrides
 - Per-event analytics drilldowns, cohort/funnel/retention analysis, analytics exports, and caching
 - Advanced ticket rules such as deadline-based Early Bird tiers
 - Persisted PDF files in storage; PDFs are generated on demand
