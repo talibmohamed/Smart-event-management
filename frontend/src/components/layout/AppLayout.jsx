@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom"
 import AppFooter from "./AppFooter"
 import AppNavbar from "./AppNavbar"
+import SupportChatbot from "./SupportChatbot" // 👈 L'import est bien là
 
 export default function AppLayout() {
   return (
@@ -19,6 +20,12 @@ export default function AppLayout() {
           <Outlet />
         </main>
         <AppFooter />
+        
+        {/* ============================================== */}
+        {/* 👈 C'EST ICI QU'ON AFFICHE LE CHATBOT !        */}
+        {/* ============================================== */}
+        <SupportChatbot />
+        
       </div>
     </div>
   )

@@ -19,7 +19,8 @@ import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
 import EventFeedbackForm from "../components/event/EventFeedbackForm";
-import EventFeedbackStats from "../components/event/EventFeedbackStats"; // 👈 L'import des statistiques a été ajouté ici
+import EventFeedbackStats from "../components/event/EventFeedbackStats";
+import EventChat from "../components/event/EventChat"; // 👈 L'import de la messagerie est ici !
 import eventService from "../services/eventService";
 import {
   formatEventAvailability,
@@ -700,7 +701,16 @@ export default function EventDetailsPage() {
               </div>
 
               {/* ========================================================== */}
-              {/* ESPACE FEEDBACK (SÉPARÉ SELON LE RÔLE)                    */}
+              {/* ESPACE MESSAGERIE (POUR LES PARTICIPANTS UNIQUEMENT)       */}
+              {/* ========================================================== */}
+              {!canEditEvent && isAuthenticated && isAttendee && (
+                <div className="mt-8 pt-6 border-t border-zinc-200/70 dark:border-white/10 flex justify-center">
+                  <EventChat eventTitle={eventRecord.title} />
+                </div>
+              )}
+
+              {/* ========================================================== */}
+              {/* ESPACE FEEDBACK (SÉPARÉ SELON LE RÔLE)                     */}
               {/* ========================================================== */}
               
               <div className="mt-8 pt-6 border-t border-zinc-200/70 dark:border-white/10">

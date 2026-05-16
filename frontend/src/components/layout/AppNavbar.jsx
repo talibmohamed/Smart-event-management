@@ -10,7 +10,7 @@ import {
   NavbarMenuItem,
   NavbarMenuToggle,
 } from "@heroui/react";
-import { LogOut, Plus } from "lucide-react";
+import { LogOut, Plus, MessageSquare } from "lucide-react"; // 👈 Ajout de MessageSquare
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import logoUrl from "../../../logo.svg";
@@ -274,6 +274,25 @@ export default function AppNavbar() {
           </>
         ) : (
           <>
+            {/* ========================================================== */}
+            {/* 👈 L'ICÔNE MESSAGERIE EST AJOUTÉE ICI, À CÔTÉ DE LA CLOCHE */}
+            {/* ========================================================== */}
+            {canCreateEvents && (
+              <NavbarItem>
+                <Button
+                  as={RouterLink}
+                  to="/dashboard/inbox"
+                  isIconOnly
+                  variant="light"
+                  radius="full"
+                  className="text-zinc-600 hover:bg-white/70 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white"
+                  aria-label="Messagerie"
+                >
+                  <MessageSquare size={18} />
+                </Button>
+              </NavbarItem>
+            )}
+
             <NavbarItem>
               <NotificationBell
                 notifications={notifications}
@@ -400,17 +419,31 @@ export default function AppNavbar() {
                 </div>
               </div>
 
+              {/* L'icône de messagerie dans le menu Mobile */}
               {canCreateEvents && (
-                <Button
-                  as={RouterLink}
-                  to="/create-event"
-                  radius="full"
-                  startContent={<Plus size={15} />}
-                  className="w-full bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950"
-                  onPress={closeMenu}
-                >
-                  Create Event
-                </Button>
+                <>
+                  <Button
+                    as={RouterLink}
+                    to="/dashboard/inbox"
+                    radius="full"
+                    variant="flat"
+                    startContent={<MessageSquare size={16} />}
+                    className="w-full bg-sky-100 font-medium text-sky-700 dark:bg-sky-500/20 dark:text-sky-200"
+                    onPress={closeMenu}
+                  >
+                    Boîte de réception
+                  </Button>
+                  <Button
+                    as={RouterLink}
+                    to="/create-event"
+                    radius="full"
+                    startContent={<Plus size={15} />}
+                    className="w-full bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950"
+                    onPress={closeMenu}
+                  >
+                    Create Event
+                  </Button>
+                </>
               )}
 
               <Button

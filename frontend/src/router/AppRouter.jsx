@@ -20,6 +20,7 @@ import BookingTicketsPage from "../pages/BookingTicketsPage"
 import AdminAnalyticsPage from "../pages/AdminAnalyticsPage"
 import AdminTransactionsPage from "../pages/AdminTransactionsPage"
 import AdminUsersPage from "../pages/AdminUsersPage"
+import OrganizerInboxPage from "../pages/OrganizerInboxPage" // 👈 1. L'import est ajouté ici
 import ProtectedRoute from "./ProtectedRoute"
 
 export default function AppRouter() {
@@ -48,6 +49,7 @@ export default function AppRouter() {
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["organizer", "admin"]} />}>
+          <Route path="/dashboard/inbox" element={<OrganizerInboxPage />} /> {/* 👈 2. La route de la messagerie est ici */}
           <Route path="/create-event" element={<CreateEventPage />} />
           <Route path="/events/:id/edit" element={<EditEventPage />} />
           <Route path="/events/:id/attendees" element={<EventAttendeesPage />} />
