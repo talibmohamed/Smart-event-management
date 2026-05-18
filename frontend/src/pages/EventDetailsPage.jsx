@@ -705,7 +705,11 @@ export default function EventDetailsPage() {
               {/* ========================================================== */}
               {!canEditEvent && isAuthenticated && isAttendee && (
                 <div className="mt-8 pt-6 border-t border-zinc-200/70 dark:border-white/10 flex justify-center">
-                  <EventChat eventTitle={eventRecord.title} />
+                  <EventChat 
+                    eventId={eventRecord.id} 
+                    eventTitle={eventRecord.title} 
+                    currentUserId={user?.id} 
+                  />
                 </div>
               )}
 
