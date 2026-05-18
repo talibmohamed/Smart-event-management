@@ -9,26 +9,23 @@ export default function EventChat({ eventId, eventTitle = "Cet événement", cur
 
   // 1. CHARGER LES MESSAGES DEPUIS LE BACKEND
   useEffect(() => {
-    if (!eventId || !currentUserId) return;
+    if (!eventId) return;
 
     const fetchMessages = async () => {
       try {
-        // L'URL de production + le filtre pour avoir une conversation privée !
-        const response = await fetch(`https://quickseat-backend-buhx.onrender.com/api/messages/event/${eventId}?userId=${currentUserId}`);
+        // RAPPEL: Assure-toi que 5000 est bien le port de ton backend !
+        const response = await fetch(`http://localhost:5000/api/messages/event/${eventId}`);
         if (!response.ok) throw new Error("Erreur serveur");
         
         const data = await response.json();
         
-        const formattedMessages = data.map((msg) => {
-          const isMe = msg.user_id === currentUserId;
-          return {
-            id: msg.id,
-            text: msg.text,
-            isMe: isMe,
-            senderName: isMe ? "Moi" : (msg.user ? `${msg.user.first_name} ${msg.user.last_name}` : "Organisateur"),
-            time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          };
-        });
+        const formattedMessages = data.map((msg) => ({
+          id: msg.id,
+          text: msg.text,
+          isMe: msg.user_id === currentUserId,
+          senderName: msg.user ? `${msg.user.first_name} ${msg.user.last_name}` : "Utilisateur",
+          time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }));
 
         setMessages(formattedMessages);
       } catch (error) {
@@ -50,14 +47,12 @@ export default function EventChat({ eventId, eventTitle = "Cet événement", cur
     setNewMessage(""); // Vide l'input pour être réactif
 
     try {
-      // L'URL de production !
-      const response = await fetch(`https://quickseat-backend-buhx.onrender.com/api/messages/event/${eventId}`, {
+      const response = await fetch(`http://localhost:5000/api/messages/event/${eventId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           text: textToSend, 
-          userId: currentUserId,
-          recipientId: null // Le destinataire est automatiquement l'organisateur
+          userId: currentUserId 
         }),
       });
 
@@ -88,7 +83,7 @@ export default function EventChat({ eventId, eventTitle = "Cet événement", cur
         </div>
         <div>
           <h3 className="text-md font-semibold text-zinc-900 dark:text-white">
-            Discussion - {eventTitle}
+            
           </h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {eventTitle}
@@ -130,7 +125,7 @@ export default function EventChat({ eventId, eventTitle = "Cet événement", cur
           <Input
             value={newMessage}
             onValueChange={setNewMessage}
-            placeholder="Écrivez votre message à l'organisateur..."
+            placeholder="Écrivez votre message..."
             variant="flat"
             radius="full"
             className="flex-1"
