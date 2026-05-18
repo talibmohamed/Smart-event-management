@@ -10,7 +10,7 @@ import {
   NavbarMenuItem,
   NavbarMenuToggle,
 } from "@heroui/react";
-import { LogOut, Plus, MessageSquare } from "lucide-react"; // 👈 Ajout de MessageSquare
+import { LogOut, Plus, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import logoUrl from "../../../logo.svg";
@@ -49,6 +49,7 @@ export default function AppNavbar() {
     });
   }, [logout, navigate]);
 
+  // 1. BOOTSTRAP DES NOTIFICATIONS (WebSockets & Historique)
   useEffect(() => {
     if (!isAuthenticated || !token) {
       setNotifications([]);
@@ -63,9 +64,7 @@ export default function AppNavbar() {
       try {
         const response = await notificationService.getNotifications({ status: "all", limit: 20 });
 
-        if (ignore) {
-          return;
-        }
+        if (ignore) return;
 
         const payload = response.data.data;
         setNotifications(payload.notifications || []);
@@ -86,7 +85,6 @@ export default function AppNavbar() {
           redirectToLogin();
           return;
         }
-
         console.error("Unable to load notifications:", error);
       }
     }
@@ -122,7 +120,6 @@ export default function AppNavbar() {
       if (href === "/") {
         return location.pathname === "/";
       }
-
       return location.pathname === href || location.pathname.startsWith(`${href}/`);
     },
     [location.pathname],
@@ -138,6 +135,7 @@ export default function AppNavbar() {
     navigate("/");
   }
 
+  // 2. CLIC SUR UNE NOTIFICATION (Redirection intelligente messages/événements)
   async function handleNotificationPress(notification) {
     if (!notification.read_at) {
       try {
@@ -155,17 +153,26 @@ export default function AppNavbar() {
           redirectToLogin();
           return;
         }
-
         console.error("Unable to mark notification as read:", error);
       }
     }
 
-    if (notification.data?.event_id) {
-      navigate(`/events/${notification.data.event_id}`);
-      closeMenu();
+    const eventId = notification.data?.event_id || notification.data?.eventId;
+
+    if (notification.type === "NEW_MESSAGE") {
+      if (canCreateEvents) {
+        navigate("/dashboard/inbox"); // Organisateur -> Inbox
+      } else if (eventId) {
+        navigate(`/events/${eventId}`); // Participant -> Page de l'événement
+      }
+    } else if (eventId) {
+      navigate(`/events/${eventId}`);
     }
+
+    closeMenu();
   }
 
+  // 3. TOUT MARQUER COMME LU
   async function handleMarkAllNotificationsRead() {
     try {
       const response = await notificationService.markAllRead();
@@ -178,7 +185,6 @@ export default function AppNavbar() {
         redirectToLogin();
         return;
       }
-
       console.error("Unable to mark notifications as read:", error);
     }
   }
@@ -214,11 +220,7 @@ export default function AppNavbar() {
           className="flex items-center gap-3 rounded-full outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-sky-500/50"
         >
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-white p-1.5 shadow-sm shadow-zinc-950/5 ring-1 ring-zinc-900/5 dark:border-white/10 dark:bg-white dark:shadow-black/20 dark:ring-white/10">
-            <img
-              src={logoUrl}
-              alt="Quickseat logo"
-              className="h-full w-full object-contain"
-            />
+            <img src={logoUrl} alt="Quickseat logo" className="h-full w-full object-contain" />
           </div>
           <div className="flex flex-col">
             <span className="text-[1rem] font-semibold tracking-[-0.03em] text-[#231538] dark:text-[#231538]">
@@ -274,9 +276,6 @@ export default function AppNavbar() {
           </>
         ) : (
           <>
-            {/* ========================================================== */}
-            {/* 👈 L'ICÔNE MESSAGERIE EST AJOUTÉE ICI, À CÔTÉ DE LA CLOCHE */}
-            {/* ========================================================== */}
             {canCreateEvents && (
               <NavbarItem>
                 <Button
@@ -419,7 +418,6 @@ export default function AppNavbar() {
                 </div>
               </div>
 
-              {/* L'icône de messagerie dans le menu Mobile */}
               {canCreateEvents && (
                 <>
                   <Button

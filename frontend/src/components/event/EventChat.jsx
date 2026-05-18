@@ -98,7 +98,7 @@ export default function EventChat({ eventId, eventTitle = "Cet événement", cur
           </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-zinc-400">
-            Aucun message. Soyez le premier à écrire !
+            No messages yet. Be the first to write !
           </div>
         ) : (
           messages.map((msg) => (
@@ -125,7 +125,7 @@ export default function EventChat({ eventId, eventTitle = "Cet événement", cur
           <Input
             value={newMessage}
             onValueChange={setNewMessage}
-            placeholder="Écrivez votre message..."
+            placeholder="Write your message..."
             variant="flat"
             radius="full"
             className="flex-1"

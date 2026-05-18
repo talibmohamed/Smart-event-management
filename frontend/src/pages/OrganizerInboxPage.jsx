@@ -141,7 +141,7 @@ export default function OrganizerInboxPage() {
         <Card className="flex flex-col border border-zinc-200/80 bg-white shadow-sm dark:border-white/10 dark:bg-white/[0.04] md:col-span-1">
           <div className="border-b border-zinc-200/70 p-4 dark:border-white/10">
             <Input
-              placeholder="Chercher un participant ou événement..."
+              placeholder="Search participants or events..."
               value={searchQuery}
               onValueChange={setSearchQuery}
               startContent={<Search size={16} className="text-zinc-400" />}
@@ -153,7 +153,7 @@ export default function OrganizerInboxPage() {
 
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
-              <div className="p-6 text-center text-sm text-zinc-400">Chargement des messages...</div>
+              <div className="p-6 text-center text-sm text-zinc-400">Loading messages...</div>
             ) : filteredConversations.length > 0 ? (
               filteredConversations.map((conv) => (
                 <div
@@ -183,7 +183,7 @@ export default function OrganizerInboxPage() {
                 </div>
               ))
             ) : (
-              <div className="p-6 text-center text-sm text-zinc-500">Aucune conversation.</div>
+              <div className="p-6 text-center text-sm text-zinc-500">No conversations yet.</div>
             )}
           </div>
         </Card>
@@ -235,7 +235,7 @@ export default function OrganizerInboxPage() {
                   <Input
                     value={newMessage}
                     onValueChange={setNewMessage}
-                    placeholder={`Répondre à ${activeConv.participantName}...`}
+                    placeholder={`Reply to ${activeConv.participantName}...`}
                     variant="flat"
                     radius="full"
                     className="flex-1"
