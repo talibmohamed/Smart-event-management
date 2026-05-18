@@ -18,7 +18,8 @@ export default function OrganizerInboxPage() {
     async function loadInbox() {
       try {
         setIsLoading(true);
-        const response = await fetch(`http://localhost:5000/api/messages/organizer/${user.id}`);
+        // REMPLACÉ : Utilisation de l'URL Render au lieu de localhost
+        const response = await fetch(`https://quickseat-backend-buhx.onrender.com/api/messages/organizer/${user.id}`);
         if (!response.ok) throw new Error("Erreur serveur");
         const allMessages = await response.json();
 
@@ -95,7 +96,8 @@ export default function OrganizerInboxPage() {
     setNewMessage("");
 
     try {
-      const response = await fetch(`http://localhost:5000/api/messages/event/${activeConv.eventId}`, {
+      // REMPLACÉ : Utilisation de l'URL Render au lieu de localhost
+      const response = await fetch(`https://quickseat-backend-buhx.onrender.com/api/messages/event/${activeConv.eventId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
