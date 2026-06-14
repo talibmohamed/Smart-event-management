@@ -86,7 +86,6 @@ export default function AppNavbar() {
           redirectToLogin();
           return;
         }
-
         console.error("Unable to load notifications:", error);
       }
     }
@@ -122,7 +121,6 @@ export default function AppNavbar() {
       if (href === "/") {
         return location.pathname === "/";
       }
-
       return location.pathname === href || location.pathname.startsWith(`${href}/`);
     },
     [location.pathname],
@@ -155,15 +153,17 @@ export default function AppNavbar() {
           redirectToLogin();
           return;
         }
-
         console.error("Unable to mark notification as read:", error);
       }
     }
 
-    if (notification.data?.event_id) {
-      navigate(`/events/${notification.data.event_id}`);
-      closeMenu();
+    const eventId = notification.data?.event_id || notification.data?.eventId;
+
+    if (eventId) {
+      navigate(`/events/${eventId}`);
     }
+
+    closeMenu();
   }
 
   async function handleMarkAllNotificationsRead() {
@@ -178,7 +178,6 @@ export default function AppNavbar() {
         redirectToLogin();
         return;
       }
-
       console.error("Unable to mark notifications as read:", error);
     }
   }

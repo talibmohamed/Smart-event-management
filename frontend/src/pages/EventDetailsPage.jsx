@@ -14,13 +14,13 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
+import EventFeedbackForm from "../components/event/EventFeedbackForm";
+import EventFeedbackStats from "../components/event/EventFeedbackStats";
+import EventChat from "../components/event/EventChat";
 import { DetailPageSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
-import EventFeedbackForm from "../components/event/EventFeedbackForm";
-import EventFeedbackStats from "../components/event/EventFeedbackStats";
-import EventChat from "../components/event/EventChat";
 import eventService from "../services/eventService";
 import {
   formatEventAvailability,
@@ -111,7 +111,7 @@ export default function EventDetailsPage() {
   const activeTicketTiers = useMemo(() => getActiveTicketTiers(eventRecord || {}), [eventRecord]);
   const eventTimezone = eventRecord?.timezone || "Europe/Paris";
   const agendaTracks = useMemo(
-    () => Array.isArray(eventRecord?.agenda_tracks) ? eventRecord.agenda_tracks : [],
+    () => (Array.isArray(eventRecord?.agenda_tracks) ? eventRecord.agenda_tracks : []),
     [eventRecord],
   );
   const agendaSessionCount = useMemo(
@@ -164,13 +164,13 @@ export default function EventDetailsPage() {
       ? "Event full"
       : !hasBookableTicketTiers
         ? "Sold out"
-      : !isAuthenticated
-        ? "Login to book"
-        : !isAttendee
-          ? "Attendees only"
-          : selectedTicketQuantity > 0
-            ? `Book ${selectedTicketQuantity} ticket${selectedTicketQuantity === 1 ? "" : "s"}`
-            : "Select tickets";
+        : !isAuthenticated
+          ? "Login to book"
+          : !isAttendee
+            ? "Attendees only"
+            : selectedTicketQuantity > 0
+              ? `Book ${selectedTicketQuantity} ticket${selectedTicketQuantity === 1 ? "" : "s"}`
+              : "Select tickets";
 
   useEffect(() => {
     setTicketQuantities({});
@@ -627,9 +627,7 @@ export default function EventDetailsPage() {
                                 </p>
                               ) : null}
                               <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                                {isTierSoldOut
-                                  ? "Sold out"
-                                  : `${remainingQuantity} remaining`}
+                                {isTierSoldOut ? "Sold out" : `${remainingQuantity} remaining`}
                               </p>
                             </div>
 
@@ -715,9 +713,7 @@ export default function EventDetailsPage() {
               )}
 
               <div className="mt-8 border-t border-zinc-200/70 pt-6 dark:border-white/10">
-                {canEditEvent && (
-                  <EventFeedbackStats eventId={eventRecord.id} />
-                )}
+                {canEditEvent && <EventFeedbackStats eventId={eventRecord.id} />}
 
                 {!canEditEvent && isAuthenticated && isAttendee && canSubmitFeedback && (
                   <div className="flex justify-center">
