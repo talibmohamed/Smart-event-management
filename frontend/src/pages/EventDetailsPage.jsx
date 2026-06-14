@@ -17,12 +17,12 @@ import EventCoverImage from "../components/event/EventCoverImage";
 import EventFeedbackForm from "../components/event/EventFeedbackForm";
 import EventFeedbackStats from "../components/event/EventFeedbackStats";
 import EventChat from "../components/event/EventChat";
+import EventWaitlistPanel from "../components/event/EventWaitlistPanel";
 import { DetailPageSkeleton } from "../components/ui/LoadingSkeletons";
 import { useAuth } from "../context/AuthContext";
 import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
 import eventService from "../services/eventService";
-import waitlistService from "../services/waitlistService"; 
 import {
   formatEventAvailability,
   formatEventDateInTimezone,
@@ -44,10 +44,6 @@ export default function EventDetailsPage() {
   const [isRetryingPayment, setIsRetryingPayment] = useState(false);
   const [hasCreatedBooking, setHasCreatedBooking] = useState(false);
   const [ticketQuantities, setTicketQuantities] = useState({});
-  
-  const [waitlistStatus, setWaitlistStatus] = useState({ isWaiting: false, position: null });
-  const [isWaitlistLoading, setIsWaitlistLoading] = useState(false);
-  
   const { id } = useParams();
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
@@ -65,18 +61,6 @@ export default function EventDetailsPage() {
 
         if (!ignore) {
           setEventRecord(response.data.data);
-          
-          // <-- AJOUT WAITLIST : Charger le statut -->
-          if (user?.role === "attendee") {
-            try {
-              const wlResponse = await waitlistService.getStatus(id);
-              if (!ignore) {
-                setWaitlistStatus({ isWaiting: wlResponse.isWaiting, position: wlResponse.position });
-              }
-            } catch (err) {
-              console.error("Waitlist status error", err);
-            }
-          }
         }
       } catch (error) {
         if (ignore) {
@@ -110,7 +94,7 @@ export default function EventDetailsPage() {
     return () => {
       ignore = true;
     };
-  }, [id, location.pathname, location.search, logout, navigate, user?.role]);
+  }, [id, location.pathname, location.search, logout, navigate]);
 
   const canEditEvent = useMemo(() => {
     if (!user || !eventRecord) {
@@ -170,18 +154,17 @@ export default function EventDetailsPage() {
     (tier) => getTicketTierRemainingQuantity(tier) > 0,
   );
   
-  // <-- MODIFICATION WAITLIST (On enlève 'availability.isFull ||') -->
   const isBookingDisabled =
     hasCreatedBooking ||
+    availability.isFull ||
     !hasBookableTicketTiers ||
     (isAuthenticated && !isAttendee) ||
-    (isAuthenticated && isAttendee && selectedTicketQuantity === 0 && !availability.isFull);
+    (isAuthenticated && isAttendee && selectedTicketQuantity === 0);
     
-  // <-- MODIFICATION WAITLIST (Bouton dynamique si complet) -->
   const bookingButtonLabel = hasCreatedBooking
     ? "Booked"
     : availability.isFull
-      ? (waitlistStatus.isWaiting ? "Leave Waitlist" : "Join Waitlist")
+      ? "Event full"
       : !hasBookableTicketTiers
         ? "Sold out"
         : !isAuthenticated
@@ -204,37 +187,6 @@ export default function EventDetailsPage() {
       });
     }
   }, [location.state]);
-
-  // <-- NOUVELLE FONCTION WAITLIST -->
-  async function handleWaitlistToggle() {
-    if (!isAuthenticated) {
-      navigate("/login", {
-        state: { from: `${location.pathname}${location.search}` },
-      });
-      return;
-    }
-    try {
-      setIsWaitlistLoading(true);
-      setBookingMessage(null);
-      if (waitlistStatus.isWaiting) {
-        await waitlistService.leaveWaitlist(id);
-        setWaitlistStatus({ isWaiting: false, position: null });
-        setBookingMessage({ tone: "success", message: "You have left the waitlist." });
-      } else {
-        await waitlistService.joinWaitlist(id);
-        const wlResponse = await waitlistService.getStatus(id);
-        setWaitlistStatus({ isWaiting: wlResponse.isWaiting, position: wlResponse.position });
-        setBookingMessage({ tone: "success", message: "You have successfully joined the waitlist!" });
-      }
-    } catch (error) {
-      setBookingMessage({
-        tone: "error",
-        message: extractApiErrorMessage(error, "Unable to update waitlist status."),
-      });
-    } finally {
-      setIsWaitlistLoading(false);
-    }
-  }
 
   async function handleBookEvent() {
     if (!isAuthenticated) {
@@ -454,9 +406,9 @@ export default function EventDetailsPage() {
                           radius="full"
                           variant="bordered"
                           startContent={<Ticket size={15} />}
-                          isLoading={isBooking || isWaitlistLoading}
+                          isLoading={isBooking}
                           isDisabled={isBookingDisabled}
-                          onPress={availability.isFull ? handleWaitlistToggle : handleBookEvent}
+                          onPress={handleBookEvent}
                           className="border-zinc-200 bg-white/80 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
                         >
                           {bookingButtonLabel}
@@ -477,9 +429,9 @@ export default function EventDetailsPage() {
                     <Button
                       radius="full"
                       startContent={<Ticket size={15} />}
-                      isLoading={isBooking || isWaitlistLoading}
+                      isLoading={isBooking}
                       isDisabled={isBookingDisabled}
-                      onPress={availability.isFull ? handleWaitlistToggle : handleBookEvent}
+                      onPress={handleBookEvent}
                       className="bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
                     >
                       {bookingButtonLabel}
@@ -487,14 +439,6 @@ export default function EventDetailsPage() {
                   )}
                 </div>
               </div>
-
-              {/* <-- BANNIÈRE WAITLIST VISIBLE --> */}
-              {waitlistStatus.isWaiting && (
-                <div className="mt-4 flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300">
-                  <span>🕒 You are on the waitlist for this event!</span>
-                  <span className="font-semibold">Position: #{waitlistStatus.position}</span>
-                </div>
-              )}
 
               {bookingMessage?.message ? (
                 <div
@@ -506,6 +450,10 @@ export default function EventDetailsPage() {
                 >
                   {bookingMessage.message}
                 </div>
+              ) : null}
+
+              {!canEditEvent && isAttendee && availability.isFull ? (
+                <EventWaitlistPanel eventId={eventRecord.id} isVisible />
               ) : null}
 
               <p className="text-sm leading-7 text-zinc-700 dark:text-zinc-300">

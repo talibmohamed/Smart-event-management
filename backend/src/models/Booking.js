@@ -261,6 +261,13 @@ const createBookingWithStatus = async ({
       },
     });
 
+    await tx.waitlist.deleteMany({
+      where: {
+        event_id,
+        user_id,
+      },
+    });
+
     await createBookingItems(tx, createdBooking.id, items);
 
     return createdBooking;
@@ -289,6 +296,13 @@ const reactivateBooking = async (
         stripe_event_id: null,
         amount_paid,
         currency,
+      },
+    });
+
+    await tx.waitlist.deleteMany({
+      where: {
+        event_id: updatedBooking.event_id,
+        user_id: updatedBooking.user_id,
       },
     });
 

@@ -1,22 +1,17 @@
-import api from "./api"; 
+import api from "./api";
 
 const waitlistService = {
-  // Rejoindre la liste
-  joinWaitlist: async (eventId) => {
-    const response = await api.post(`/waitlist/${eventId}/join`);
-    return response.data;
+  joinWaitlist(eventId) {
+    return api.post(`/events/${eventId}/waitlist`);
   },
 
-  // Quitter la liste
-  leaveWaitlist: async (eventId) => {
-    const response = await api.delete(`/waitlist/${eventId}/leave`);
-    return response.data;
+  leaveWaitlist(eventId) {
+    return api.delete(`/events/${eventId}/waitlist`);
   },
 
-  getStatus: async (eventId) => {
-    const response = await api.get(`/waitlist/${eventId}/status`);
-    return response.data;
-  }
+  getMyStatus(eventId) {
+    return api.get(`/events/${eventId}/waitlist/me`);
+  },
 };
 
 export default waitlistService;

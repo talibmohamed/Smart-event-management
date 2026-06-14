@@ -1,105 +1,158 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import Waitlist from "../models/Waitlist.js";
 
-// 1. Rejoindre la liste d'attente
-export const joinWaitlist = async (req, res) => {
+const ensureAttendeeRole = (req, res) => {
+  if (req.user.role !== "attendee") {
+    res.status(403).json({
+      success: false,
+      message: "Access denied. Only attendees can use the waitlist",
+    });
+    return false;
+  }
+
+  return true;
+};
+
+const joinWaitlist = async (req, res) => {
   try {
-    const { eventId } = req.params;
-    const userId = req.user.id; // Récupéré par ton authMiddleware
-
-    // Vérifier si l'événement existe
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-    });
-
-    if (!event) {
-      return res.status(404).json({ error: "Événement non trouvé" });
+    if (!ensureAttendeeRole(req, res)) {
+      return;
     }
 
-    // Vérifier si l'utilisateur a déjà un billet confirmé pour cet événement
-    const existingBooking = await prisma.booking.findFirst({
-      where: {
-        event_id: eventId,
-        user_id: userId,
-        status: "confirmed"
-      }
-    });
+    const event_id = req.params.id;
+    const user_id = req.user.id;
+    const eventAvailability = await Waitlist.getEventAvailabilityRecord(event_id);
 
-    if (existingBooking) {
-      return res.status(400).json({ error: "Vous avez déjà une place réservée pour cet événement." });
+    if (!eventAvailability) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
     }
 
-    // Ajouter l'utilisateur à la waitlist
-    const waitlistEntry = await prisma.waitlist.create({
+    if (!eventAvailability.is_full) {
+      return res.status(400).json({
+        success: false,
+        message: "Event is not full",
+      });
+    }
+
+    const activeBooking = await Waitlist.findActiveBookingForUser({ event_id, user_id });
+
+    if (activeBooking) {
+      return res.status(409).json({
+        success: false,
+        message: "An active booking already exists for this event",
+      });
+    }
+
+    await Waitlist.joinWaitlist({ event_id, user_id });
+    const status = await Waitlist.getWaitlistStatus({ event_id, user_id });
+
+    return res.status(201).json({
+      success: true,
+      message: "Joined waitlist successfully",
+      data: status,
+    });
+  } catch (error) {
+    console.error("Join waitlist error:", error);
+
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "You are already on the waitlist for this event",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while joining waitlist",
+      error: error.message,
+    });
+  }
+};
+
+const leaveWaitlist = async (req, res) => {
+  try {
+    if (!ensureAttendeeRole(req, res)) {
+      return;
+    }
+
+    const event_id = req.params.id;
+    const user_id = req.user.id;
+    const eventAvailability = await Waitlist.getEventAvailabilityRecord(event_id);
+
+    if (!eventAvailability) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    const result = await Waitlist.leaveWaitlist({ event_id, user_id });
+
+    if (!result.count) {
+      return res.status(404).json({
+        success: false,
+        message: "You are not on the waitlist for this event",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Left waitlist successfully",
       data: {
-        event_id: eventId,
-        user_id: userId,
+        is_waiting: false,
+        position: null,
       },
     });
-
-    res.status(201).json({
-      success: true,
-      message: "Vous avez rejoint la liste d'attente avec succès.",
-      data: waitlistEntry,
-    });
   } catch (error) {
-    console.error("Erreur joinWaitlist:", error);
-    // Gestion du cas où l'utilisateur est déjà dans la liste (contrainte @@unique du schema)
-    if (error.code === 'P2002') {
-      return res.status(400).json({ error: "Vous êtes déjà inscrit dans la liste d'attente de cet événement." });
+    console.error("Leave waitlist error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while leaving waitlist",
+      error: error.message,
+    });
+  }
+};
+
+const getMyWaitlistStatus = async (req, res) => {
+  try {
+    if (!ensureAttendeeRole(req, res)) {
+      return;
     }
-    res.status(500).json({ error: "Erreur lors de l'inscription sur la liste d'attente." });
-  }
-};
 
-// 2. Quitter la liste d'attente
-export const leaveWaitlist = async (req, res) => {
-  try {
-    const { eventId } = req.params;
-    const userId = req.user.id;
+    const event_id = req.params.id;
+    const user_id = req.user.id;
+    const eventAvailability = await Waitlist.getEventAvailabilityRecord(event_id);
 
-    await prisma.waitlist.delete({
-      where: {
-        event_id_user_id: {
-          event_id: eventId,
-          user_id: userId,
-        },
-      },
-    });
+    if (!eventAvailability) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
 
-    res.status(200).json({
+    const status = await Waitlist.getWaitlistStatus({ event_id, user_id });
+
+    return res.status(200).json({
       success: true,
-      message: "Vous avez quitté la liste d'attente.",
+      message: "Waitlist status retrieved successfully",
+      data: status,
     });
   } catch (error) {
-    console.error("Erreur leaveWaitlist:", error);
-    res.status(500).json({ error: "Erreur lors de la désinscription de la liste d'attente." });
+    console.error("Get waitlist status error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching waitlist status",
+      error: error.message,
+    });
   }
 };
 
-// 3. Obtenir le statut de l'utilisateur (Savoir s'il est dedans + sa position)
-export const getWaitlistStatus = async (req, res) => {
-  try {
-    const { eventId } = req.params;
-    const userId = req.user.id;
-
-    // Récupérer toutes les personnes sur la waitlist pour cet événement, triées par date
-    const waitlist = await prisma.waitlist.findMany({
-      where: { event_id: eventId },
-      orderBy: { created_at: 'asc' },
-    });
-
-    // Trouver l'index de l'utilisateur actuel
-    const userIndex = waitlist.findIndex((entry) => entry.user_id === userId);
-    const isWaiting = userIndex !== -1;
-
-    res.status(200).json({
-      isWaiting,
-      position: isWaiting ? userIndex + 1 : null, // +1 car un index commence à 0
-      totalWaiting: waitlist.length,
-    });
-  } catch (error) {
-    console.error("Erreur getWaitlistStatus:", error);
-    res.status(500).json({ error: "Erreur lors de la récupération du statut." });
-  }
+export default {
+  joinWaitlist,
+  leaveWaitlist,
+  getMyWaitlistStatus,
 };

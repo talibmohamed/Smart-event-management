@@ -10,7 +10,6 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import waitlistRoutes from "./routes/waitlistRoutes.js";
 
 const app = express();
 
@@ -34,6 +33,5 @@ app.use("/api/conversations", conversationRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/waitlist", waitlistRoutes);
 
 export default app;

@@ -284,9 +284,6 @@ model ConversationMessage {
   @@index([conversation_id, created_at])
   @@map("conversation_messages")
 }
-// ==========================================
-// --- NOUVEAU MODÈLE : LISTE D'ATTENTE ---
-// ==========================================
 model Waitlist {
   id         String   @id @default(uuid()) @db.Uuid
   event_id   String   @db.Uuid

@@ -1,6 +1,7 @@
 import express from "express";
 import eventController from "../controllers/eventController.js";
 import feedbackController from "../controllers/feedbackController.js";
+import waitlistController from "../controllers/waitlistController.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import eventImageUpload from "../middlewares/eventImageUpload.js";
 import roleMiddleware from "../middlewares/roleMiddleware.js";
@@ -14,6 +15,9 @@ router.get(
   roleMiddleware("organizer", "admin"),
   eventController.getEventAttendees
 );
+router.get("/:id/waitlist/me", authMiddleware, waitlistController.getMyWaitlistStatus);
+router.post("/:id/waitlist", authMiddleware, waitlistController.joinWaitlist);
+router.delete("/:id/waitlist", authMiddleware, waitlistController.leaveWaitlist);
 router.get("/:id", eventController.getEventById);
 
 router.post(
