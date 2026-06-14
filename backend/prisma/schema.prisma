@@ -19,15 +19,16 @@ model User {
   password_reset_expires_at DateTime?
   created_at                DateTime  @default(now())
 
-  events       Event[]
-  bookings     Booking[]
-  feedbacks    Feedback[]
-  tickets      Ticket[]
-  notifications Notification[]
+  events              Event[]
+  bookings            Booking[]
+  feedbacks           Feedback[]
+  tickets             Ticket[]
+  notifications       Notification[]
   reminder_deliveries EventReminderDelivery[]
   attendee_conversations Conversation[] @relation("ConversationAttendee")
   organizer_conversations Conversation[] @relation("ConversationOrganizer")
   sent_conversation_messages ConversationMessage[] @relation("ConversationMessageSender")
+  waitlists           Waitlist[]
 
   @@index([password_reset_token_hash])
   @@map("users")
@@ -44,7 +45,7 @@ model Notification {
   read_at    DateTime?
   created_at DateTime  @default(now())
 
-  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user                User                    @relation(fields: [user_id], references: [id], onDelete: Cascade)
   reminder_deliveries EventReminderDelivery[]
 
   @@unique([user_id, dedupe_key])
@@ -54,33 +55,34 @@ model Notification {
 }
 
 model Event {
-  id           String    @id @default(uuid()) @db.Uuid
-  title        String    @db.VarChar(200)
-  description  String?
-  category     String?   @db.VarChar(100)
-  address      String?   @db.VarChar(200)
-  city         String?   @db.VarChar(100)
-  latitude     Decimal?  @db.Decimal(10, 7)
-  longitude    Decimal?  @db.Decimal(10, 7)
-  image_url    String?   @db.Text
-  image_path   String?   @db.VarChar(500)
-  event_date   DateTime
+  id             String    @id @default(uuid()) @db.Uuid
+  title          String    @db.VarChar(200)
+  description    String?
+  category       String?   @db.VarChar(100)
+  address        String?   @db.VarChar(200)
+  city           String?   @db.VarChar(100)
+  latitude       Decimal?  @db.Decimal(10, 7)
+  longitude      Decimal?  @db.Decimal(10, 7)
+  image_url      String?   @db.Text
+  image_path     String?   @db.VarChar(500)
+  event_date     DateTime
   event_end_date DateTime?
-  timezone     String    @default("Europe/Paris") @db.VarChar(100)
-  capacity     Int
-  price        Decimal   @default(0.00) @db.Decimal(10, 2)
-  organizer_id String    @db.Uuid
-  created_at   DateTime  @default(now())
+  timezone       String    @default("Europe/Paris") @db.VarChar(100)
+  capacity       Int
+  price          Decimal   @default(0.00) @db.Decimal(10, 2)
+  organizer_id   String    @db.Uuid
+  created_at     DateTime  @default(now())
 
-  organizer    User     @relation(fields: [organizer_id], references: [id])
-  bookings     Booking[]
-  feedbacks    Feedback[]
-  ticket_tiers TicketTier[]
-  tickets      Ticket[]
-  agenda_tracks EventTrack[]
-  agenda_sessions EventSession[]
+  organizer           User                    @relation(fields: [organizer_id], references: [id])
+  bookings            Booking[]
+  feedbacks           Feedback[]
+  ticket_tiers        TicketTier[]
+  tickets             Ticket[]
+  agenda_tracks       EventTrack[]
+  agenda_sessions     EventSession[]
   reminder_deliveries EventReminderDelivery[]
   conversations Conversation[]
+  waitlists           Waitlist[]
 
   @@index([event_date])
   @@map("events")
@@ -99,10 +101,10 @@ model Booking {
   amount_paid                Decimal? @db.Decimal(10, 2)
   currency                   String   @default("eur") @db.VarChar(3)
 
-  user         User @relation(fields: [user_id], references: [id])
-  event        Event @relation(fields: [event_id], references: [id])
-  items        BookingItem[]
-  tickets      Ticket[]
+  user                User                    @relation(fields: [user_id], references: [id])
+  event               Event                   @relation(fields: [event_id], references: [id])
+  items               BookingItem[]
+  tickets             Ticket[]
   reminder_deliveries EventReminderDelivery[]
   conversation Conversation?
 
@@ -209,16 +211,16 @@ model BookingItem {
 }
 
 model Ticket {
-  id             String    @id @default(uuid()) @db.Uuid
-  booking_id     String    @db.Uuid
+  id              String    @id @default(uuid()) @db.Uuid
+  booking_id      String    @db.Uuid
   booking_item_id String    @db.Uuid
-  event_id       String    @db.Uuid
-  user_id        String    @db.Uuid
-  ticket_tier_id String    @db.Uuid
-  ticket_code    String    @unique @db.VarChar(80)
-  status         String    @default("valid") @db.VarChar(20)
-  issued_at      DateTime  @default(now())
-  checked_in_at  DateTime?
+  event_id        String    @db.Uuid
+  user_id         String    @db.Uuid
+  ticket_tier_id  String    @db.Uuid
+  ticket_code     String    @unique @db.VarChar(80)
+  status          String    @default("valid") @db.VarChar(20)
+  issued_at       DateTime  @default(now())
+  checked_in_at   DateTime?
 
   booking     Booking     @relation(fields: [booking_id], references: [id], onDelete: Cascade)
   bookingItem BookingItem @relation(fields: [booking_item_id], references: [id], onDelete: Cascade)
@@ -241,8 +243,8 @@ model Feedback {
   comment    String?
   created_at DateTime @default(now())
 
-  user       User @relation(fields: [user_id], references: [id])
-  event      Event @relation(fields: [event_id], references: [id])
+  user  User  @relation(fields: [user_id], references: [id])
+  event Event @relation(fields: [event_id], references: [id])
 
   @@unique([user_id, event_id])
   @@map("feedback")
@@ -281,4 +283,21 @@ model ConversationMessage {
 
   @@index([conversation_id, created_at])
   @@map("conversation_messages")
+}
+// ==========================================
+// --- NOUVEAU MODÈLE : LISTE D'ATTENTE ---
+// ==========================================
+model Waitlist {
+  id         String   @id @default(uuid()) @db.Uuid
+  event_id   String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now())
+
+  event      Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([event_id, user_id])
+  @@index([event_id])
+  @@index([user_id])
+  @@map("waitlists")
 }
