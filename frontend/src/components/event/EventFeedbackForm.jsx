@@ -34,7 +34,7 @@ export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
       }
 
     } catch (err) {
-      setError(extractApiErrorMessage(err, "Failed to submit feedback."));
+      setError(extractApiErrorMessage(err, "Unable to submit feedback."));
     } finally {
       setIsSubmitting(false);
     }
@@ -111,7 +111,7 @@ export default function EventFeedbackForm({ eventId, onFeedbackSubmitted }) {
             className="w-full bg-zinc-950 font-medium text-white dark:bg-white dark:text-zinc-950"
             radius="full"
           >
-            {isSubmitting ? "Sending..." : "Send Feedback"}
+            {isSubmitting ? "Submitting..." : "Submit Feedback"}
           </Button>
         </form>
       </CardBody>

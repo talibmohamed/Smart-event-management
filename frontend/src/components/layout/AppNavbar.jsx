@@ -10,7 +10,7 @@ import {
   NavbarMenuItem,
   NavbarMenuToggle,
 } from "@heroui/react";
-import { LogOut, Plus, MessageSquare } from "lucide-react"; // 👈 Ajout de MessageSquare
+import { LogOut, MessageSquare, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import logoUrl from "../../../logo.svg";
@@ -146,8 +146,8 @@ export default function AppNavbar() {
 
         setNotifications((currentNotifications) =>
           currentNotifications.map((item) =>
-            item.id === notification.id ? payload.notification : item
-          )
+            item.id === notification.id ? payload.notification : item,
+          ),
         );
         setUnreadCount(payload.unread_count || 0);
       } catch (error) {
@@ -214,11 +214,7 @@ export default function AppNavbar() {
           className="flex items-center gap-3 rounded-full outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-sky-500/50"
         >
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-white p-1.5 shadow-sm shadow-zinc-950/5 ring-1 ring-zinc-900/5 dark:border-white/10 dark:bg-white dark:shadow-black/20 dark:ring-white/10">
-            <img
-              src={logoUrl}
-              alt="Quickseat logo"
-              className="h-full w-full object-contain"
-            />
+            <img src={logoUrl} alt="Quickseat logo" className="h-full w-full object-contain" />
           </div>
           <div className="flex flex-col">
             <span className="text-[1rem] font-semibold tracking-[-0.03em] text-[#231538] dark:text-[#231538]">
@@ -274,10 +270,7 @@ export default function AppNavbar() {
           </>
         ) : (
           <>
-            {/* ========================================================== */}
-            {/* 👈 L'ICÔNE MESSAGERIE EST AJOUTÉE ICI, À CÔTÉ DE LA CLOCHE */}
-            {/* ========================================================== */}
-            {canCreateEvents && (
+            {canCreateEvents ? (
               <NavbarItem>
                 <Button
                   as={RouterLink}
@@ -285,13 +278,13 @@ export default function AppNavbar() {
                   isIconOnly
                   variant="light"
                   radius="full"
+                  aria-label="Inbox preview"
                   className="text-zinc-600 hover:bg-white/70 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white"
-                  aria-label="Messagerie"
                 >
                   <MessageSquare size={18} />
                 </Button>
               </NavbarItem>
-            )}
+            ) : null}
 
             <NavbarItem>
               <NotificationBell
@@ -320,7 +313,7 @@ export default function AppNavbar() {
               </div>
             </NavbarItem>
 
-            {canCreateEvents && (
+            {canCreateEvents ? (
               <NavbarItem className="hidden lg:flex">
                 <Button
                   as={RouterLink}
@@ -332,7 +325,7 @@ export default function AppNavbar() {
                   Create Event
                 </Button>
               </NavbarItem>
-            )}
+            ) : null}
 
             <NavbarItem className="hidden md:flex">
               <Button
@@ -419,8 +412,7 @@ export default function AppNavbar() {
                 </div>
               </div>
 
-              {/* L'icône de messagerie dans le menu Mobile */}
-              {canCreateEvents && (
+              {canCreateEvents ? (
                 <>
                   <Button
                     as={RouterLink}
@@ -431,7 +423,7 @@ export default function AppNavbar() {
                     className="w-full bg-sky-100 font-medium text-sky-700 dark:bg-sky-500/20 dark:text-sky-200"
                     onPress={closeMenu}
                   >
-                    Boîte de réception
+                    Inbox preview
                   </Button>
                   <Button
                     as={RouterLink}
@@ -444,7 +436,7 @@ export default function AppNavbar() {
                     Create Event
                   </Button>
                 </>
-              )}
+              ) : null}
 
               <Button
                 radius="full"

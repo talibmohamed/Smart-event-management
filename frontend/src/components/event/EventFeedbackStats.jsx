@@ -30,7 +30,7 @@ export default function EventFeedbackStats({ eventId }) {
         }
       } catch (err) {
         if (!ignore) {
-          setError(extractApiErrorMessage(err, "Failed to load feedback."));
+          setError(extractApiErrorMessage(err, "Unable to load feedback."));
         }
       } finally {
         if (!ignore) {

@@ -20,7 +20,7 @@ import { extractApiErrorMessage } from "../services/api";
 import bookingService from "../services/bookingService";
 import EventFeedbackForm from "../components/event/EventFeedbackForm";
 import EventFeedbackStats from "../components/event/EventFeedbackStats";
-import EventChat from "../components/event/EventChat"; // 👈 L'import de la messagerie est ici !
+import EventChat from "../components/event/EventChat";
 import eventService from "../services/eventService";
 import {
   formatEventAvailability,
@@ -118,6 +118,14 @@ export default function EventDetailsPage() {
     () => agendaTracks.reduce((total, track) => total + (track.sessions?.length || 0), 0),
     [agendaTracks],
   );
+  const feedbackAvailableAt = eventRecord?.event_end_date || eventRecord?.event_date || null;
+  const canSubmitFeedback = useMemo(() => {
+    if (!feedbackAvailableAt) {
+      return false;
+    }
+
+    return new Date(feedbackAvailableAt).getTime() < Date.now();
+  }, [feedbackAvailableAt]);
   const selectedTicketItems = useMemo(
     () =>
       activeTicketTiers
@@ -700,35 +708,23 @@ export default function EventDetailsPage() {
                 </div>
               </div>
 
-              {/* ========================================================== */}
-              {/* ESPACE MESSAGERIE (POUR LES PARTICIPANTS UNIQUEMENT)       */}
-              {/* ========================================================== */}
               {!canEditEvent && isAuthenticated && isAttendee && (
-                <div className="mt-8 pt-6 border-t border-zinc-200/70 dark:border-white/10 flex justify-center">
+                <div className="mt-8 flex justify-center border-t border-zinc-200/70 pt-6 dark:border-white/10">
                   <EventChat eventTitle={eventRecord.title} />
                 </div>
               )}
 
-              {/* ========================================================== */}
-              {/* ESPACE FEEDBACK (SÉPARÉ SELON LE RÔLE)                     */}
-              {/* ========================================================== */}
-              
-              <div className="mt-8 pt-6 border-t border-zinc-200/70 dark:border-white/10">
-                
-                {/* 1. VISU POUR L'ORGANISATEUR : Il voit les statistiques globales */}
+              <div className="mt-8 border-t border-zinc-200/70 pt-6 dark:border-white/10">
                 {canEditEvent && (
                   <EventFeedbackStats eventId={eventRecord.id} />
                 )}
 
-                {/* 2. VISU POUR LE VISITEUR (Attendee) : Il voit le formulaire pour voter */}
-                {!canEditEvent && isAuthenticated && isAttendee && new Date(eventRecord.event_date) < new Date() && (
+                {!canEditEvent && isAuthenticated && isAttendee && canSubmitFeedback && (
                   <div className="flex justify-center">
                     <EventFeedbackForm eventId={eventRecord.id} />
                   </div>
                 )}
-                
               </div>
-
             </>
           )}
         </CardBody>
