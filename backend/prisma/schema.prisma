@@ -25,6 +25,9 @@ model User {
   tickets      Ticket[]
   notifications Notification[]
   reminder_deliveries EventReminderDelivery[]
+  attendee_conversations Conversation[] @relation("ConversationAttendee")
+  organizer_conversations Conversation[] @relation("ConversationOrganizer")
+  sent_conversation_messages ConversationMessage[] @relation("ConversationMessageSender")
 
   @@index([password_reset_token_hash])
   @@map("users")
@@ -77,6 +80,7 @@ model Event {
   agenda_tracks EventTrack[]
   agenda_sessions EventSession[]
   reminder_deliveries EventReminderDelivery[]
+  conversations Conversation[]
 
   @@index([event_date])
   @@map("events")
@@ -100,6 +104,7 @@ model Booking {
   items        BookingItem[]
   tickets      Ticket[]
   reminder_deliveries EventReminderDelivery[]
+  conversation Conversation?
 
   @@unique([user_id, event_id])
   @@map("bookings")
@@ -241,4 +246,39 @@ model Feedback {
 
   @@unique([user_id, event_id])
   @@map("feedback")
+}
+
+model Conversation {
+  id              String   @id @default(uuid()) @db.Uuid
+  booking_id      String   @unique @db.Uuid
+  event_id        String   @db.Uuid
+  attendee_id     String   @db.Uuid
+  organizer_id    String   @db.Uuid
+  last_message_at DateTime @default(now())
+  created_at      DateTime @default(now())
+
+  booking    Booking @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+  event      Event   @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  attendee   User    @relation("ConversationAttendee", fields: [attendee_id], references: [id], onDelete: Cascade)
+  organizer  User    @relation("ConversationOrganizer", fields: [organizer_id], references: [id], onDelete: Cascade)
+  messages   ConversationMessage[]
+
+  @@index([organizer_id, last_message_at])
+  @@index([attendee_id, last_message_at])
+  @@map("conversations")
+}
+
+model ConversationMessage {
+  id              String   @id @default(uuid()) @db.Uuid
+  conversation_id String   @db.Uuid
+  sender_id       String   @db.Uuid
+  body            String   @db.Text
+  created_at      DateTime @default(now())
+  read_at         DateTime?
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  sender       User         @relation("ConversationMessageSender", fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id, created_at])
+  @@map("conversation_messages")
 }

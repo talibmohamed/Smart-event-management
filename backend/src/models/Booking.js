@@ -318,6 +318,37 @@ const getBookingById = async (id) => {
   });
 };
 
+const getBookingConversationContextById = async (id) => {
+  return prisma.booking.findUnique({
+    where: { id },
+    include: {
+      user: {
+        select: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+        },
+      },
+      event: {
+        select: {
+          id: true,
+          title: true,
+          organizer_id: true,
+          event_date: true,
+          city: true,
+          image_url: true,
+        },
+      },
+      conversation: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+};
+
 const getBookingWithEventById = async (id) => {
   const booking = await prisma.booking.findUnique({
     where: { id },
@@ -608,6 +639,7 @@ export default {
   reactivateBooking,
   cancelBooking,
   getBookingById,
+  getBookingConversationContextById,
   getBookingWithEventById,
   getBookingEmailContextById,
   getBookingSummaryById,

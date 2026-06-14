@@ -35,7 +35,9 @@ export default function AppNavbar() {
   const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "";
   const userLabel = displayName || user?.email || "Account";
   const canCreateEvents = isOrganizerRole(user?.role);
+  const canViewOrganizerInbox = user?.role === "organizer";
   const canViewBookings = user?.role === "attendee";
+  const canViewMessages = user?.role === "attendee";
   const canManageUsers = user?.role === "admin";
 
   useEffect(() => {
@@ -104,6 +106,7 @@ export default function AppNavbar() {
     ...(isAuthenticated
       ? [
           ...(canViewBookings ? [{ href: "/my-bookings", label: "My Bookings" }] : []),
+          ...(canViewMessages ? [{ href: "/my-messages", label: "Messages" }] : []),
           { href: "/dashboard", label: "Dashboard" },
           ...(canManageUsers
             ? [
@@ -157,7 +160,19 @@ export default function AppNavbar() {
       }
     }
 
+    const conversationId = notification.data?.conversation_id;
     const eventId = notification.data?.event_id || notification.data?.eventId;
+
+    if (notification.type === "conversation_message" && conversationId) {
+      if (user?.role === "organizer") {
+        navigate(`/dashboard/inbox?conversation=${conversationId}`);
+      } else {
+        navigate(`/my-messages?conversation=${conversationId}`);
+      }
+
+      closeMenu();
+      return;
+    }
 
     if (eventId) {
       navigate(`/events/${eventId}`);
@@ -269,7 +284,7 @@ export default function AppNavbar() {
           </>
         ) : (
           <>
-            {canCreateEvents ? (
+            {canViewOrganizerInbox ? (
               <NavbarItem>
                 <Button
                   as={RouterLink}
@@ -277,7 +292,7 @@ export default function AppNavbar() {
                   isIconOnly
                   variant="light"
                   radius="full"
-                  aria-label="Inbox preview"
+                  aria-label="Inbox"
                   className="text-zinc-600 hover:bg-white/70 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white"
                 >
                   <MessageSquare size={18} />
@@ -411,7 +426,7 @@ export default function AppNavbar() {
                 </div>
               </div>
 
-              {canCreateEvents ? (
+              {canViewOrganizerInbox ? (
                 <>
                   <Button
                     as={RouterLink}
@@ -422,8 +437,27 @@ export default function AppNavbar() {
                     className="w-full bg-sky-100 font-medium text-sky-700 dark:bg-sky-500/20 dark:text-sky-200"
                     onPress={closeMenu}
                   >
-                    Inbox preview
+                    Inbox
                   </Button>
+                </>
+              ) : null}
+
+              {canViewMessages ? (
+                <Button
+                  as={RouterLink}
+                  to="/my-messages"
+                  radius="full"
+                  variant="flat"
+                  startContent={<MessageSquare size={16} />}
+                  className="w-full bg-sky-100 font-medium text-sky-700 dark:bg-sky-500/20 dark:text-sky-200"
+                  onPress={closeMenu}
+                >
+                  Messages
+                </Button>
+              ) : null}
+
+              {canCreateEvents ? (
+                <>
                   <Button
                     as={RouterLink}
                     to="/create-event"

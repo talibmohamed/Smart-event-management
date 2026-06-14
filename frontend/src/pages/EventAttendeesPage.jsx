@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, CardHeader, Chip, Select, SelectItem } from "@heroui/react";
-import { ArrowLeft, CalendarDays, Mail, Ticket, UsersRound } from "lucide-react";
+import { ArrowLeft, CalendarDays, Mail, MessageSquare, Ticket, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -46,6 +46,10 @@ function getPaymentTone(paymentStatus) {
 
 function formatPersonName(attendee = {}) {
   return [attendee.first_name, attendee.last_name].filter(Boolean).join(" ") || "Attendee";
+}
+
+function canOpenConversation(attendee) {
+  return ["confirmed", "pending_payment"].includes(attendee.status);
 }
 
 function StatCard({ label, value }) {
@@ -372,6 +376,21 @@ export default function EventAttendeesPage() {
                       <Mail size={14} />
                       {attendee.attendee?.email || "Email unavailable"}
                     </a>
+                    {canOpenConversation(attendee) ? (
+                      <div className="mt-3">
+                        <Button
+                          as={RouterLink}
+                          to={`/dashboard/inbox?booking=${attendee.booking_id}`}
+                          radius="full"
+                          size="sm"
+                          variant="bordered"
+                          startContent={<MessageSquare size={13} />}
+                          className="border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                        >
+                          Message attendee
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -435,6 +454,19 @@ export default function EventAttendeesPage() {
                         {attendee.status?.replace("_", " ") || "Unknown"}
                       </Chip>
                     </div>
+                    {canOpenConversation(attendee) ? (
+                      <Button
+                        as={RouterLink}
+                        to={`/dashboard/inbox?booking=${attendee.booking_id}`}
+                        radius="full"
+                        size="sm"
+                        variant="bordered"
+                        startContent={<MessageSquare size={13} />}
+                        className="border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                      >
+                        Message attendee
+                      </Button>
+                    ) : null}
                   </CardHeader>
 
                   <CardBody className="gap-4 px-5 pb-5">

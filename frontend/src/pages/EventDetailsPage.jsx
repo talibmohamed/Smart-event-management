@@ -708,7 +708,7 @@ export default function EventDetailsPage() {
 
               {!canEditEvent && isAuthenticated && isAttendee && (
                 <div className="mt-8 flex justify-center border-t border-zinc-200/70 pt-6 dark:border-white/10">
-                  <EventChat eventTitle={eventRecord.title} />
+                  <EventChat eventId={eventRecord.id} eventTitle={eventRecord.title} />
                 </div>
               )}
 

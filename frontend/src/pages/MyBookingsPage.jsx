@@ -10,7 +10,7 @@ import {
   ModalFooter,
   ModalHeader,
 } from "@heroui/react";
-import { ArrowRight, CalendarClock, CreditCard, MapPin, QrCode, Ticket, WalletCards, XCircle } from "lucide-react";
+import { ArrowRight, CalendarClock, CreditCard, MapPin, MessageSquare, QrCode, Ticket, WalletCards, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import EventCoverImage from "../components/event/EventCoverImage";
@@ -220,6 +220,19 @@ function BookingCard({
         >
           View event
         </Button>
+
+        {(isConfirmed || isPendingPayment) ? (
+          <Button
+            as={RouterLink}
+            to={`/my-messages?booking=${booking.id}`}
+            radius="full"
+            variant="bordered"
+            startContent={<MessageSquare size={15} />}
+            className="h-11 w-full border-zinc-200 bg-white/70 font-medium text-zinc-950 dark:border-white/10 dark:bg-white/5 dark:text-white sm:w-auto"
+          >
+            Open conversation
+          </Button>
+        ) : null}
 
         {isConfirmed ? (
           <Button
