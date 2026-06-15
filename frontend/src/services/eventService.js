@@ -20,6 +20,10 @@ const eventService = {
     return api.get("/events", { params });
   },
 
+  getEventFacets() {
+    return api.get("/events/facets");
+  },
+
   getEventById(id) {
     return api.get(`/events/${id}`);
   },

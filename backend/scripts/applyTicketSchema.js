@@ -43,6 +43,7 @@ const statements = [
     checked_in_at TIMESTAMP(3),
     CONSTRAINT tickets_status_check CHECK (status IN ('valid', 'cancelled', 'used'))
   )`,
+  "ALTER TABLE tickets ALTER COLUMN id SET DEFAULT gen_random_uuid()",
   "CREATE INDEX IF NOT EXISTS tickets_booking_id_idx ON tickets(booking_id)",
   "CREATE INDEX IF NOT EXISTS tickets_event_id_idx ON tickets(event_id)",
   "CREATE INDEX IF NOT EXISTS tickets_user_id_idx ON tickets(user_id)",
@@ -55,26 +56,17 @@ const createTicketCode = () =>
 async function insertTicket(item) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
-      await prisma.$executeRaw`
-        INSERT INTO tickets (
-          booking_id,
-          booking_item_id,
-          event_id,
-          user_id,
-          ticket_tier_id,
-          ticket_code,
-          status
-        )
-        VALUES (
-          CAST(${item.booking_id} AS uuid),
-          CAST(${item.booking_item_id} AS uuid),
-          CAST(${item.event_id} AS uuid),
-          CAST(${item.user_id} AS uuid),
-          CAST(${item.ticket_tier_id} AS uuid),
-          ${createTicketCode()},
-          'valid'
-        )
-      `;
+      await prisma.ticket.create({
+        data: {
+          booking_id: item.booking_id,
+          booking_item_id: item.booking_item_id,
+          event_id: item.event_id,
+          user_id: item.user_id,
+          ticket_tier_id: item.ticket_tier_id,
+          ticket_code: createTicketCode(),
+          status: "valid",
+        },
+      });
       return;
     } catch (error) {
       if (!String(error.message).includes("tickets_ticket_code_key")) {

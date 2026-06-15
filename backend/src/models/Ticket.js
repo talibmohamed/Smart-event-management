@@ -82,26 +82,17 @@ const getBookingItemsForTicketGeneration = async (booking_id, client = prisma) =
 const insertTicket = async (client, item) => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
-      await client.$executeRaw`
-        INSERT INTO tickets (
-          booking_id,
-          booking_item_id,
-          event_id,
-          user_id,
-          ticket_tier_id,
-          ticket_code,
-          status
-        )
-        VALUES (
-          CAST(${item.booking_id} AS uuid),
-          CAST(${item.booking_item_id} AS uuid),
-          CAST(${item.event_id} AS uuid),
-          CAST(${item.user_id} AS uuid),
-          CAST(${item.ticket_tier_id} AS uuid),
-          ${createTicketCode()},
-          'valid'
-        )
-      `;
+      await client.ticket.create({
+        data: {
+          booking_id: item.booking_id,
+          booking_item_id: item.booking_item_id,
+          event_id: item.event_id,
+          user_id: item.user_id,
+          ticket_tier_id: item.ticket_tier_id,
+          ticket_code: createTicketCode(),
+          status: "valid",
+        },
+      });
       return;
     } catch (error) {
       if (error.code !== "P2002" && !String(error.message).includes("tickets_ticket_code_key")) {

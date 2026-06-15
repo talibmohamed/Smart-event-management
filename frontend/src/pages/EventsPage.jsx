@@ -13,7 +13,6 @@ import {
   buildEventListQueryParams,
   countActiveEventFilters,
   DEFAULT_EVENT_FILTERS,
-  getEventFilterOptions,
   parseEventFilterParams,
   sanitizeEventFilters,
   SORT_OPTIONS,
@@ -22,7 +21,6 @@ import {
 import { getMappableEvents } from "../utils/mapHelpers";
 
 const EVENTS_PAGE_SIZE = 20;
-const FILTER_OPTIONS_PAGE_SIZE = 50;
 
 function areFiltersEqual(left, right) {
   return (
@@ -90,15 +88,13 @@ export default function EventsPage() {
 
     async function loadFilterOptions() {
       try {
-        // Temporary bootstrap for category/city selects until a dedicated /api/events/facets endpoint exists.
-        const response = await eventService.getEvents({
-          page: 1,
-          pageSize: FILTER_OPTIONS_PAGE_SIZE,
-          sort: "title_asc",
-        });
+        const response = await eventService.getEventFacets();
 
         if (!ignore) {
-          setFilterOptions(getEventFilterOptions(response.data?.items || []));
+          setFilterOptions({
+            categories: response.data?.categories || [],
+            cities: response.data?.cities || [],
+          });
         }
       } catch {
         if (!ignore) {

@@ -221,22 +221,15 @@ const prepareBookingItems = async ({ event, items }) => {
 
 const createBookingItems = async (client, booking_id, items) => {
   for (const item of items) {
-    await client.$executeRaw`
-      INSERT INTO booking_items (
+    await client.bookingItem.create({
+      data: {
         booking_id,
-        ticket_tier_id,
-        quantity,
-        unit_price,
-        total_price
-      )
-      VALUES (
-        CAST(${booking_id} AS uuid),
-        CAST(${item.ticket_tier_id} AS uuid),
-        ${item.quantity},
-        ${item.unit_price},
-        ${item.total_price}
-      )
-    `;
+        ticket_tier_id: item.ticket_tier_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+      },
+    });
   }
 };
 

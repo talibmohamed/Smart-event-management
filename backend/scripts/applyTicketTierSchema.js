@@ -42,6 +42,7 @@ const statements = [
     CONSTRAINT ticket_tiers_capacity_check CHECK (capacity > 0),
     CONSTRAINT ticket_tiers_price_check CHECK (price >= 0)
   )`,
+  "ALTER TABLE ticket_tiers ALTER COLUMN id SET DEFAULT gen_random_uuid()",
   "CREATE INDEX IF NOT EXISTS ticket_tiers_event_id_idx ON ticket_tiers(event_id)",
   `CREATE TABLE IF NOT EXISTS booking_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -54,6 +55,7 @@ const statements = [
     CONSTRAINT booking_items_unit_price_check CHECK (unit_price >= 0),
     CONSTRAINT booking_items_total_price_check CHECK (total_price >= 0)
   )`,
+  "ALTER TABLE booking_items ALTER COLUMN id SET DEFAULT gen_random_uuid()",
   "CREATE INDEX IF NOT EXISTS booking_items_booking_id_idx ON booking_items(booking_id)",
   "CREATE INDEX IF NOT EXISTS booking_items_ticket_tier_id_idx ON booking_items(ticket_tier_id)",
   `INSERT INTO ticket_tiers (event_id, name, description, price, capacity, is_active, sort_order)

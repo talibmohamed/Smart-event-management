@@ -323,6 +323,21 @@ const getAllEvents = async (req, res) => {
   }
 };
 
+const getEventFacets = async (req, res) => {
+  try {
+    const facets = await Event.getEventFacets();
+
+    return res.status(200).json(facets);
+  } catch (error) {
+    console.error("Get event facets error:", error);
+
+    return res.status(500).json({
+      message: "Server error while fetching event facets",
+      error: error.message
+    });
+  }
+};
+
 const getEventById = async (req, res) => {
   try {
     const event = await Event.getEventById(req.params.id);
@@ -682,6 +697,7 @@ const deleteEvent = async (req, res) => {
 export default {
   createEvent,
   getAllEvents,
+  getEventFacets,
   getEventById,
   getEventAttendees,
   updateEvent,

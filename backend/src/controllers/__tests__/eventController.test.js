@@ -9,6 +9,7 @@ import {
 vi.mock("../../models/Event.js", () => ({
   default: {
     getAllEvents: vi.fn(),
+    getEventFacets: vi.fn(),
     getEventRecordById: vi.fn(),
   },
 }));
@@ -81,6 +82,24 @@ describe("event controller list", () => {
       pageSize: 20,
       total: 1,
       hasMore: false,
+    });
+  });
+
+  it("returns event facets", async () => {
+    Event.getEventFacets.mockResolvedValue({
+      categories: ["Technology", "Design"],
+      cities: ["Paris", "Lyon"],
+    });
+    const req = createMockReq();
+    const res = createMockRes();
+
+    await eventController.getEventFacets(req, res);
+
+    expect(Event.getEventFacets).toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      categories: ["Technology", "Design"],
+      cities: ["Paris", "Lyon"],
     });
   });
 

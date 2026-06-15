@@ -42,6 +42,35 @@ const formatEventBaseFields = (event) => ({
   timezone: event.timezone || "Europe/Paris",
 });
 
+const buildEventWithTicketData = (event, ticket_tiers = []) => {
+  const confirmed_bookings = ticket_tiers.reduce(
+    (sum, tier) => sum + Number(tier.sold_quantity || 0),
+    0
+  );
+  const remaining_seats = Math.max(Number(event.capacity) - confirmed_bookings, 0);
+  const activePrices = ticket_tiers
+    .filter((tier) => tier.is_active)
+    .map((tier) => toNumber(tier.price));
+  const fallbackPrice = toNumber(event.price);
+  const min_price = activePrices.length
+    ? Math.min(...activePrices).toFixed(2)
+    : fallbackPrice.toFixed(2);
+  const max_price = activePrices.length
+    ? Math.max(...activePrices).toFixed(2)
+    : fallbackPrice.toFixed(2);
+
+  return {
+    ...formatEventBaseFields(event),
+    price: min_price,
+    min_price,
+    max_price,
+    confirmed_bookings,
+    remaining_seats,
+    is_full: remaining_seats === 0,
+    ticket_tiers,
+  };
+};
+
 const getAgendaForEvent = async (event_id, client = prisma) => {
   const tracks = await client.eventTrack.findMany({
     where: { event_id },
@@ -111,6 +140,57 @@ const getTicketTiersForEvent = async (event_id, client = prisma) => {
   return tiers.map(formatTicketTier);
 };
 
+const getTicketTiersForEvents = async (eventIds, client = prisma) => {
+  if (!eventIds.length) {
+    return new Map();
+  }
+
+  const tiers = await client.ticketTier.findMany({
+    where: {
+      event_id: {
+        in: eventIds,
+      },
+    },
+    orderBy: [
+      { event_id: "asc" },
+      { sort_order: "asc" },
+      { created_at: "asc" },
+    ],
+  });
+
+  const soldRows = await client.bookingItem.groupBy({
+    by: ["ticket_tier_id"],
+    where: {
+      booking: {
+        event_id: {
+          in: eventIds,
+        },
+        status: "confirmed",
+      },
+    },
+    _sum: {
+      quantity: true,
+    },
+  });
+
+  const soldByTierId = new Map(
+    soldRows.map((row) => [row.ticket_tier_id, Number(row._sum.quantity || 0)])
+  );
+  const tiersByEventId = new Map();
+
+  for (const tier of tiers) {
+    const formattedTier = formatTicketTier({
+      ...tier,
+      sold_quantity: soldByTierId.get(tier.id) || 0,
+    });
+    const eventTiers = tiersByEventId.get(tier.event_id) || [];
+    eventTiers.push(formattedTier);
+    tiersByEventId.set(tier.event_id, eventTiers);
+  }
+
+  return tiersByEventId;
+};
+
 const countConfirmedTicketsForEvent = async (event_id, client = prisma) => {
   const rows = await client.$queryRaw`
     SELECT COALESCE(SUM(bi.quantity), 0)::int AS total
@@ -129,24 +209,8 @@ const addTicketDataAndStats = async (event) => {
   }
 
   const ticket_tiers = await getTicketTiersForEvent(event.id);
-  const confirmed_bookings = await countConfirmedTicketsForEvent(event.id);
-  const remaining_seats = Math.max(Number(event.capacity) - confirmed_bookings, 0);
-  const activePrices = ticket_tiers
-    .filter((tier) => tier.is_active)
-    .map((tier) => toNumber(tier.price));
-  const min_price = activePrices.length ? Math.min(...activePrices).toFixed(2) : event.price;
-  const max_price = activePrices.length ? Math.max(...activePrices).toFixed(2) : event.price;
 
-  return {
-    ...formatEventBaseFields(event),
-    price: min_price,
-    min_price,
-    max_price,
-    confirmed_bookings,
-    remaining_seats,
-    is_full: remaining_seats === 0,
-    ticket_tiers,
-  };
+  return buildEventWithTicketData(event, ticket_tiers);
 };
 
 const getMinimumActiveTierPrice = (ticket_tiers, fallbackPrice = 0) => {
@@ -372,15 +436,39 @@ const getAllEvents = async ({
     }),
     prisma.event.count({ where }),
   ]);
+  const eventIds = events.map((event) => event.id);
+  const [tiersByEventId, agendaSessionCounts] = await Promise.all([
+    getTicketTiersForEvents(eventIds),
+    eventIds.length
+      ? prisma.eventSession.groupBy({
+          by: ["event_id"],
+          where: {
+            event_id: {
+              in: eventIds,
+            },
+          },
+          _count: {
+            _all: true,
+          },
+        })
+      : [],
+  ]);
+  const agendaCountByEventId = new Map(
+    agendaSessionCounts.map((row) => [row.event_id, Number(row._count._all || 0)])
+  );
 
-  const items = await Promise.all(events.map(async (event) => {
-    const eventWithTicketData = await addTicketDataAndStats(flattenEvent(event));
+  const items = events.map((event) => {
+    const flattenedEvent = flattenEvent(event);
+    const eventWithTicketData = buildEventWithTicketData(
+      flattenedEvent,
+      tiersByEventId.get(event.id) || []
+    );
 
     return {
       ...eventWithTicketData,
-      agenda_session_count: await countAgendaSessionsForEvent(event.id),
+      agenda_session_count: agendaCountByEventId.get(event.id) || 0,
     };
-  }));
+  });
 
   return {
     items,
@@ -388,6 +476,44 @@ const getAllEvents = async ({
     pageSize,
     total,
     hasMore: page * pageSize < total,
+  };
+};
+
+const getEventFacets = async () => {
+  const [categories, cities] = await Promise.all([
+    prisma.event.findMany({
+      where: {
+        category: {
+          not: null,
+        },
+      },
+      select: {
+        category: true,
+      },
+      distinct: ["category"],
+      orderBy: {
+        category: "asc",
+      },
+    }),
+    prisma.event.findMany({
+      where: {
+        city: {
+          not: null,
+        },
+      },
+      select: {
+        city: true,
+      },
+      distinct: ["city"],
+      orderBy: {
+        city: "asc",
+      },
+    }),
+  ]);
+
+  return {
+    categories: categories.map((row) => row.category).filter(Boolean),
+    cities: cities.map((row) => row.city).filter(Boolean),
   };
 };
 
@@ -513,6 +639,7 @@ const deleteEvent = async (id) => {
 export default {
   createEvent,
   getAllEvents,
+  getEventFacets,
   getEventById,
   getEventRecordById,
   getTicketTiersForEvent,

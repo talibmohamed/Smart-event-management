@@ -9,6 +9,7 @@ import roleMiddleware from "../middlewares/roleMiddleware.js";
 const router = express.Router();
 
 router.get("/", eventController.getAllEvents);
+router.get("/facets", eventController.getEventFacets);
 router.get(
   "/:id/attendees",
   authMiddleware,
